@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse } from './types.gen';
+import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesAddItemData, ServicesAddItemResponse, ServicesDeleteItemData } from './types.gen';
 
 export class ItemsService {
     /**
@@ -466,8 +466,8 @@ export class UtilsService {
         });
     }
 }
-// NOTE: ClientsService was added manually — regenerate with `bash scripts/generate-client.sh`
-// inside the dev container after the backend has the clients router running.
+// NOTE: ClientsService and ServicesService were added manually — regenerate with `bash scripts/generate-client.sh`
+// inside the dev container after the backend has the services router running.
 export class ClientsService {
     /**
      * Read Clients
@@ -580,6 +580,79 @@ export class ClientsService {
                 404: 'Not Found',
                 422: 'Validation Error'
             }
+        });
+    }
+}
+
+export class ServicesService {
+    public static readServices(data: ServicesReadServicesData = {}): CancelablePromise<ServicesReadServicesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/services/',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: { 422: 'Validation Error' }
+        });
+    }
+
+    public static createService(data: ServicesCreateServiceData): CancelablePromise<ServicesCreateServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: { 422: 'Validation Error' }
+        });
+    }
+
+    public static readService(data: ServicesReadServiceData): CancelablePromise<ServicesReadServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/services/{service_id}',
+            path: { service_id: data.serviceId },
+            errors: { 404: 'Not Found', 422: 'Validation Error' }
+        });
+    }
+
+    public static updateService(data: ServicesUpdateServiceData): CancelablePromise<ServicesUpdateServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/services/{service_id}',
+            path: { service_id: data.serviceId },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: { 404: 'Not Found', 422: 'Validation Error' }
+        });
+    }
+
+    public static deleteService(data: ServicesDeleteServiceData): CancelablePromise<unknown> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/services/{service_id}',
+            path: { service_id: data.serviceId },
+            errors: { 404: 'Not Found', 422: 'Validation Error' }
+        });
+    }
+
+    public static addItem(data: ServicesAddItemData): CancelablePromise<ServicesAddItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/{service_id}/items',
+            path: { service_id: data.serviceId },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: { 404: 'Not Found', 422: 'Validation Error' }
+        });
+    }
+
+    public static deleteItem(data: ServicesDeleteItemData): CancelablePromise<unknown> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/services/{service_id}/items/{item_id}',
+            path: { service_id: data.serviceId, item_id: data.itemId },
+            errors: { 404: 'Not Found', 422: 'Validation Error' }
         });
     }
 }

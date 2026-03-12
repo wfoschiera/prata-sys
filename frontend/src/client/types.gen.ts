@@ -176,6 +176,112 @@ export type ClientsDeleteClientData = {
 
 export type ClientsDeleteClientResponse = (Message);
 
+// NOTE: Service types below were added manually — regenerate with `bash scripts/generate-client.sh`
+export type ServiceType = 'perfuração' | 'reparo';
+
+export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed';
+
+export type ItemType = 'material' | 'serviço';
+
+export type ServiceItemRead = {
+    item_type: ItemType;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    id: string;
+    service_id: string;
+};
+
+export type ServiceItemCreate = {
+    item_type: ItemType;
+    description: string;
+    quantity: number;
+    unit_price: number;
+};
+
+export type ClientRef = {
+    id: string;
+    name: string;
+};
+
+export type ServiceRead = {
+    type: ServiceType;
+    execution_address: string;
+    notes?: (string | null);
+    id: string;
+    client_id: string;
+    status: ServiceStatus;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+    client?: (ClientRef | null);
+    items: Array<ServiceItemRead>;
+};
+
+export type ServicesPublic = {
+    data: Array<ServiceRead>;
+    count: number;
+};
+
+export type ServiceCreate = {
+    type: ServiceType;
+    execution_address: string;
+    notes?: (string | null);
+    client_id: string;
+};
+
+export type ServiceUpdate = {
+    type?: (ServiceType | null);
+    status?: (ServiceStatus | null);
+    execution_address?: (string | null);
+    notes?: (string | null);
+};
+
+export type ServicesReadServicesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ServicesReadServicesResponse = ServicesPublic;
+
+export type ServicesCreateServiceData = {
+    requestBody: ServiceCreate;
+};
+
+export type ServicesCreateServiceResponse = ServiceRead;
+
+export type ServicesReadServiceData = {
+    serviceId: string;
+};
+
+export type ServicesReadServiceResponse = ServiceRead;
+
+export type ServicesUpdateServiceData = {
+    serviceId: string;
+    requestBody: ServiceUpdate;
+};
+
+export type ServicesUpdateServiceResponse = ServiceRead;
+
+export type ServicesDeleteServiceData = {
+    serviceId: string;
+};
+
+export type ServicesDeleteServiceResponse = unknown;
+
+export type ServicesAddItemData = {
+    serviceId: string;
+    requestBody: ServiceItemCreate;
+};
+
+export type ServicesAddItemResponse = ServiceItemRead;
+
+export type ServicesDeleteItemData = {
+    serviceId: string;
+    itemId: string;
+};
+
+export type ServicesDeleteItemResponse = unknown;
+
 export type ValidationError = {
     loc: Array<(string | number)>;
     msg: string;
