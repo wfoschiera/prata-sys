@@ -2,11 +2,11 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from pydantic import EmailStr, field_validator
-from sqlalchemy import DateTime
-from sqlmodel import Field, SQLModel
+from sqlalchemy import DateTime, Text
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def get_datetime_utc() -> datetime:
@@ -178,3 +178,109 @@ class ClientPublic(ClientBase):
 class ClientsPublic(SQLModel):
     data: list[ClientPublic]
     count: int
+
+
+# ── Service ───────────────────────────────────────────────────────────────────
+
+class ServiceType(str, enum.Enum):
+    perfuracao = "perfuração"
+    reparo = "reparo"
+
+
+class ServiceStatus(str, enum.Enum):
+    requested = "requested"
+    scheduled = "scheduled"
+    executing = "executing"
+    completed = "completed"
+
+
+class ItemType(str, enum.Enum):
+    material = "material"
+    servico = "serviço"
+
+
+# Valid status transitions
+VALID_STATUS_TRANSITIONS: dict[ServiceStatus, list[ServiceStatus]] = {
+    ServiceStatus.requested: [ServiceStatus.scheduled],
+    ServiceStatus.scheduled: [ServiceStatus.executing],
+    ServiceStatus.executing: [ServiceStatus.completed],
+    ServiceStatus.completed: [],
+}
+
+
+class ServiceItemBase(SQLModel):
+    item_type: ItemType
+    description: str = Field(min_length=1, max_length=500)
+    quantity: float = Field(gt=0)
+    unit_price: float = Field(ge=0)
+
+
+class ServiceItemCreate(ServiceItemBase):
+    pass
+
+
+class ServiceItemRead(ServiceItemBase):
+    id: uuid.UUID
+    service_id: uuid.UUID
+
+
+class ServiceItem(ServiceItemBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    service_id: uuid.UUID = Field(foreign_key="service.id", nullable=False)
+    service: "Service" = Relationship(back_populates="items")
+
+
+class ClientRef(SQLModel):
+    id: uuid.UUID
+    name: str
+
+
+class ServiceBase(SQLModel):
+    type: ServiceType
+    execution_address: str = Field(min_length=1, max_length=500)
+    notes: str | None = Field(default=None, sa_type=Text)  # type: ignore
+
+
+class ServiceCreate(ServiceBase):
+    client_id: uuid.UUID
+
+
+class ServiceUpdate(SQLModel):
+    type: ServiceType | None = None
+    status: ServiceStatus | None = None
+    execution_address: str | None = Field(default=None, min_length=1, max_length=500)
+    notes: str | None = None
+
+
+class ServiceRead(ServiceBase):
+    id: uuid.UUID
+    client_id: uuid.UUID
+    status: ServiceStatus
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    client: ClientRef | None = None
+    items: list[ServiceItemRead] = []
+
+
+class ServicesPublic(SQLModel):
+    data: list[ServiceRead]
+    count: int
+
+
+class Service(ServiceBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False)
+    status: ServiceStatus = Field(default=ServiceStatus.requested)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    client: Client | None = Relationship()
+    items: list[ServiceItem] = Relationship(
+        back_populates="service",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
