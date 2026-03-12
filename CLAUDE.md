@@ -118,7 +118,9 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 
 ### Git
 - **Always use conventional commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`
-- **Always run tests before committing**
+- **Before every commit**: run linter, typecheck, AND tests — on both backend and frontend if either was changed
+  - Backend: `ruff check . && mypy . && bash ../scripts/test.sh`
+  - Frontend: `bun run lint && bun run build && bun run test`
 
 ### Backend
 - Models go in `backend/app/models.py` (SQLModel)
