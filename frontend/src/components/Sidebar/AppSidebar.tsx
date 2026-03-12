@@ -1,4 +1,4 @@
-import { Home, Users } from "lucide-react"
+import { Home, Users, UserSquare2 } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -19,9 +19,18 @@ const baseItems: Item[] = [
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
 
-  const items = currentUser?.is_superuser
-    ? [...baseItems, { icon: Users, title: "Admin", path: "/admin" }]
-    : baseItems
+  const role = (currentUser as any)?.role
+  const isAdminOrFinance = currentUser?.is_superuser || role === "admin" || role === "finance"
+
+  const items = [
+    ...baseItems,
+    ...(isAdminOrFinance
+      ? [{ icon: UserSquare2, title: "Clientes", path: "/clients" }]
+      : []),
+    ...(currentUser?.is_superuser
+      ? [{ icon: Users, title: "Admin", path: "/admin" }]
+      : []),
+  ]
 
   return (
     <Sidebar collapsible="icon">
