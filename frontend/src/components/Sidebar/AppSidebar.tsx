@@ -1,4 +1,4 @@
-import { Home, Users, UserSquare2 } from "lucide-react"
+import { Drill, Home, Users, UserSquare2 } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -25,7 +25,10 @@ export function AppSidebar() {
   const items = [
     ...baseItems,
     ...(isAdminOrFinance
-      ? [{ icon: UserSquare2, title: "Clientes", path: "/clients" }]
+      ? [
+          { icon: UserSquare2, title: "Clientes", path: "/clients" },
+          { icon: Drill, title: "Serviços", path: "/services" },
+        ]
       : []),
     ...(currentUser?.is_superuser
       ? [{ icon: Users, title: "Admin", path: "/admin" }]
