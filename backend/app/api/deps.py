@@ -55,3 +55,22 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
             status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+def require_role(*roles: str):
+    """Dependency factory that restricts access to users with specified roles.
+    Superusers bypass role checks entirely.
+    """
+    from app.models import UserRole
+
+    def role_checker(current_user: CurrentUser) -> User:
+        if current_user.is_superuser:
+            return current_user
+        if current_user.role not in [UserRole(r) for r in roles]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The user doesn't have enough privileges",
+            )
+        return current_user
+
+    return role_checker
