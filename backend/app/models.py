@@ -2,7 +2,9 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from pydantic import EmailStr
+from typing import Any
+
+from pydantic import EmailStr, field_validator
 from sqlalchemy import DateTime
 from sqlmodel import Field, SQLModel
 
@@ -93,3 +95,86 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=128)
+
+
+# ── Client ────────────────────────────────────────────────────────────────────
+
+class DocumentType(str, enum.Enum):
+    cpf = "cpf"
+    cnpj = "cnpj"
+
+
+def _validate_document_number(document_type: str, document_number: str) -> str:
+    digits = document_number.strip()
+    if not digits.isdigit():
+        raise ValueError("document_number must contain only digits")
+    expected = 11 if document_type == DocumentType.cpf else 14
+    if len(digits) != expected:
+        raise ValueError(
+            f"document_number must have {expected} digits for {document_type.upper()}"
+        )
+    return digits
+
+
+class ClientBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    document_type: DocumentType
+    document_number: str = Field(max_length=14)
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
+    address: str | None = Field(default=None, max_length=500)
+
+    @field_validator("document_number", mode="before")
+    @classmethod
+    def validate_document_number(cls, v: str, info: Any) -> str:
+        doc_type = (info.data or {}).get("document_type")
+        if doc_type is not None:
+            return _validate_document_number(doc_type, v)
+        return v
+
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class ClientUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    document_type: DocumentType | None = None
+    document_number: str | None = Field(default=None, max_length=14)
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
+    address: str | None = Field(default=None, max_length=500)
+
+    @field_validator("document_number", mode="before")
+    @classmethod
+    def validate_document_number(cls, v: str | None, info: Any) -> str | None:
+        if v is None:
+            return v
+        doc_type = (info.data or {}).get("document_type")
+        if doc_type is not None:
+            return _validate_document_number(doc_type, v)
+        return v
+
+
+class Client(ClientBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    document_number: str = Field(max_length=14, unique=True)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+
+class ClientPublic(ClientBase):
+    id: uuid.UUID
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ClientsPublic(SQLModel):
+    data: list[ClientPublic]
+    count: int
