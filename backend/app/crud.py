@@ -1,6 +1,8 @@
 from typing import Any
 
-from sqlmodel import Session, select
+import uuid
+
+from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User, UserCreate, UserUpdate
@@ -57,3 +59,47 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
         session.commit()
         session.refresh(db_user)
     return db_user
+
+
+# ── Client CRUD ───────────────────────────────────────────────────────────────
+
+def get_client(*, session: Session, client_id: uuid.UUID) -> "Client | None":
+    from app.models import Client
+    return session.get(Client, client_id)
+
+
+def get_clients(*, session: Session, skip: int = 0, limit: int = 100) -> tuple[list["Client"], int]:
+    from app.models import Client
+    count = session.exec(select(func.count()).select_from(Client)).one()
+    clients = session.exec(select(Client).offset(skip).limit(limit)).all()
+    return list(clients), count
+
+
+def get_client_by_document(*, session: Session, document_number: str) -> "Client | None":
+    from app.models import Client
+    return session.exec(select(Client).where(Client.document_number == document_number)).first()
+
+
+def create_client(*, session: Session, client_in: "ClientCreate") -> "Client":
+    from app.models import Client
+    db_client = Client.model_validate(client_in)
+    session.add(db_client)
+    session.commit()
+    session.refresh(db_client)
+    return db_client
+
+
+def update_client(*, session: Session, db_client: "Client", client_in: "ClientUpdate") -> "Client":
+    from datetime import datetime, timezone
+    client_data = client_in.model_dump(exclude_unset=True)
+    db_client.sqlmodel_update(client_data)
+    db_client.updated_at = datetime.now(timezone.utc)
+    session.add(db_client)
+    session.commit()
+    session.refresh(db_client)
+    return db_client
+
+
+def delete_client(*, session: Session, db_client: "Client") -> None:
+    session.delete(db_client)
+    session.commit()
