@@ -91,6 +91,29 @@ alembic revision --autogenerate -m "description"
 
 ---
 
+## OpenSpec Workflow
+
+This project uses [OpenSpec](https://openspec.dev) for spec-driven development. OpenSpec structures changes through artifacts (proposal → specs → design → tasks) before implementation.
+
+Config lives in `backend/openspec/config.yaml`. Changes are tracked under `backend/openspec/changes/`.
+
+### Key `/opsx` commands (Claude slash commands)
+
+| Command | Purpose |
+|---|---|
+| `/opsx:new` | Start a new change step-by-step |
+| `/opsx:ff` | Fast-forward: create all artifacts at once |
+| `/opsx:continue` | Resume an in-progress change |
+| `/opsx:apply` | Implement tasks from a change |
+| `/opsx:verify` | Verify implementation matches specs |
+| `/opsx:archive` | Archive a completed change |
+| `/opsx:explore` | Think through a problem before committing to an approach |
+| `/opsx:onboard` | Guided walkthrough of the full OpenSpec cycle |
+
+Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a direct implementation is fine.
+
+---
+
 ## Conventions & Rules
 
 ### Git
