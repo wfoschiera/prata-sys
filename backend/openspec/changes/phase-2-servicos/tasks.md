@@ -45,34 +45,34 @@
 
 ## 6. Frontend API Client Regeneration
 
-- [ ] 6.1 Regenerate the typed API client from the updated OpenAPI schema (run the project's codegen script) so that service endpoints and types are available in the frontend
+- [x] 6.1 Regenerate the typed API client from the updated OpenAPI schema (run the project's codegen script) so that service endpoints and types are available in the frontend
 
 ## 7. Frontend Services List Page
 
-- [ ] 7.1 Create route file `frontend/src/routes/services/index.tsx` using TanStack Router file-based routing
-- [ ] 7.2 Implement a `useQuery` call (via generated client) to fetch `/api/v1/services`
-- [ ] 7.3 Render a table with columns: Client Name, Type, Status, Execution Address
-- [ ] 7.4 Implement empty-state message when the services array is empty
-- [ ] 7.5 Add a "New Service" button that links to `/services/new`
+- [x] 7.1 Create route file `frontend/src/routes/_layout/services.tsx` using TanStack Router file-based routing
+- [x] 7.2 Implement a `useQuery` call (via generated client) to fetch `/api/v1/services`
+- [x] 7.3 Render a table with columns: Client Name, Type, Status, Execution Address
+- [x] 7.4 Implement empty-state message when the services array is empty
+- [x] 7.5 Add a "New Service" button that links to `/services/new`
 
 ## 8. Frontend New Service Form
 
-- [ ] 8.1 Create route file `frontend/src/routes/services/new.tsx`
-- [ ] 8.2 Implement a client selector (dropdown populated from `/api/v1/clients`) using the generated client
-- [ ] 8.3 Implement type selector (perfuração | reparo) and execution_address text input with required field validation
-- [ ] 8.4 Implement dynamic line-items section: add/remove rows for item_type, description, quantity, unit_price
-- [ ] 8.5 Validate that `quantity > 0` and `unit_price >= 0` client-side before submission
-- [ ] 8.6 On successful submission, call `POST /api/v1/services` (then `POST /api/v1/services/{id}/items` for each item) and redirect to `/services/{id}`
-- [ ] 8.7 Display inline validation errors for missing required fields without calling the API
+- [x] 8.1 Create route file `frontend/src/routes/services/new.tsx`
+- [x] 8.2 Implement a client selector (dropdown populated from `/api/v1/clients`) using the generated client
+- [x] 8.3 Implement type selector (perfuração | reparo) and execution_address text input with required field validation
+- [x] 8.4 Implement dynamic line-items section: add/remove rows for item_type, description, quantity, unit_price
+- [x] 8.5 Validate that `quantity > 0` and `unit_price >= 0` client-side before submission
+- [x] 8.6 On successful submission, call `POST /api/v1/services` (then `POST /api/v1/services/{id}/items` for each item) and redirect to `/services/{id}`
+- [x] 8.7 Display inline validation errors for missing required fields without calling the API
 
 ## 9. Frontend Service Detail View
 
-- [ ] 9.1 Create route file `frontend/src/routes/services/$serviceId.tsx`
-- [ ] 9.2 Implement a `useQuery` to fetch `/api/v1/services/{serviceId}`, returning 404 page if not found
-- [ ] 9.3 Render service header: client name, type, status badge, execution address, notes
-- [ ] 9.4 Render line items table: item_type, description, quantity, unit_price, line total (quantity × unit_price)
-- [ ] 9.5 Display grand total (sum of all line totals)
+- [x] 9.1 Create route file `frontend/src/routes/services/$serviceId.tsx`
+- [x] 9.2 Implement a `useQuery` to fetch `/api/v1/services/{serviceId}`, returning 404 page if not found
+- [x] 9.3 Render service header: client name, type, status badge, execution address, notes
+- [x] 9.4 Render line items table: item_type, description, quantity, unit_price, line total (quantity × unit_price)
+- [x] 9.5 Display grand total (sum of all line totals)
 
 ## 10. Frontend Sidebar Navigation
 
-- [ ] 10.1 Add a "Serviços" link to the main sidebar component pointing to `/services`
+- [x] 10.1 Add a "Serviços" link to the main sidebar component pointing to `/services`
