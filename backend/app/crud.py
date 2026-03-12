@@ -2,6 +2,7 @@ from typing import Any
 
 import uuid
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
@@ -102,4 +103,82 @@ def update_client(*, session: Session, db_client: "Client", client_in: "ClientUp
 
 def delete_client(*, session: Session, db_client: "Client") -> None:
     session.delete(db_client)
+    session.commit()
+
+
+# ── Service CRUD ──────────────────────────────────────────────────────────────
+
+def get_service(*, session: Session, service_id: uuid.UUID) -> "Service | None":
+    from app.models import Service
+    statement = (
+        select(Service)
+        .where(Service.id == service_id)
+        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore
+    )
+    return session.exec(statement).first()
+
+
+def get_services(*, session: Session, skip: int = 0, limit: int = 100) -> tuple[list["Service"], int]:
+    from app.models import Service
+    count = session.exec(select(func.count()).select_from(Service)).one()
+    statement = (
+        select(Service)
+        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore
+        .offset(skip)
+        .limit(limit)
+    )
+    services = session.exec(statement).all()
+    return list(services), count
+
+
+def create_service(*, session: Session, service_in: "ServiceCreate") -> "Service":
+    from app.models import Service
+    db_service = Service.model_validate(service_in)
+    session.add(db_service)
+    session.commit()
+    session.refresh(db_service)
+    # Re-fetch with relationships loaded
+    return get_service(session=session, service_id=db_service.id)  # type: ignore
+
+
+def update_service(*, session: Session, db_service: "Service", service_in: "ServiceUpdate") -> "Service":
+    from datetime import datetime, timezone
+    from app.models import VALID_STATUS_TRANSITIONS
+    service_data = service_in.model_dump(exclude_unset=True)
+    if "status" in service_data:
+        new_status = service_data["status"]
+        allowed = VALID_STATUS_TRANSITIONS.get(db_service.status, [])
+        if new_status not in allowed:
+            raise ValueError(
+                f"Invalid status transition from '{db_service.status}' to '{new_status}'"
+            )
+    db_service.sqlmodel_update(service_data)
+    db_service.updated_at = datetime.now(timezone.utc)
+    session.add(db_service)
+    session.commit()
+    # Re-fetch with relationships
+    return get_service(session=session, service_id=db_service.id)  # type: ignore
+
+
+def delete_service(*, session: Session, db_service: "Service") -> None:
+    session.delete(db_service)
+    session.commit()
+
+
+def create_service_item(*, session: Session, service_id: uuid.UUID, item_in: "ServiceItemCreate") -> "ServiceItem":
+    from app.models import ServiceItem
+    db_item = ServiceItem.model_validate(item_in, update={"service_id": service_id})
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item
+
+
+def get_service_item(*, session: Session, item_id: uuid.UUID) -> "ServiceItem | None":
+    from app.models import ServiceItem
+    return session.get(ServiceItem, item_id)
+
+
+def delete_service_item(*, session: Session, db_item: "ServiceItem") -> None:
+    session.delete(db_item)
     session.commit()
