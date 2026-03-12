@@ -103,6 +103,79 @@ export type UserUpdateMe = {
     email?: (string | null);
 };
 
+// NOTE: Client types below were added manually because `bun run generate-client`
+// requires Docker. Run `bash scripts/generate-client.sh` inside the dev container
+// to regenerate this file from the live OpenAPI schema.
+
+export type DocumentType = 'cpf' | 'cnpj';
+
+export type ClientPublic = {
+    name: string;
+    document_type: DocumentType;
+    document_number: string;
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+    id: string;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
+export type ClientsPublic = {
+    data: Array<ClientPublic>;
+    count: number;
+};
+
+export type ClientCreate = {
+    name: string;
+    document_type: DocumentType;
+    document_number: string;
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+};
+
+export type ClientUpdate = {
+    name?: (string | null);
+    document_type?: (DocumentType | null);
+    document_number?: (string | null);
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+};
+
+export type ClientsReadClientsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ClientsReadClientsResponse = (ClientsPublic);
+
+export type ClientsCreateClientData = {
+    requestBody: ClientCreate;
+};
+
+export type ClientsCreateClientResponse = (ClientPublic);
+
+export type ClientsReadClientData = {
+    clientId: string;
+};
+
+export type ClientsReadClientResponse = (ClientPublic);
+
+export type ClientsUpdateClientData = {
+    clientId: string;
+    requestBody: ClientUpdate;
+};
+
+export type ClientsUpdateClientResponse = (ClientPublic);
+
+export type ClientsDeleteClientData = {
+    clientId: string;
+};
+
+export type ClientsDeleteClientResponse = (Message);
+
 export type ValidationError = {
     loc: Array<(string | number)>;
     msg: string;
