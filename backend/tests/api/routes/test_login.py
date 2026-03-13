@@ -189,3 +189,61 @@ def test_login_with_argon2_password_keeps_hash(client: TestClient, db: Session) 
 
     assert user.hashed_password == original_hash
     assert user.hashed_password.startswith("$argon2")
+
+
+def test_get_access_token_inactive_user(client: TestClient, db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_create = UserCreate(email=email, password=password, is_active=False)
+    create_user(session=db, user_create=user_create)
+    login_data = {"username": email, "password": password}
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Inactive user"
+
+
+def test_reset_password_inactive_user(client: TestClient, db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_create = UserCreate(email=email, password=password, is_active=False)
+    create_user(session=db, user_create=user_create)
+    token = generate_password_reset_token(email=email)
+    data = {"new_password": "newpassword123", "token": token}
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=data)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Inactive user"
+
+
+def test_reset_password_nonexistent_user(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    token = generate_password_reset_token(email="nonexistent@example.com")
+    data = {"new_password": "newpassword123", "token": token}
+    r = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Invalid token"
+
+
+def test_recover_password_html_content(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/password-recovery-html-content/{settings.FIRST_SUPERUSER}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    assert "subject:" in r.headers
+
+
+def test_recover_password_html_content_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/password-recovery-html-content/nobody@example.com",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
