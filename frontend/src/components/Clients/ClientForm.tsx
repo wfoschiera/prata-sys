@@ -45,7 +45,7 @@ const formSchema = z
   .object({
     name: z.string().min(1, { message: "Nome é obrigatório" }).max(255),
     document_type: z.enum(["cpf", "cnpj"], {
-      required_error: "Tipo de documento é obrigatório",
+      error: "Tipo de documento é obrigatório",
     }),
     document_number: z
       .string()
