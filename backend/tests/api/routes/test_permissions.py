@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
@@ -113,7 +114,7 @@ def test_get_available_permissions(
         f"{settings.API_V1_STR}/permissions/available",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert data == ALL_PERMISSIONS
 
@@ -122,7 +123,7 @@ def test_get_available_permissions_admin(client: TestClient, db: Session) -> Non
     """Admin role has manage_permissions by default."""
     headers = _admin_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/permissions/available", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
 
 
 def test_get_available_permissions_finance_forbidden(
@@ -130,7 +131,7 @@ def test_get_available_permissions_finance_forbidden(
 ) -> None:
     headers = _finance_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/permissions/available", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_get_users_permissions(
@@ -140,7 +141,7 @@ def test_get_users_permissions(
         f"{settings.API_V1_STR}/permissions/users",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert isinstance(data, list)
     assert len(data) > 0
@@ -167,7 +168,7 @@ def test_set_user_overrides(
         headers=superuser_token_headers,
         json={"permissions": ["view_well_status", "view_reports"]},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "view_well_status" in data["overrides"]
     assert "view_reports" in data["overrides"]
@@ -192,7 +193,7 @@ def test_set_overrides_filters_role_defaults(
         headers=superuser_token_headers,
         json={"permissions": ["manage_users", "view_well_status"]},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     # manage_users is a role default, so it shouldn't be in overrides
     assert "manage_users" not in data["overrides"]
@@ -217,7 +218,7 @@ def test_set_overrides_invalid_permission(
         headers=superuser_token_headers,
         json={"permissions": ["nonexistent_permission"]},
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_get_single_user_permissions(
@@ -234,7 +235,7 @@ def test_get_single_user_permissions(
         f"{settings.API_V1_STR}/permissions/users/{user.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert data["role"] == "finance"
     assert "view_dashboard" in data["role_defaults"]
@@ -247,7 +248,7 @@ def test_get_single_user_permissions_not_found(
         f"{settings.API_V1_STR}/permissions/users/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
 
 
 # ── Route guard tests ────────────────────────────────────────────────────────
@@ -259,7 +260,7 @@ def test_require_permission_allows_role_default(
     """Admin can access manage_clients endpoint (role default)."""
     headers = _admin_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
 
 
 def test_require_permission_allows_override(client: TestClient, db: Session) -> None:
@@ -276,7 +277,7 @@ def test_require_permission_allows_override(client: TestClient, db: Session) -> 
 
     headers = user_authentication_headers(client=client, email=email, password=password)
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
 
 
 def test_require_permission_denies_no_permission(
@@ -290,7 +291,7 @@ def test_require_permission_denies_no_permission(
     headers = user_authentication_headers(client=client, email=email, password=password)
 
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_require_permission_superuser_bypass(
@@ -298,4 +299,4 @@ def test_require_permission_superuser_bypass(
 ) -> None:
     """Superuser can access any endpoint regardless of role."""
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=superuser_token_headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK

@@ -171,7 +171,13 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 - Always import all models at the top of `crud.py`
 
 **HTTP status testing**
-- When testing HTTP status codes, use constants from the `HTTPStatus` module instead of raw integers. For example, use `assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY` instead of `assert r.status_code == 422`.
+- When testing HTTP status codes, always use constants from the `HTTPStatus` module instead of raw integers. Replace all occurrences of raw status codes like `200`, `201`, `400`, `403`, `404`, `422`, etc., with their corresponding `HTTPStatus` constants. For example:
+  - Use `assert r.status_code == HTTPStatus.OK` instead of `assert r.status_code == 200`.
+  - Use `assert r.status_code == HTTPStatus.CREATED` instead of `assert r.status_code == 201`.
+  - Use `assert r.status_code == HTTPStatus.BAD_REQUEST` instead of `assert r.status_code == 400`.
+  - Use `assert r.status_code == HTTPStatus.FORBIDDEN` instead of `assert r.status_code == 403`.
+  - Use `assert r.status_code == HTTPStatus.NOT_FOUND` instead of `assert r.status_code == 404`.
+  - Use `assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY` instead of `assert r.status_code == 422`.
 
 **pre-commit mypy hook**
 - The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)

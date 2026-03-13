@@ -244,7 +244,7 @@ def test_create_transacao_finance_user(client: TestClient, db: Session) -> None:
     headers = _create_finance_user_headers(client, db)
     payload = _make_despesa()
     r = client.post(f"{API_PREFIX}/transacoes/", json=payload, headers=headers)
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     data = r.json()
     assert data["tipo"] == "despesa"
     assert data["categoria"] == "COMBUSTIVEL"
@@ -262,7 +262,7 @@ def test_create_transacao_unauthorized(client: TestClient, db: Session) -> None:
     crud.create_user(session=db, user_create=user_in)
     headers = user_authentication_headers(client=client, email=email, password=password)
     r = client.post(f"{API_PREFIX}/transacoes/", json=_make_despesa(), headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_create_transacao_invalid_tipo_categoria(
@@ -276,7 +276,7 @@ def test_create_transacao_invalid_tipo_categoria(
         "data_competencia": str(date.today()),
     }
     r = client.post(f"{API_PREFIX}/transacoes/", json=payload, headers=headers)
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_create_transacao_zero_valor(client: TestClient, db: Session) -> None:
@@ -294,7 +294,7 @@ def test_create_transacao_zero_valor(client: TestClient, db: Session) -> None:
 def test_list_transacoes(client: TestClient, db: Session) -> None:
     headers = _create_finance_user_headers(client, db)
     r = client.get(f"{API_PREFIX}/transacoes/", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "data" in data
     assert "count" in data
@@ -303,7 +303,7 @@ def test_list_transacoes(client: TestClient, db: Session) -> None:
 def test_list_transacoes_filter_tipo(client: TestClient, db: Session) -> None:
     headers = _create_finance_user_headers(client, db)
     r = client.get(f"{API_PREFIX}/transacoes/?tipo=despesa", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     for t in r.json()["data"]:
         assert t["tipo"] == "despesa"
 
@@ -315,14 +315,14 @@ def test_get_single_transacao(client: TestClient, db: Session) -> None:
     assert r.status_code == 201
     tid = r.json()["id"]
     r2 = client.get(f"{API_PREFIX}/transacoes/{tid}", headers=headers)
-    assert r2.status_code == 200
+    assert r2.status_code == HTTPStatus.OK
     assert r2.json()["id"] == tid
 
 
 def test_get_transacao_not_found(client: TestClient, db: Session) -> None:
     headers = _create_finance_user_headers(client, db)
     r = client.get(f"{API_PREFIX}/transacoes/{uuid.uuid4()}", headers=headers)
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_update_transacao(client: TestClient, db: Session) -> None:
@@ -343,13 +343,13 @@ def test_delete_transacao(client: TestClient, db: Session) -> None:
     r2 = client.delete(f"{API_PREFIX}/transacoes/{tid}", headers=headers)
     assert r2.status_code == 204
     r3 = client.get(f"{API_PREFIX}/transacoes/{tid}", headers=headers)
-    assert r3.status_code == 404
+    assert r3.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_resumo_endpoint(client: TestClient, db: Session) -> None:
     headers = _create_finance_user_headers(client, db)
     r = client.get(f"{API_PREFIX}/transacoes/resumo", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "total_receitas" in data
     assert "total_despesas" in data
@@ -365,4 +365,4 @@ def test_client_role_cannot_view_transacoes(client: TestClient, db: Session) -> 
     crud.create_user(session=db, user_create=user_in)
     headers = user_authentication_headers(client=client, email=email, password=password)
     r = client.get(f"{API_PREFIX}/transacoes/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
