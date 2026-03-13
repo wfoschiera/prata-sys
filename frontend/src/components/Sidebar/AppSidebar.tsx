@@ -1,4 +1,4 @@
-import { Drill, Home, UserSquare2, Users } from "lucide-react"
+import { Drill, Home, Lock, UserSquare2, Users } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -12,25 +12,36 @@ import useAuth from "@/hooks/useAuth"
 import { type Item, Main } from "./Main"
 import { User } from "./User"
 
-const baseItems: Item[] = [{ icon: Home, title: "Dashboard", path: "/" }]
+function hasPerm(
+  permissions: string[] | undefined,
+  isSuperuser: boolean | undefined,
+  perm: string,
+): boolean {
+  if (isSuperuser) return true
+  return permissions?.includes(perm) ?? false
+}
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
 
-  const role = (currentUser as any)?.role
-  const isAdminOrFinance =
-    currentUser?.is_superuser || role === "admin" || role === "finance"
+  const perms = currentUser?.permissions
+  const su = currentUser?.is_superuser
 
-  const items = [
-    ...baseItems,
-    ...(isAdminOrFinance
-      ? [
-          { icon: UserSquare2, title: "Clientes", path: "/clients" },
-          { icon: Drill, title: "Serviços", path: "/services" },
-        ]
+  const items: Item[] = [
+    ...(hasPerm(perms, su, "view_dashboard")
+      ? [{ icon: Home, title: "Dashboard", path: "/" as const }]
       : []),
-    ...(currentUser?.is_superuser
-      ? [{ icon: Users, title: "Admin", path: "/admin" }]
+    ...(hasPerm(perms, su, "manage_clients")
+      ? [{ icon: UserSquare2, title: "Clientes", path: "/clients" as const }]
+      : []),
+    ...(hasPerm(perms, su, "manage_services")
+      ? [{ icon: Drill, title: "Serviços", path: "/services" as const }]
+      : []),
+    ...(hasPerm(perms, su, "manage_users")
+      ? [{ icon: Users, title: "Usuários", path: "/admin" as const }]
+      : []),
+    ...(hasPerm(perms, su, "manage_permissions")
+      ? [{ icon: Lock, title: "Permissões", path: "/permissions" as const }]
       : []),
   ]
 
