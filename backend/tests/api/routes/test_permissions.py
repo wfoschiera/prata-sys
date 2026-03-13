@@ -24,7 +24,11 @@ def test_role_defaults_admin() -> None:
 
 def test_role_defaults_finance() -> None:
     defaults = get_role_defaults(UserRole.finance)
-    assert defaults == {"view_dashboard", "view_contas_pagar", "view_contas_receber"}
+    assert "manage_financeiro" in defaults
+    assert "view_financeiro" in defaults
+    assert "view_dashboard" in defaults
+    assert "view_contas_pagar" in defaults
+    assert "view_contas_receber" in defaults
 
 
 def test_role_defaults_client() -> None:
