@@ -54,6 +54,16 @@ async function createUserWithRole(
   return { email, password }
 }
 
+/** Clear existing session cookies so we can log in as a different user. */
+async function switchUser(
+  page: import("@playwright/test").Page,
+  email: string,
+  password: string,
+) {
+  await page.context().clearCookies()
+  await logInUser(page, email, password)
+}
+
 // ---------------------------------------------------------------------------
 // 14.3 Finance user creates a receita — appears in transactions list
 // ---------------------------------------------------------------------------
@@ -63,7 +73,7 @@ test("14.3 finance user creates receita — appears in transactions list", async
 }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
   const { email, password } = await createUserWithRole(superToken, "finance")
-  await logInUser(page, email, password)
+  await switchUser(page, email, password)
 
   await page.goto("/financeiro/transacoes")
   await expect(page.getByRole("heading", { name: /Transações/i })).toBeVisible()
@@ -100,7 +110,7 @@ test("14.4 finance user creates despesa COMBUSTIVEL — appears under Despesas",
 }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
   const { email, password } = await createUserWithRole(superToken, "finance")
-  await logInUser(page, email, password)
+  await switchUser(page, email, password)
 
   await page.goto("/financeiro/contas-a-pagar")
   await expect(page.getByRole("heading", { name: /Despesas/i })).toBeVisible()
@@ -161,7 +171,7 @@ test("14.6 dashboard KPI cards show Receitas, Despesas, Resultado Líquido", asy
 }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
   const { email, password } = await createUserWithRole(superToken, "finance")
-  await logInUser(page, email, password)
+  await switchUser(page, email, password)
 
   await page.goto("/financeiro")
 
@@ -181,7 +191,7 @@ test("14.7 dashboard renders a bar chart with 6 month labels", async ({
 }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
   const { email, password } = await createUserWithRole(superToken, "finance")
-  await logInUser(page, email, password)
+  await switchUser(page, email, password)
 
   await page.goto("/financeiro")
 
@@ -219,7 +229,7 @@ test("14.8 admin-role user sees finance pages but has no Nova Transação button
 }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
   const { email, password } = await createUserWithRole(superToken, "admin")
-  await logInUser(page, email, password)
+  await switchUser(page, email, password)
 
   await page.goto("/financeiro/transacoes")
   await expect(page.getByRole("heading", { name: /Transações/i })).toBeVisible()
@@ -242,7 +252,7 @@ test.describe("14.9 client user has no finance sidebar links", () => {
   }) => {
     const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
     const { email, password } = await createUserWithRole(superToken, "client")
-    await logInUser(page, email, password)
+    await switchUser(page, email, password)
 
     await expect(
       page.getByRole("link", { name: /Dashboard Financeiro/i }),
