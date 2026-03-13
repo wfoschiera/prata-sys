@@ -1,4 +1,9 @@
 import { expect, test } from "@playwright/test"
+
+// Items feature was replaced by Serviços (services) in prata-sys.
+// These tests are skipped until they are rewritten for the services domain.
+test.skip(true, "Items feature replaced by Serviços — tests not yet updated")
+
 import { createUser } from "./utils/privateApi"
 import {
   randomEmail,

@@ -62,7 +62,11 @@ export const columns: ColumnDef<UserTableData>[] = [
             {roleLabel[role] ?? role}
           </Badge>
           {row.original.is_superuser && (
-            <ShieldCheck className="size-4 text-amber-500" />
+            <ShieldCheck
+              className="size-4 text-amber-500"
+              aria-label="Superuser"
+              title="Superuser"
+            />
           )}
         </div>
       )
