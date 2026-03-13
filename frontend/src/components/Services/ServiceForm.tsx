@@ -1,15 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useFieldArray, useForm, type Control } from "react-hook-form"
-import { z } from "zod"
 import { Plus, Trash2 } from "lucide-react"
+import { useFieldArray, useForm } from "react-hook-form"
+import { z } from "zod"
 
 import {
+  ClientsService,
   type ServiceCreate,
   type ServiceItemCreate,
-  type ServiceType,
-  ClientsService,
   ServicesService,
+  type ServiceType,
 } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,17 +47,20 @@ const SERVICE_TYPES = ["perfuração", "reparo"] as const
 
 const itemSchema = z.object({
   item_type: z.enum(ITEM_TYPES, {
-    required_error: "Tipo é obrigatório",
+    error: "Tipo é obrigatório",
   }),
-  description: z.string().min(1, { message: "Descrição é obrigatória" }).max(500),
-  quantity: z.coerce.number().gt(0, { message: "Quantidade deve ser maior que 0" }),
-  unit_price: z.coerce.number().gte(0, { message: "Preço não pode ser negativo" }),
+  description: z
+    .string()
+    .min(1, { message: "Descrição é obrigatória" })
+    .max(500),
+  quantity: z.number().gt(0, { message: "Quantidade deve ser maior que 0" }),
+  unit_price: z.number().gte(0, { message: "Preço não pode ser negativo" }),
 })
 
 const formSchema = z.object({
   client_id: z.string().min(1, { message: "Cliente é obrigatório" }),
   type: z.enum(SERVICE_TYPES, {
-    required_error: "Tipo de serviço é obrigatório",
+    error: "Tipo de serviço é obrigatório",
   }),
   execution_address: z
     .string()
@@ -84,7 +87,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
     enabled: isOpen,
   })
 
-  const form = useForm<FormData, unknown, FormData>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
     defaultValues: {
@@ -96,10 +99,8 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
     },
   })
 
-  const typedControl = form.control as Control<FormData>
-
   const { fields, append, remove } = useFieldArray({
-    control: typedControl,
+    control: form.control,
     name: "items",
   })
 
@@ -156,7 +157,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <FormField
-                control={typedControl}
+                control={form.control}
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
@@ -184,14 +185,17 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  control={typedControl}
+                  control={form.control}
                   name="type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
                         Tipo <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -209,15 +213,19 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
               </div>
 
               <FormField
-                control={typedControl}
+                control={form.control}
                 name="execution_address"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Endereço de Execução <span className="text-destructive">*</span>
+                      Endereço de Execução{" "}
+                      <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Endereço completo onde o serviço será executado" {...field} />
+                      <Input
+                        placeholder="Endereço completo onde o serviço será executado"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -225,7 +233,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
               />
 
               <FormField
-                control={typedControl}
+                control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
@@ -277,20 +285,27 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                       >
                         <div className="col-span-2">
                           <FormField
-                            control={typedControl}
+                            control={form.control}
                             name={`items.${index}.item_type`}
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-xs">Tipo</FormLabel>
-                                <Select value={field.value} onValueChange={field.onChange}>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
                                   <FormControl>
                                     <SelectTrigger className="h-8 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="material">Material</SelectItem>
-                                    <SelectItem value="serviço">Serviço</SelectItem>
+                                    <SelectItem value="material">
+                                      Material
+                                    </SelectItem>
+                                    <SelectItem value="serviço">
+                                      Serviço
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -300,13 +315,19 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-4">
                           <FormField
-                            control={typedControl}
+                            control={form.control}
                             name={`items.${index}.description`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs">Descrição</FormLabel>
+                                <FormLabel className="text-xs">
+                                  Descrição
+                                </FormLabel>
                                 <FormControl>
-                                  <Input className="h-8 text-xs" placeholder="Descrição" {...field} />
+                                  <Input
+                                    className="h-8 text-xs"
+                                    placeholder="Descrição"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -315,7 +336,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-2">
                           <FormField
-                            control={typedControl}
+                            control={form.control}
                             name={`items.${index}.quantity`}
                             render={({ field }) => (
                               <FormItem>
@@ -327,6 +348,9 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                                     step="0.01"
                                     min="0.01"
                                     {...field}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.valueAsNumber)
+                                    }
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -336,11 +360,13 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-3">
                           <FormField
-                            control={typedControl}
+                            control={form.control}
                             name={`items.${index}.unit_price`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs">Preço Unit.</FormLabel>
+                                <FormLabel className="text-xs">
+                                  Preço Unit.
+                                </FormLabel>
                                 <FormControl>
                                   <Input
                                     className="h-8 text-xs"
@@ -348,6 +374,9 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                                     step="0.01"
                                     min="0"
                                     {...field}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.valueAsNumber)
+                                    }
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -375,7 +404,11 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" disabled={mutation.isPending} onClick={handleClose}>
+                <Button
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={handleClose}
+                >
                   Cancelar
                 </Button>
               </DialogClose>

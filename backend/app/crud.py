@@ -1,12 +1,23 @@
-from typing import Any
-
 import uuid
+from typing import Any
 
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import User, UserCreate, UserUpdate
+from app.models import (
+    Client,
+    ClientCreate,
+    ClientUpdate,
+    Service,
+    ServiceCreate,
+    ServiceItem,
+    ServiceItemCreate,
+    ServiceUpdate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -64,25 +75,26 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
 
 # ── Client CRUD ───────────────────────────────────────────────────────────────
 
-def get_client(*, session: Session, client_id: uuid.UUID) -> "Client | None":
-    from app.models import Client
+
+def get_client(*, session: Session, client_id: uuid.UUID) -> Client | None:
     return session.get(Client, client_id)
 
 
-def get_clients(*, session: Session, skip: int = 0, limit: int = 100) -> tuple[list["Client"], int]:
-    from app.models import Client
+def get_clients(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> tuple[list[Client], int]:
     count = session.exec(select(func.count()).select_from(Client)).one()
     clients = session.exec(select(Client).offset(skip).limit(limit)).all()
     return list(clients), count
 
 
-def get_client_by_document(*, session: Session, document_number: str) -> "Client | None":
-    from app.models import Client
-    return session.exec(select(Client).where(Client.document_number == document_number)).first()
+def get_client_by_document(*, session: Session, document_number: str) -> Client | None:
+    return session.exec(
+        select(Client).where(Client.document_number == document_number)
+    ).first()
 
 
-def create_client(*, session: Session, client_in: "ClientCreate") -> "Client":
-    from app.models import Client
+def create_client(*, session: Session, client_in: ClientCreate) -> Client:
     db_client = Client.model_validate(client_in)
     session.add(db_client)
     session.commit()
@@ -90,8 +102,11 @@ def create_client(*, session: Session, client_in: "ClientCreate") -> "Client":
     return db_client
 
 
-def update_client(*, session: Session, db_client: "Client", client_in: "ClientUpdate") -> "Client":
+def update_client(
+    *, session: Session, db_client: Client, client_in: ClientUpdate
+) -> Client:
     from datetime import datetime, timezone
+
     client_data = client_in.model_dump(exclude_unset=True)
     db_client.sqlmodel_update(client_data)
     db_client.updated_at = datetime.now(timezone.utc)
@@ -101,29 +116,30 @@ def update_client(*, session: Session, db_client: "Client", client_in: "ClientUp
     return db_client
 
 
-def delete_client(*, session: Session, db_client: "Client") -> None:
+def delete_client(*, session: Session, db_client: Client) -> None:
     session.delete(db_client)
     session.commit()
 
 
 # ── Service CRUD ──────────────────────────────────────────────────────────────
 
-def get_service(*, session: Session, service_id: uuid.UUID) -> "Service | None":
-    from app.models import Service
+
+def get_service(*, session: Session, service_id: uuid.UUID) -> Service | None:
     statement = (
         select(Service)
         .where(Service.id == service_id)
-        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore
+        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore[arg-type]
     )
     return session.exec(statement).first()
 
 
-def get_services(*, session: Session, skip: int = 0, limit: int = 100) -> tuple[list["Service"], int]:
-    from app.models import Service
+def get_services(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> tuple[list[Service], int]:
     count = session.exec(select(func.count()).select_from(Service)).one()
     statement = (
         select(Service)
-        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore
+        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore[arg-type]
         .offset(skip)
         .limit(limit)
     )
@@ -131,19 +147,23 @@ def get_services(*, session: Session, skip: int = 0, limit: int = 100) -> tuple[
     return list(services), count
 
 
-def create_service(*, session: Session, service_in: "ServiceCreate") -> "Service":
-    from app.models import Service
+def create_service(*, session: Session, service_in: ServiceCreate) -> Service:
     db_service = Service.model_validate(service_in)
     session.add(db_service)
     session.commit()
     session.refresh(db_service)
-    # Re-fetch with relationships loaded
-    return get_service(session=session, service_id=db_service.id)  # type: ignore
+    result = get_service(session=session, service_id=db_service.id)
+    assert result is not None
+    return result
 
 
-def update_service(*, session: Session, db_service: "Service", service_in: "ServiceUpdate") -> "Service":
+def update_service(
+    *, session: Session, db_service: Service, service_in: ServiceUpdate
+) -> Service:
     from datetime import datetime, timezone
+
     from app.models import VALID_STATUS_TRANSITIONS
+
     service_data = service_in.model_dump(exclude_unset=True)
     if "status" in service_data:
         new_status = service_data["status"]
@@ -156,17 +176,19 @@ def update_service(*, session: Session, db_service: "Service", service_in: "Serv
     db_service.updated_at = datetime.now(timezone.utc)
     session.add(db_service)
     session.commit()
-    # Re-fetch with relationships
-    return get_service(session=session, service_id=db_service.id)  # type: ignore
+    result = get_service(session=session, service_id=db_service.id)
+    assert result is not None
+    return result
 
 
-def delete_service(*, session: Session, db_service: "Service") -> None:
+def delete_service(*, session: Session, db_service: Service) -> None:
     session.delete(db_service)
     session.commit()
 
 
-def create_service_item(*, session: Session, service_id: uuid.UUID, item_in: "ServiceItemCreate") -> "ServiceItem":
-    from app.models import ServiceItem
+def create_service_item(
+    *, session: Session, service_id: uuid.UUID, item_in: ServiceItemCreate
+) -> ServiceItem:
     db_item = ServiceItem.model_validate(item_in, update={"service_id": service_id})
     session.add(db_item)
     session.commit()
@@ -174,11 +196,10 @@ def create_service_item(*, session: Session, service_id: uuid.UUID, item_in: "Se
     return db_item
 
 
-def get_service_item(*, session: Session, item_id: uuid.UUID) -> "ServiceItem | None":
-    from app.models import ServiceItem
+def get_service_item(*, session: Session, item_id: uuid.UUID) -> ServiceItem | None:
     return session.get(ServiceItem, item_id)
 
 
-def delete_service_item(*, session: Session, db_item: "ServiceItem") -> None:
+def delete_service_item(*, session: Session, db_item: ServiceItem) -> None:
     session.delete(db_item)
     session.commit()

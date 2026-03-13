@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Annotated
+from typing import Annotated, Any
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -57,7 +57,7 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
     return current_user
 
 
-def require_role(*roles: str):
+def require_role(*roles: str) -> Any:
     """Dependency factory that restricts access to users with specified roles.
     Superusers bypass role checks entirely.
     """

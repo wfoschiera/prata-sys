@@ -2,7 +2,7 @@
 name = "app"
 version = "0.1.0"
 description = ""
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.13,<4.0"
 dependencies = [
     "fastapi[standard]<1.0.0,>=0.114.2",
     "python-multipart<1.0.0,>=0.0.7",
@@ -19,13 +19,14 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.0.0,<3.0.0",
     "pyjwt<3.0.0,>=2.8.0",
     "pwdlib[argon2,bcrypt]>=0.3.0",
+    "pre-commit>=4.5.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest<8.0.0,>=7.4.3",
     "mypy<2.0.0,>=1.8.0",
-    "ruff<1.0.0,>=0.2.2",
+    "ruff==0.15.5",
     "prek>=0.2.24,<1.0.0",
     "coverage<8.0.0,>=7.4.3",
 ]
@@ -37,6 +38,7 @@ build-backend = "hatchling.build"
 [tool.mypy]
 strict = true
 exclude = ["venv", ".venv", "alembic"]
+python_version = "3.13"
 
 [tool.ruff]
 target-version = "py310"
@@ -68,6 +70,11 @@ keep-runtime-typing = true
 [tool.coverage.run]
 source = ["app"]
 dynamic_context = "test_function"
+omit = [
+    "app/initial_data.py",
+    "app/tests_pre_start.py",
+    "app/backend_pre_start.py",
+]
 
 [tool.coverage.report]
 show_missing = true

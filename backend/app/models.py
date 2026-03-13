@@ -1,8 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from pydantic import EmailStr, field_validator
 from sqlalchemy import DateTime, Text
@@ -99,6 +98,7 @@ class NewPassword(SQLModel):
 
 # ── Client ────────────────────────────────────────────────────────────────────
 
+
 class DocumentType(str, enum.Enum):
     cpf = "cpf"
     cnpj = "cnpj"
@@ -182,6 +182,7 @@ class ClientsPublic(SQLModel):
 
 # ── Service ───────────────────────────────────────────────────────────────────
 
+
 class ServiceType(str, enum.Enum):
     perfuracao = "perfuração"
     reparo = "reparo"
@@ -238,7 +239,7 @@ class ClientRef(SQLModel):
 class ServiceBase(SQLModel):
     type: ServiceType
     execution_address: str = Field(min_length=1, max_length=500)
-    notes: str | None = Field(default=None, sa_type=Text)  # type: ignore
+    notes: str | None = Field(default=None, sa_type=Text)
 
 
 class ServiceCreate(ServiceBase):

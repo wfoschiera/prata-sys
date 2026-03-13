@@ -52,13 +52,17 @@ const DeleteClient = ({ id, name, isOpen, onClose }: DeleteClientProps) => {
           <DialogHeader>
             <DialogTitle>Excluir Cliente</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir o cliente{" "}
-              <strong>{name}</strong>? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o cliente <strong>{name}</strong>?
+              Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
             <DialogClose asChild>
-              <Button variant="outline" disabled={mutation.isPending} onClick={onClose}>
+              <Button
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={onClose}
+              >
                 Cancelar
               </Button>
             </DialogClose>

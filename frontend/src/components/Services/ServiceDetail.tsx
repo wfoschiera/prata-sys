@@ -26,7 +26,10 @@ const STATUS_LABELS: Record<ServiceStatus, string> = {
   completed: "Concluído",
 }
 
-const STATUS_VARIANTS: Record<ServiceStatus, "default" | "secondary" | "outline" | "destructive"> = {
+const STATUS_VARIANTS: Record<
+  ServiceStatus,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
   requested: "secondary",
   scheduled: "outline",
   executing: "default",
@@ -34,8 +37,8 @@ const STATUS_VARIANTS: Record<ServiceStatus, "default" | "secondary" | "outline"
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  "perfuração": "Perfuração",
-  "reparo": "Reparo",
+  perfuração: "Perfuração",
+  reparo: "Reparo",
 }
 
 interface ServiceDetailProps {
@@ -50,10 +53,11 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
     enabled: !!serviceId,
   })
 
-  const grandTotal = service?.items.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
-    0,
-  ) ?? 0
+  const grandTotal =
+    service?.items.reduce(
+      (sum, item) => sum + item.quantity * item.unit_price,
+      0,
+    ) ?? 0
 
   return (
     <Sheet open={!!serviceId} onOpenChange={(open) => !open && onClose()}>
@@ -92,14 +96,18 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                   Itens
                 </p>
                 {service.items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum item cadastrado.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum item cadastrado.
+                  </p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Descrição</TableHead>
                         <TableHead className="text-right">Qtd</TableHead>
-                        <TableHead className="text-right">Preço Unit.</TableHead>
+                        <TableHead className="text-right">
+                          Preço Unit.
+                        </TableHead>
                         <TableHead className="text-right">Total</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -112,7 +120,9 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                             </span>
                             {item.description}
                           </TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity}
+                          </TableCell>
                           <TableCell className="text-right">
                             {item.unit_price.toLocaleString("pt-BR", {
                               style: "currency",
@@ -120,10 +130,13 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                             })}
                           </TableCell>
                           <TableCell className="text-right">
-                            {(item.quantity * item.unit_price).toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
+                            {(item.quantity * item.unit_price).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

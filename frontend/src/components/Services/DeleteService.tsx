@@ -53,13 +53,17 @@ const DeleteService = ({ id, isOpen, onClose }: DeleteServiceProps) => {
           <DialogHeader>
             <DialogTitle>Excluir Serviço</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir este serviço? Esta ação não pode ser
-              desfeita. Todos os itens associados serão excluídos.
+              Tem certeza que deseja excluir este serviço? Esta ação não pode
+              ser desfeita. Todos os itens associados serão excluídos.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
             <DialogClose asChild>
-              <Button variant="outline" disabled={mutation.isPending} onClick={onClose}>
+              <Button
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={onClose}
+              >
                 Cancelar
               </Button>
             </DialogClose>

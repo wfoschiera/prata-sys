@@ -7,8 +7,8 @@ import { z } from "zod"
 import {
   type ClientCreate,
   type ClientPublic,
-  type ClientUpdate,
   ClientsService,
+  type ClientUpdate,
   type DocumentType,
 } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -45,13 +45,17 @@ const formSchema = z
   .object({
     name: z.string().min(1, { message: "Nome é obrigatório" }).max(255),
     document_type: z.enum(["cpf", "cnpj"], {
-      required_error: "Tipo de documento é obrigatório",
+      error: "Tipo de documento é obrigatório",
     }),
     document_number: z
       .string()
       .min(1, { message: "Número do documento é obrigatório" })
       .regex(/^\d+$/, { message: "Apenas dígitos são permitidos" }),
-    email: z.string().email({ message: "Email inválido" }).optional().or(z.literal("")),
+    email: z
+      .string()
+      .email({ message: "Email inválido" })
+      .optional()
+      .or(z.literal("")),
     phone: z.string().max(50).optional().or(z.literal("")),
     address: z.string().max(500).optional().or(z.literal("")),
   })
@@ -206,7 +210,10 @@ const ClientForm = ({ isOpen, onClose, client }: ClientFormProps) => {
                       Nome <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome completo ou razão social" {...field} />
+                      <Input
+                        placeholder="Nome completo ou razão social"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -276,7 +283,11 @@ const ClientForm = ({ isOpen, onClose, client }: ClientFormProps) => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="email@exemplo.com" type="email" {...field} />
+                      <Input
+                        placeholder="email@exemplo.com"
+                        type="email"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -314,7 +325,11 @@ const ClientForm = ({ isOpen, onClose, client }: ClientFormProps) => {
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" disabled={isPending} onClick={onClose}>
+                <Button
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={onClose}
+                >
                   Cancelar
                 </Button>
               </DialogClose>

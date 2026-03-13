@@ -26,7 +26,7 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
 
 | Layer       | Technology                                      |
 |-------------|------------------------------------------------|
-| Backend     | Python 3.10+, FastAPI, SQLModel, PostgreSQL    |
+| Backend     | Python 3.13+, FastAPI, SQLModel, PostgreSQL    |
 | Migrations  | Alembic                                         |
 | Auth        | JWT (PyJWT), Argon2/Bcrypt (pwdlib)            |
 | Frontend    | React 19, TypeScript, Vite, TanStack Router/Query |
@@ -135,3 +135,24 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 - Use the auto-generated client in `frontend/src/client/` — never hand-write API calls
 - Regenerate the client after any backend API change: `bash ./scripts/generate-client.sh`
 - Use `bun` for all JavaScript package management
+
+### Known pitfalls
+
+**Zod v4 API changes**
+- Use `error:` instead of `required_error:` in schema params — `required_error` no longer exists in Zod v4
+- Example: `z.enum(["a", "b"], { error: "Required" })` not `{ required_error: "Required" }`
+
+**React Hook Form + Zod number fields**
+- Never use `z.coerce.number()` for form fields — it makes the inferred input type `unknown`, causing a resolver type mismatch with `useForm<FormData>`
+- Instead use `z.number()` and add `onChange={(e) => field.onChange(e.target.valueAsNumber)}` on the `<input type="number">` element
+
+**SQLModel CRUD imports**
+- Never use local (inline) imports inside CRUD functions with string annotations like `-> "Client"` — mypy cannot resolve forward references to models that are not imported at module level
+- Always import all models at the top of `crud.py`
+
+**pre-commit mypy hook**
+- The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)
+- The hook must also pass `--python-version=3.13` to match the project's Python version
+
+**Docker: tests not found**
+- The `backend/tests/` directory must be explicitly `COPY`-ed in `backend/Dockerfile` — it is not included by default and pytest will fail with "file or directory not found: tests/"
