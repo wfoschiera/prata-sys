@@ -6,19 +6,36 @@
 
 The project is built on the [FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template) and is being developed as an MVP with planned expansion.
 
-### Current Scope (MVP)
-- **Cadastro** (registration) for Admins, Finance users, and Clients
-- **Serviços** (service orders): associate a service to a client (N client → 1 service), with execution site address
-- System is admin/finance-facing only for now; client portal is planned for the future
+### Implemented (Done)
+- **Phase 0**: Foundation cleanup — project structure, CI, pre-commit hooks
+- **Phase 1**: Client cadastro — CPF/CNPJ, address, admin/finance CRUD
+- **Phase 2**: Serviços — service orders with line items (material/labor), execution address, status field
+- **Phase 3**: RBAC — two-tier permission system (role defaults + per-user overrides), permissions page
 
-### Planned Future Scope
-- Client portal: clients monitor water well status and fill well data
-- Service order management with full lifecycle (requested → scheduled → executing → completed)
-- Supplier ("fornecedores") management with contacts and bank account info
-- Inventory control (stock of materials: tubes, connections, etc.)
-- Materials and services catalog (with unit prices, e.g., drilling price per diameter)
-- Outgoing orders tied to service type, client, and location
-- Roles: field technician ("técnico de campo"), geologist ("geólogo"), supervisor
+### Planned Phases (in order)
+
+#### Phase 4 — Finance Flows
+Simple financial tracking: income (receitas) and expenses (despesas). Categories include fuel, equipment/vehicle/office maintenance, materials purchase, CLT labor, day-laborer (diarista) payments, and admin costs. All in BRL. A `Transacao` table links optionally to a service, client, or fornecedor.
+- `transacao.fornecedor_id` is added in this phase as a nullable UUID column **without a FK constraint** (the `fornecedor` table doesn't exist yet). Free-text `nome_contraparte` covers the gap until Phase 6.
+
+#### Phase 5 — Service Lifecycle
+Enforces valid status transitions (`requested → scheduled → executing → completed | cancelled`), adds `cancelled_reason` and `description` fields, and logs every transition with who changed it and when. Stock integration (reserving and deducting inventory) is **deferred to Phase 7** — Phase 5 delivers the full lifecycle UI without it.
+
+#### Phase 6 — Fornecedores
+Supplier cadastro: company name, CNPJ (optional), multiple contacts (name, telefone, WhatsApp, role description), and product categories (tubos, conexões, bombas, cabos, outros). Includes a second migration that adds the FK constraint from `transacao.fornecedor_id → fornecedor.id`, enabling the transaction form to pick a real supplier.
+
+#### Phase 7 — Controle de Estoque
+Product types (with category + unit of measure), products (linked to a product type and fornecedor), and stock entries with three statuses:
+- `em_estoque` — available
+- `reservado` — reserved for a scheduled service (set automatically on scheduling; shortage is a warning, not a blocker)
+- `utilizado` — consumed (manual "Baixar do estoque" button while executing; automatic with review on completion)
+
+Includes a **depletion prediction**: `(em_estoque qty − reservado qty) ÷ avg daily consumption = days until stockout`, color-coded green/yellow/red. If no consumption history exists yet, shows "—".
+
+### Post-MVP
+- Client portal: clients monitor well status and fill in well data
+- Materials and services catalog with unit prices
+- Roles: field technician, geologist, supervisor
 
 ---
 
@@ -48,8 +65,10 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
   - `manutenção/reparo` (repair service)
   - Each service can have line items of type `material` or `serviço`
 - **Endereço de execução**: The site where the service is performed — may differ from the client's address.
-- **Fornecedor**: Supplier with contact info and bank account details for payment.
-- **Roles**: `admin`, `finance`, `client` (MVP); `technician`, `geologist`, `supervisor` (future)
+- **Fornecedor**: Supplier with company name, CNPJ (optional), multiple contacts (name, telefone, WhatsApp, role), and product categories they supply.
+- **Transacao**: Financial transaction (income or expense). Links optionally to a service, client, or fornecedor. `fornecedor_id` FK is added in Phase 6 after the fornecedor table exists.
+- **Estoque**: Inventory entries per product, with status `em_estoque | reservado | utilizado`. Reserved when a service is scheduled; deducted when executing/completed.
+- **Roles**: `admin`, `finance`, `client` (implemented); `technician`, `geologist`, `supervisor` (future)
 
 ---
 
@@ -150,6 +169,9 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 **SQLModel CRUD imports**
 - Never use local (inline) imports inside CRUD functions with string annotations like `-> "Client"` — mypy cannot resolve forward references to models that are not imported at module level
 - Always import all models at the top of `crud.py`
+
+**HTTP status testing**
+- When testing HTTP status codes, use constants from the `HTTPStatus` module instead of raw integers. For example, use `assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY` instead of `assert r.status_code == 422`.
 
 **pre-commit mypy hook**
 - The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)

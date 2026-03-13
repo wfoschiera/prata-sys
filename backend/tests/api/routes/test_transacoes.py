@@ -2,6 +2,8 @@
 
 import uuid
 from datetime import date, datetime, timezone
+from decimal import Decimal
+from http import HTTPStatus
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +16,7 @@ from app.models import (
     CategoriaTransacao,
     Client,
     ClientCreate,
+    DocumentType,
     Service,
     ServiceCreate,
     ServiceType,
@@ -44,7 +47,7 @@ def _create_finance_user_headers(client: TestClient, db: Session) -> dict[str, s
 def _create_client(db: Session) -> Client:
     client_in = ClientCreate(
         name="Test Cliente",
-        document_type="cpf",
+        document_type=DocumentType("cpf"),
         document_number="12345678901",
     )
     c = Client.model_validate(client_in)
@@ -118,20 +121,20 @@ def test_create_receita_crud(db: Session) -> None:
     t = TransacaoCreate(
         tipo=TipoTransacao.receita,
         categoria=CategoriaTransacao.SERVICO,
-        valor=1000,
+        valor=Decimal("1000.00"),
         data_competencia=date.today(),
     )
     result = crud.create_transacao(session=db, transacao_in=t)
     assert result.id is not None
     assert result.tipo == TipoTransacao.receita
-    assert result.valor == 1000
+    assert result.valor == 1000.00
 
 
 def test_create_despesa_crud(db: Session) -> None:
     t = TransacaoCreate(
         tipo=TipoTransacao.despesa,
         categoria=CategoriaTransacao.COMBUSTIVEL,
-        valor=100,
+        valor=Decimal("100"),
         data_competencia=date.today(),
         nome_contraparte="Posto X",
     )
@@ -145,7 +148,7 @@ def test_create_receita_invalid_categoria_raises() -> None:
         TransacaoCreate(
             tipo=TipoTransacao.receita,
             categoria=CategoriaTransacao.COMBUSTIVEL,
-            valor=100,
+            valor=Decimal("100"),
             data_competencia=date.today(),
         )
 
@@ -155,7 +158,7 @@ def test_create_despesa_invalid_categoria_raises() -> None:
         TransacaoCreate(
             tipo=TipoTransacao.despesa,
             categoria=CategoriaTransacao.SERVICO,
-            valor=100,
+            valor=Decimal("100"),
             data_competencia=date.today(),
         )
 
@@ -165,7 +168,7 @@ def test_create_valor_zero_raises() -> None:
         TransacaoCreate(
             tipo=TipoTransacao.receita,
             categoria=CategoriaTransacao.SERVICO,
-            valor=0,
+            valor=Decimal("0"),
             data_competencia=date.today(),
         )
 
@@ -177,7 +180,7 @@ def test_create_despesa_with_client_id_raises() -> None:
         TransacaoCreate(
             tipo=TipoTransacao.despesa,
             categoria=CategoriaTransacao.COMBUSTIVEL,
-            valor=100,
+            valor=Decimal("100"),
             data_competencia=date.today(),
             client_id=uuid.uuid4(),
         )
@@ -187,7 +190,7 @@ def test_get_transacoes_filter_by_tipo(db: Session) -> None:
     TransacaoCreate(
         tipo=TipoTransacao.receita,
         categoria=CategoriaTransacao.RENDIMENTO,
-        valor=200,
+        valor=Decimal("200"),
         data_competencia=date.today(),
     )
     results, _ = crud.get_transacoes(session=db, tipo=TipoTransacao.despesa)
@@ -211,7 +214,7 @@ def test_resumo_mensal_with_data(db: Session) -> None:
     r = Transacao(
         tipo=TipoTransacao.receita,
         categoria=CategoriaTransacao.SERVICO,
-        valor=5000,
+        valor=Decimal("5000"),
         data_competencia=target_date,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -219,7 +222,7 @@ def test_resumo_mensal_with_data(db: Session) -> None:
     d = Transacao(
         tipo=TipoTransacao.despesa,
         categoria=CategoriaTransacao.COMBUSTIVEL,
-        valor=1000,
+        valor=Decimal("1000"),
         data_competencia=target_date,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -285,7 +288,7 @@ def test_create_transacao_zero_valor(client: TestClient, db: Session) -> None:
         "data_competencia": str(date.today()),
     }
     r = client.post(f"{API_PREFIX}/transacoes/", json=payload, headers=headers)
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_list_transacoes(client: TestClient, db: Session) -> None:
