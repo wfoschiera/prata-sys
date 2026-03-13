@@ -102,12 +102,14 @@ def set_user_permissions(
 
     user = session.get(User, user_id)
     if not user:
-        raise ValueError(f"User {user_id} not found")
+        msg = f"User {user_id} not found"
+        raise ValueError(msg)
 
     # Validate permission strings
     invalid = [p for p in permissions if p not in ALL_PERMISSIONS]
     if invalid:
-        raise ValueError(f"Invalid permissions: {invalid}")
+        msg = f"Invalid permissions: {invalid}"
+        raise ValueError(msg)
 
     # Filter out role defaults (no need to store redundant overrides)
     role_defaults = get_role_defaults(user.role)
@@ -234,9 +236,8 @@ def update_service(
         new_status = service_data["status"]
         allowed = VALID_STATUS_TRANSITIONS.get(db_service.status, [])
         if new_status not in allowed:
-            raise ValueError(
-                f"Invalid status transition from '{db_service.status}' to '{new_status}'"
-            )
+            msg = f"Invalid status transition from '{db_service.status}' to '{new_status}'"
+            raise ValueError(msg)
     db_service.sqlmodel_update(service_data)
     db_service.updated_at = datetime.now(timezone.utc)
     session.add(db_service)

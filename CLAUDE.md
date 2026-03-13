@@ -178,6 +178,7 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
   - Use `assert r.status_code == HTTPStatus.FORBIDDEN` instead of `assert r.status_code == 403`.
   - Use `assert r.status_code == HTTPStatus.NOT_FOUND` instead of `assert r.status_code == 404`.
   - Use `assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY` instead of `assert r.status_code == 422`.
+- This is enforced by ruff rules `EM` (flake8-errmsg) — `ruff check --select EM` will flag raw integer literals used in HTTP responses. Never use magic numbers like `return 404, {"error": "Not Found"}`; always use `from http import HTTPStatus; return HTTPStatus.NOT_FOUND, {...}`.
 
 **pre-commit mypy hook**
 - The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)

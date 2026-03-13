@@ -124,12 +124,12 @@ class DocumentType(str, enum.Enum):
 def _validate_document_number(document_type: str, document_number: str) -> str:
     digits = document_number.strip()
     if not digits.isdigit():
-        raise ValueError("document_number must contain only digits")
+        msg = "document_number must contain only digits"
+        raise ValueError(msg)
     expected = 11 if document_type == DocumentType.cpf else 14
     if len(digits) != expected:
-        raise ValueError(
-            f"document_number must have {expected} digits for {document_type.upper()}"
-        )
+        msg = f"document_number must have {expected} digits for {document_type.upper()}"
+        raise ValueError(msg)
     return digits
 
 
@@ -392,25 +392,29 @@ class TransacaoCreate(TransacaoBase):
     @model_validator(mode="after")
     def validate_tipo_categoria_and_client(self) -> "TransacaoCreate":
         if self.valor <= 0:
-            raise ValueError("valor must be greater than zero")
+            msg = "valor must be greater than zero"
+            raise ValueError(msg)
         if (
             self.tipo == TipoTransacao.receita
             and self.categoria not in INCOME_CATEGORIES
         ):
-            raise ValueError(
+            msg = (
                 f"categoria '{self.categoria}' is not valid for tipo='receita'. "
                 f"Valid categories: {[c.value for c in INCOME_CATEGORIES]}"
             )
+            raise ValueError(msg)
         if (
             self.tipo == TipoTransacao.despesa
             and self.categoria not in EXPENSE_CATEGORIES
         ):
-            raise ValueError(
+            msg = (
                 f"categoria '{self.categoria}' is not valid for tipo='despesa'. "
                 f"Valid categories: {[c.value for c in EXPENSE_CATEGORIES]}"
             )
+            raise ValueError(msg)
         if self.tipo == TipoTransacao.despesa and self.client_id is not None:
-            raise ValueError("client_id may only be set when tipo='receita'")
+            msg = "client_id may only be set when tipo='receita'"
+            raise ValueError(msg)
         return self
 
 
@@ -427,7 +431,8 @@ class TransacaoUpdate(SQLModel):
     @model_validator(mode="after")
     def validate_valor(self) -> "TransacaoUpdate":
         if self.valor is not None and self.valor <= 0:
-            raise ValueError("valor must be greater than zero")
+            msg = "valor must be greater than zero"
+            raise ValueError(msg)
         return self
 
 
