@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useFieldArray, useForm } from "react-hook-form"
+import { useFieldArray, useForm, type Control } from "react-hook-form"
 import { z } from "zod"
 import { Plus, Trash2 } from "lucide-react"
 
@@ -42,8 +42,11 @@ import { Textarea } from "@/components/ui/textarea"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
+const ITEM_TYPES = ["material", "serviço"] as const
+const SERVICE_TYPES = ["perfuração", "reparo"] as const
+
 const itemSchema = z.object({
-  item_type: z.enum(["material", "serviço"] as const, {
+  item_type: z.enum(ITEM_TYPES, {
     required_error: "Tipo é obrigatório",
   }),
   description: z.string().min(1, { message: "Descrição é obrigatória" }).max(500),
@@ -53,7 +56,7 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
   client_id: z.string().min(1, { message: "Cliente é obrigatório" }),
-  type: z.enum(["perfuração", "reparo"] as const, {
+  type: z.enum(SERVICE_TYPES, {
     required_error: "Tipo de serviço é obrigatório",
   }),
   execution_address: z
@@ -81,7 +84,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
     enabled: isOpen,
   })
 
-  const form = useForm<FormData>({
+  const form = useForm<FormData, unknown, FormData>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
     defaultValues: {
@@ -93,8 +96,10 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
     },
   })
 
+  const typedControl = form.control as Control<FormData>
+
   const { fields, append, remove } = useFieldArray({
-    control: form.control,
+    control: typedControl,
     name: "items",
   })
 
@@ -151,7 +156,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
@@ -179,7 +184,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={typedControl}
                   name="type"
                   render={({ field }) => (
                     <FormItem>
@@ -204,7 +209,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
               </div>
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="execution_address"
                 render={({ field }) => (
                   <FormItem>
@@ -220,7 +225,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
               />
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
@@ -272,7 +277,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                       >
                         <div className="col-span-2">
                           <FormField
-                            control={form.control}
+                            control={typedControl}
                             name={`items.${index}.item_type`}
                             render={({ field }) => (
                               <FormItem>
@@ -295,7 +300,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-4">
                           <FormField
-                            control={form.control}
+                            control={typedControl}
                             name={`items.${index}.description`}
                             render={({ field }) => (
                               <FormItem>
@@ -310,7 +315,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-2">
                           <FormField
-                            control={form.control}
+                            control={typedControl}
                             name={`items.${index}.quantity`}
                             render={({ field }) => (
                               <FormItem>
@@ -331,7 +336,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                         </div>
                         <div className="col-span-3">
                           <FormField
-                            control={form.control}
+                            control={typedControl}
                             name={`items.${index}.unit_price`}
                             render={({ field }) => (
                               <FormItem>
