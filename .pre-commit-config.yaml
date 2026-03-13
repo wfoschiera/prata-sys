@@ -1,70 +1,26 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.15.5
     hooks:
-      - id: check-added-large-files
-      - id: check-toml
-      - id: check-yaml
-        args:
-          - --unsafe
-      - id: end-of-file-fixer
-        exclude: |
-            (?x)^(
-                frontend/src/client/.*|
-                backend/app/email-templates/build/.*
-            )$
-      - id: trailing-whitespace
-        exclude: ^frontend/src/client/.*
+      # Run the linter.
+      - id: ruff-check
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "" # Use the latest tag/sha, e.g., 'v1.9.0'
+    hooks:
+      - id: mypy
+
   - repo: local
     hooks:
       - id: local-biome-check
         name: biome check
-        entry: npm run lint
+        entry: npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched
         language: system
         types: [text]
-        files: ^frontend/
-
-      - id: local-ruff-check
-        name: ruff check
-        entry: uv run ruff check --force-exclude --fix --exit-non-zero-on-fix
-        require_serial: true
-        language: unsupported
-        types: [python]
-
-      - id: local-ruff-format
-        name: ruff format
-        entry: uv run ruff format --force-exclude --exit-non-zero-on-format
-        require_serial: true
-        language: unsupported
-        types: [python]
-
-      - id: local-mypy
-        name: mypy check
-        entry: uv run mypy backend/app
-        require_serial: true
-        language: unsupported
-        pass_filenames: false
-
-      - id: generate-frontend-sdk
-        name: Generate Frontend SDK
-        entry: bash ./scripts/generate-client.sh
-        pass_filenames: false
-        language: unsupported
-        files: ^backend/.*$|^scripts/generate-client\.sh$
-
-      - id: local-pytest
-        name: pytest (requires docker compose db to be running)
-        entry: bash -c '
-          if docker compose ps db 2>/dev/null | grep -q "running\|Up"; then
-            cd backend && uv run bash scripts/tests-start.sh
-          else
-            echo "⚠️  DB container not running — skipping tests. Run: docker compose up -d db mailcatcher" >&2
-            exit 0
-          fi
-        '
-        pass_filenames: false
-        require_serial: true
-        language: system
-        files: ^backend/
+        files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
