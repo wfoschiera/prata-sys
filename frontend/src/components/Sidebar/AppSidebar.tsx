@@ -1,4 +1,4 @@
-import { Drill, Home, Users, UserSquare2 } from "lucide-react"
+import { Drill, Home, UserSquare2, Users } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -12,15 +12,14 @@ import useAuth from "@/hooks/useAuth"
 import { type Item, Main } from "./Main"
 import { User } from "./User"
 
-const baseItems: Item[] = [
-  { icon: Home, title: "Dashboard", path: "/" },
-]
+const baseItems: Item[] = [{ icon: Home, title: "Dashboard", path: "/" }]
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
 
   const role = (currentUser as any)?.role
-  const isAdminOrFinance = currentUser?.is_superuser || role === "admin" || role === "finance"
+  const isAdminOrFinance =
+    currentUser?.is_superuser || role === "admin" || role === "finance"
 
   const items = [
     ...baseItems,

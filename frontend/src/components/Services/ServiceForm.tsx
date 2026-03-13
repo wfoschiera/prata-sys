@@ -1,15 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Plus, Trash2 } from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { z } from "zod"
-import { Plus, Trash2 } from "lucide-react"
 
 import {
+  ClientsService,
   type ServiceCreate,
   type ServiceItemCreate,
-  type ServiceType,
-  ClientsService,
   ServicesService,
+  type ServiceType,
 } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,7 +49,10 @@ const itemSchema = z.object({
   item_type: z.enum(ITEM_TYPES, {
     error: "Tipo é obrigatório",
   }),
-  description: z.string().min(1, { message: "Descrição é obrigatória" }).max(500),
+  description: z
+    .string()
+    .min(1, { message: "Descrição é obrigatória" })
+    .max(500),
   quantity: z.number().gt(0, { message: "Quantidade deve ser maior que 0" }),
   unit_price: z.number().gte(0, { message: "Preço não pode ser negativo" }),
 })
@@ -189,7 +192,10 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                       <FormLabel>
                         Tipo <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -212,10 +218,14 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Endereço de Execução <span className="text-destructive">*</span>
+                      Endereço de Execução{" "}
+                      <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Endereço completo onde o serviço será executado" {...field} />
+                      <Input
+                        placeholder="Endereço completo onde o serviço será executado"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -280,15 +290,22 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-xs">Tipo</FormLabel>
-                                <Select value={field.value} onValueChange={field.onChange}>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
                                   <FormControl>
                                     <SelectTrigger className="h-8 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="material">Material</SelectItem>
-                                    <SelectItem value="serviço">Serviço</SelectItem>
+                                    <SelectItem value="material">
+                                      Material
+                                    </SelectItem>
+                                    <SelectItem value="serviço">
+                                      Serviço
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -302,9 +319,15 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                             name={`items.${index}.description`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs">Descrição</FormLabel>
+                                <FormLabel className="text-xs">
+                                  Descrição
+                                </FormLabel>
                                 <FormControl>
-                                  <Input className="h-8 text-xs" placeholder="Descrição" {...field} />
+                                  <Input
+                                    className="h-8 text-xs"
+                                    placeholder="Descrição"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -325,7 +348,9 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                                     step="0.01"
                                     min="0.01"
                                     {...field}
-                                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.valueAsNumber)
+                                    }
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -339,7 +364,9 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                             name={`items.${index}.unit_price`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs">Preço Unit.</FormLabel>
+                                <FormLabel className="text-xs">
+                                  Preço Unit.
+                                </FormLabel>
                                 <FormControl>
                                   <Input
                                     className="h-8 text-xs"
@@ -347,7 +374,9 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
                                     step="0.01"
                                     min="0"
                                     {...field}
-                                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.valueAsNumber)
+                                    }
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -375,7 +404,11 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" disabled={mutation.isPending} onClick={handleClose}>
+                <Button
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={handleClose}
+                >
                   Cancelar
                 </Button>
               </DialogClose>

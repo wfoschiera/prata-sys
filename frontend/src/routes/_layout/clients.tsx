@@ -91,7 +91,9 @@ function ClientsTableContent({ onEdit, onDelete }: ClientsTableContentProps) {
               <TableCell className="uppercase text-xs">
                 {client.document_type}
               </TableCell>
-              <TableCell className="font-mono">{client.document_number}</TableCell>
+              <TableCell className="font-mono">
+                {client.document_number}
+              </TableCell>
               <TableCell className="text-muted-foreground">
                 {client.email ?? "—"}
               </TableCell>
@@ -162,10 +164,7 @@ function Clients() {
       </div>
 
       <Suspense fallback={<ClientsTableSkeleton />}>
-        <ClientsTableContent
-          onEdit={handleEdit}
-          onDelete={setDeleteClient}
-        />
+        <ClientsTableContent onEdit={handleEdit} onDelete={setDeleteClient} />
       </Suspense>
 
       <ClientForm

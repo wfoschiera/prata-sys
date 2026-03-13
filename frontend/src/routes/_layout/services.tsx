@@ -26,7 +26,10 @@ const STATUS_LABELS: Record<ServiceStatus, string> = {
   completed: "Concluído",
 }
 
-const STATUS_VARIANTS: Record<ServiceStatus, "default" | "secondary" | "outline" | "destructive"> = {
+const STATUS_VARIANTS: Record<
+  ServiceStatus,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
   requested: "secondary",
   scheduled: "outline",
   executing: "default",
@@ -34,8 +37,8 @@ const STATUS_VARIANTS: Record<ServiceStatus, "default" | "secondary" | "outline"
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  "perfuração": "Perfuração",
-  "reparo": "Reparo",
+  perfuração: "Perfuração",
+  reparo: "Reparo",
 }
 
 function getServicesQueryOptions() {
