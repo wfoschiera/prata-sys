@@ -1,20 +1,36 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+        exclude: |
+            (?x)^(
+                frontend/src/client/.*|
+                backend/app/email-templates/build/.*
+            )$
+      - id: trailing-whitespace
+        exclude: ^frontend/src/client/.*
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
     rev: v0.15.5
     hooks:
-      # Run the linter.
       - id: ruff-check
         args: [--fix]
-      # Run the formatter.
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "" # Use the latest tag/sha, e.g., 'v1.9.0'
+    rev: v1.19.1
     hooks:
       - id: mypy
+        args: [--ignore-missing-imports]
+        files: ^backend/
 
   - repo: local
     hooks:
@@ -24,3 +40,11 @@ repos:
         language: system
         types: [text]
         files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
+
+      - id: local-pytest
+        name: pytest (requires docker compose db to be running)
+        entry: bash scripts/run-tests-if-db-up.sh
+        pass_filenames: false
+        require_serial: true
+        language: system
+        files: ^backend/
