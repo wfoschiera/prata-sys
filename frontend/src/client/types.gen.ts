@@ -9,32 +9,53 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type ClientCreate = {
+    name: string;
+    document_type: DocumentType;
+    document_number: string;
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+};
+
+export type ClientPublic = {
+    name: string;
+    document_type: DocumentType;
+    document_number: string;
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+    id: string;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
+export type ClientRef = {
+    id: string;
+    name: string;
+};
+
+export type ClientsPublic = {
+    data: Array<ClientPublic>;
+    count: number;
+};
+
+export type ClientUpdate = {
+    name?: (string | null);
+    document_type?: (DocumentType | null);
+    document_number?: (string | null);
+    email?: (string | null);
+    phone?: (string | null);
+    address?: (string | null);
+};
+
+export type DocumentType = 'cpf' | 'cnpj';
+
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
-export type ItemCreate = {
-    title: string;
-    description?: (string | null);
-};
-
-export type ItemPublic = {
-    title: string;
-    description?: (string | null);
-    id: string;
-    owner_id: string;
-    created_at?: (string | null);
-};
-
-export type ItemsPublic = {
-    data: Array<ItemPublic>;
-    count: number;
-};
-
-export type ItemUpdate = {
-    title?: (string | null);
-    description?: (string | null);
-};
+export type ItemType = 'material' | 'serviço';
 
 export type Message = {
     message: string;
@@ -52,6 +73,62 @@ export type PrivateUserCreate = {
     is_verified?: boolean;
 };
 
+export type ServiceCreate = {
+    type: ServiceType;
+    execution_address: string;
+    notes?: (string | null);
+    client_id: string;
+};
+
+export type ServiceItemCreate = {
+    item_type: ItemType;
+    description: string;
+    quantity: number;
+    unit_price: number;
+};
+
+export type ServiceItemRead = {
+    item_type: ItemType;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    id: string;
+    service_id: string;
+};
+
+export type ServiceRead = {
+    type: ServiceType;
+    execution_address: string;
+    notes?: (string | null);
+    id: string;
+    client_id: string;
+    status: ServiceStatus;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+    client?: (ClientRef | null);
+    items?: Array<ServiceItemRead>;
+};
+
+export type ServicesPublic = {
+    data: Array<ServiceRead>;
+    count: number;
+};
+
+export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed';
+
+export type ServiceType = 'perfuração' | 'reparo';
+
+export type ServiceUpdate = {
+    type?: (ServiceType | null);
+    status?: (ServiceStatus | null);
+    execution_address?: (string | null);
+    notes?: (string | null);
+};
+
+export type SetPermissionsIn = {
+    permissions: Array<(string)>;
+};
+
 export type Token = {
     access_token: string;
     token_type?: string;
@@ -67,7 +144,19 @@ export type UserCreate = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    role?: UserRole;
     password: string;
+};
+
+export type UserPermissionsOut = {
+    id: string;
+    email: string;
+    full_name: (string | null);
+    role: string;
+    is_superuser: boolean;
+    role_defaults: Array<(string)>;
+    overrides: Array<(string)>;
+    effective: Array<(string)>;
 };
 
 export type UserPublic = {
@@ -75,8 +164,10 @@ export type UserPublic = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    role?: UserRole;
     id: string;
     created_at?: (string | null);
+    permissions?: Array<(string)>;
 };
 
 export type UserRegister = {
@@ -84,6 +175,8 @@ export type UserRegister = {
     password: string;
     full_name?: (string | null);
 };
+
+export type UserRole = 'admin' | 'finance' | 'client';
 
 export type UsersPublic = {
     data: Array<UserPublic>;
@@ -95,6 +188,7 @@ export type UserUpdate = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    role?: UserRole;
     password?: (string | null);
 };
 
@@ -103,45 +197,14 @@ export type UserUpdateMe = {
     email?: (string | null);
 };
 
-// NOTE: Client types below were added manually because `bun run generate-client`
-// requires Docker. Run `bash scripts/generate-client.sh` inside the dev container
-// to regenerate this file from the live OpenAPI schema.
-
-export type DocumentType = 'cpf' | 'cnpj';
-
-export type ClientPublic = {
-    name: string;
-    document_type: DocumentType;
-    document_number: string;
-    email?: (string | null);
-    phone?: (string | null);
-    address?: (string | null);
-    id: string;
-    created_at?: (string | null);
-    updated_at?: (string | null);
-};
-
-export type ClientsPublic = {
-    data: Array<ClientPublic>;
-    count: number;
-};
-
-export type ClientCreate = {
-    name: string;
-    document_type: DocumentType;
-    document_number: string;
-    email?: (string | null);
-    phone?: (string | null);
-    address?: (string | null);
-};
-
-export type ClientUpdate = {
-    name?: (string | null);
-    document_type?: (DocumentType | null);
-    document_number?: (string | null);
-    email?: (string | null);
-    phone?: (string | null);
-    address?: (string | null);
+export type ValidationError = {
+    loc: Array<(string | number)>;
+    msg: string;
+    type: string;
+    input?: unknown;
+    ctx?: {
+        [key: string]: unknown;
+    };
 };
 
 export type ClientsReadClientsData = {
@@ -176,154 +239,6 @@ export type ClientsDeleteClientData = {
 
 export type ClientsDeleteClientResponse = (Message);
 
-// NOTE: Service types below were added manually — regenerate with `bash scripts/generate-client.sh`
-export type ServiceType = 'perfuração' | 'reparo';
-
-export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed';
-
-export type ItemType = 'material' | 'serviço';
-
-export type ServiceItemRead = {
-    item_type: ItemType;
-    description: string;
-    quantity: number;
-    unit_price: number;
-    id: string;
-    service_id: string;
-};
-
-export type ServiceItemCreate = {
-    item_type: ItemType;
-    description: string;
-    quantity: number;
-    unit_price: number;
-};
-
-export type ClientRef = {
-    id: string;
-    name: string;
-};
-
-export type ServiceRead = {
-    type: ServiceType;
-    execution_address: string;
-    notes?: (string | null);
-    id: string;
-    client_id: string;
-    status: ServiceStatus;
-    created_at?: (string | null);
-    updated_at?: (string | null);
-    client?: (ClientRef | null);
-    items: Array<ServiceItemRead>;
-};
-
-export type ServicesPublic = {
-    data: Array<ServiceRead>;
-    count: number;
-};
-
-export type ServiceCreate = {
-    type: ServiceType;
-    execution_address: string;
-    notes?: (string | null);
-    client_id: string;
-};
-
-export type ServiceUpdate = {
-    type?: (ServiceType | null);
-    status?: (ServiceStatus | null);
-    execution_address?: (string | null);
-    notes?: (string | null);
-};
-
-export type ServicesReadServicesData = {
-    limit?: number;
-    skip?: number;
-};
-
-export type ServicesReadServicesResponse = ServicesPublic;
-
-export type ServicesCreateServiceData = {
-    requestBody: ServiceCreate;
-};
-
-export type ServicesCreateServiceResponse = ServiceRead;
-
-export type ServicesReadServiceData = {
-    serviceId: string;
-};
-
-export type ServicesReadServiceResponse = ServiceRead;
-
-export type ServicesUpdateServiceData = {
-    serviceId: string;
-    requestBody: ServiceUpdate;
-};
-
-export type ServicesUpdateServiceResponse = ServiceRead;
-
-export type ServicesDeleteServiceData = {
-    serviceId: string;
-};
-
-export type ServicesDeleteServiceResponse = unknown;
-
-export type ServicesAddItemData = {
-    serviceId: string;
-    requestBody: ServiceItemCreate;
-};
-
-export type ServicesAddItemResponse = ServiceItemRead;
-
-export type ServicesDeleteItemData = {
-    serviceId: string;
-    itemId: string;
-};
-
-export type ServicesDeleteItemResponse = unknown;
-
-export type ValidationError = {
-    loc: Array<(string | number)>;
-    msg: string;
-    type: string;
-    input?: unknown;
-    ctx?: {
-        [key: string]: unknown;
-    };
-};
-
-export type ItemsReadItemsData = {
-    limit?: number;
-    skip?: number;
-};
-
-export type ItemsReadItemsResponse = (ItemsPublic);
-
-export type ItemsCreateItemData = {
-    requestBody: ItemCreate;
-};
-
-export type ItemsCreateItemResponse = (ItemPublic);
-
-export type ItemsReadItemData = {
-    id: string;
-};
-
-export type ItemsReadItemResponse = (ItemPublic);
-
-export type ItemsUpdateItemData = {
-    id: string;
-    requestBody: ItemUpdate;
-};
-
-export type ItemsUpdateItemResponse = (ItemPublic);
-
-export type ItemsDeleteItemData = {
-    id: string;
-};
-
-export type ItemsDeleteItemResponse = (Message);
-
 export type LoginLoginAccessTokenData = {
     formData: Body_login_login_access_token;
 };
@@ -350,11 +265,76 @@ export type LoginRecoverPasswordHtmlContentData = {
 
 export type LoginRecoverPasswordHtmlContentResponse = (string);
 
+export type PermissionsGetAvailablePermissionsResponse = ({
+    [key: string]: (string);
+});
+
+export type PermissionsGetUsersPermissionsResponse = (Array<UserPermissionsOut>);
+
+export type PermissionsGetUserPermissionsData = {
+    userId: string;
+};
+
+export type PermissionsGetUserPermissionsResponse = (UserPermissionsOut);
+
+export type PermissionsSetUserPermissionsData = {
+    requestBody: SetPermissionsIn;
+    userId: string;
+};
+
+export type PermissionsSetUserPermissionsResponse = (UserPermissionsOut);
+
 export type PrivateCreateUserData = {
     requestBody: PrivateUserCreate;
 };
 
 export type PrivateCreateUserResponse = (UserPublic);
+
+export type ServicesReadServicesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ServicesReadServicesResponse = (ServicesPublic);
+
+export type ServicesCreateServiceData = {
+    requestBody: ServiceCreate;
+};
+
+export type ServicesCreateServiceResponse = (ServiceRead);
+
+export type ServicesReadServiceData = {
+    serviceId: string;
+};
+
+export type ServicesReadServiceResponse = (ServiceRead);
+
+export type ServicesUpdateServiceData = {
+    requestBody: ServiceUpdate;
+    serviceId: string;
+};
+
+export type ServicesUpdateServiceResponse = (ServiceRead);
+
+export type ServicesDeleteServiceData = {
+    serviceId: string;
+};
+
+export type ServicesDeleteServiceResponse = (void);
+
+export type ServicesCreateServiceItemData = {
+    requestBody: ServiceItemCreate;
+    serviceId: string;
+};
+
+export type ServicesCreateServiceItemResponse = (ServiceItemRead);
+
+export type ServicesDeleteServiceItemData = {
+    itemId: string;
+    serviceId: string;
+};
+
+export type ServicesDeleteServiceItemResponse = (void);
 
 export type UsersReadUsersData = {
     limit?: number;

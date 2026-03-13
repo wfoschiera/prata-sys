@@ -102,17 +102,19 @@ def test_read_services_superuser(
         assert "status" in item
 
 
-def test_read_services_finance_role(client: TestClient, db: Session) -> None:
+def test_read_services_finance_role_forbidden(client: TestClient, db: Session) -> None:
+    """Finance role does not have manage_services by default."""
     headers = _finance_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == 403
 
 
-def test_read_services_wrong_role_forbidden(client: TestClient, db: Session) -> None:
+def test_read_services_no_permission_forbidden(client: TestClient, db: Session) -> None:
+    """Client role has no permissions by default."""
     headers = _client_role_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
     assert r.status_code == 403
-    assert r.json()["detail"] == "The user doesn't have enough privileges"
+    assert r.json()["detail"] == "Insufficient permissions"
 
 
 def test_read_services_unauthenticated(client: TestClient) -> None:

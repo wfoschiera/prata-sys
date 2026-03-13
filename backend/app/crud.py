@@ -16,6 +16,7 @@ from app.models import (
     ServiceUpdate,
     User,
     UserCreate,
+    UserPermission,
     UserUpdate,
 )
 
@@ -71,6 +72,59 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
         session.commit()
         session.refresh(db_user)
     return db_user
+
+
+# ── Permission CRUD ───────────────────────────────────────────────────────────
+
+
+def get_user_permissions(
+    *, session: Session, user_id: uuid.UUID
+) -> list[UserPermission]:
+    statement = select(UserPermission).where(UserPermission.user_id == user_id)
+    return list(session.exec(statement).all())
+
+
+def set_user_permissions(
+    *, session: Session, user_id: uuid.UUID, permissions: list[str]
+) -> list[UserPermission]:
+    from app.core.permissions import ALL_PERMISSIONS, get_role_defaults
+
+    user = session.get(User, user_id)
+    if not user:
+        raise ValueError(f"User {user_id} not found")
+
+    # Validate permission strings
+    invalid = [p for p in permissions if p not in ALL_PERMISSIONS]
+    if invalid:
+        raise ValueError(f"Invalid permissions: {invalid}")
+
+    # Filter out role defaults (no need to store redundant overrides)
+    role_defaults = get_role_defaults(user.role)
+    overrides = [p for p in permissions if p not in role_defaults]
+
+    # Delete existing overrides
+    existing = get_user_permissions(session=session, user_id=user_id)
+    for perm in existing:
+        session.delete(perm)
+
+    # Insert new overrides
+    new_perms = []
+    for p in overrides:
+        up = UserPermission(user_id=user_id, permission=p)
+        session.add(up)
+        new_perms.append(up)
+
+    session.commit()
+    for perm in new_perms:
+        session.refresh(perm)
+    return new_perms
+
+
+def clear_user_permissions(*, session: Session, user_id: uuid.UUID) -> None:
+    existing = get_user_permissions(session=session, user_id=user_id)
+    for perm in existing:
+        session.delete(perm)
+    session.commit()
 
 
 # ── Client CRUD ───────────────────────────────────────────────────────────────

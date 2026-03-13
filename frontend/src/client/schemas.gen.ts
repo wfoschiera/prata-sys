@@ -57,6 +57,271 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const ClientCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        document_type: {
+            '$ref': '#/components/schemas/DocumentType'
+        },
+        document_number: {
+            type: 'string',
+            maxLength: 14,
+            title: 'Document Number'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        phone: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 50
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Phone'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        }
+    },
+    type: 'object',
+    required: ['name', 'document_type', 'document_number'],
+    title: 'ClientCreate'
+} as const;
+
+export const ClientPublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        document_type: {
+            '$ref': '#/components/schemas/DocumentType'
+        },
+        document_number: {
+            type: 'string',
+            maxLength: 14,
+            title: 'Document Number'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        phone: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 50
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Phone'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['name', 'document_type', 'document_number', 'id'],
+    title: 'ClientPublic'
+} as const;
+
+export const ClientRefSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name'],
+    title: 'ClientRef'
+} as const;
+
+export const ClientUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        document_type: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/DocumentType'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        document_number: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 14
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Document Number'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        phone: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 50
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Phone'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        }
+    },
+    type: 'object',
+    title: 'ClientUpdate'
+} as const;
+
+export const ClientsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ClientPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'ClientsPublic'
+} as const;
+
+export const DocumentTypeSchema = {
+    type: 'string',
+    enum: ['cpf', 'cnpj'],
+    title: 'DocumentType'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -71,129 +336,10 @@ export const HTTPValidationErrorSchema = {
     title: 'HTTPValidationError'
 } as const;
 
-export const ItemCreateSchema = {
-    properties: {
-        title: {
-            type: 'string',
-            maxLength: 255,
-            minLength: 1,
-            title: 'Title'
-        },
-        description: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Description'
-        }
-    },
-    type: 'object',
-    required: ['title'],
-    title: 'ItemCreate'
-} as const;
-
-export const ItemPublicSchema = {
-    properties: {
-        title: {
-            type: 'string',
-            maxLength: 255,
-            minLength: 1,
-            title: 'Title'
-        },
-        description: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Description'
-        },
-        id: {
-            type: 'string',
-            format: 'uuid',
-            title: 'Id'
-        },
-        owner_id: {
-            type: 'string',
-            format: 'uuid',
-            title: 'Owner Id'
-        },
-        created_at: {
-            anyOf: [
-                {
-                    type: 'string',
-                    format: 'date-time'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Created At'
-        }
-    },
-    type: 'object',
-    required: ['title', 'id', 'owner_id'],
-    title: 'ItemPublic'
-} as const;
-
-export const ItemUpdateSchema = {
-    properties: {
-        title: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255,
-                    minLength: 1
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Title'
-        },
-        description: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Description'
-        }
-    },
-    type: 'object',
-    title: 'ItemUpdate'
-} as const;
-
-export const ItemsPublicSchema = {
-    properties: {
-        data: {
-            items: {
-                '$ref': '#/components/schemas/ItemPublic'
-            },
-            type: 'array',
-            title: 'Data'
-        },
-        count: {
-            type: 'integer',
-            title: 'Count'
-        }
-    },
-    type: 'object',
-    required: ['data', 'count'],
-    title: 'ItemsPublic'
+export const ItemTypeSchema = {
+    type: 'string',
+    enum: ['material', 'serviço'],
+    title: 'ItemType'
 } as const;
 
 export const MessageSchema = {
@@ -249,6 +395,283 @@ export const PrivateUserCreateSchema = {
     type: 'object',
     required: ['email', 'password', 'full_name'],
     title: 'PrivateUserCreate'
+} as const;
+
+export const ServiceCreateSchema = {
+    properties: {
+        type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        }
+    },
+    type: 'object',
+    required: ['type', 'execution_address', 'client_id'],
+    title: 'ServiceCreate'
+} as const;
+
+export const ServiceItemCreateSchema = {
+    properties: {
+        item_type: {
+            '$ref': '#/components/schemas/ItemType'
+        },
+        description: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Description'
+        },
+        quantity: {
+            type: 'number',
+            exclusiveMinimum: 0,
+            title: 'Quantity'
+        },
+        unit_price: {
+            type: 'number',
+            minimum: 0,
+            title: 'Unit Price'
+        }
+    },
+    type: 'object',
+    required: ['item_type', 'description', 'quantity', 'unit_price'],
+    title: 'ServiceItemCreate'
+} as const;
+
+export const ServiceItemReadSchema = {
+    properties: {
+        item_type: {
+            '$ref': '#/components/schemas/ItemType'
+        },
+        description: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Description'
+        },
+        quantity: {
+            type: 'number',
+            exclusiveMinimum: 0,
+            title: 'Quantity'
+        },
+        unit_price: {
+            type: 'number',
+            minimum: 0,
+            title: 'Unit Price'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        service_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Service Id'
+        }
+    },
+    type: 'object',
+    required: ['item_type', 'description', 'quantity', 'unit_price', 'id', 'service_id'],
+    title: 'ServiceItemRead'
+} as const;
+
+export const ServiceReadSchema = {
+    properties: {
+        type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        },
+        client: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ClientRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/ServiceItemRead'
+            },
+            type: 'array',
+            title: 'Items',
+            default: []
+        }
+    },
+    type: 'object',
+    required: ['type', 'execution_address', 'id', 'client_id', 'status'],
+    title: 'ServiceRead'
+} as const;
+
+export const ServiceStatusSchema = {
+    type: 'string',
+    enum: ['requested', 'scheduled', 'executing', 'completed'],
+    title: 'ServiceStatus'
+} as const;
+
+export const ServiceTypeSchema = {
+    type: 'string',
+    enum: ['perfuração', 'reparo'],
+    title: 'ServiceType'
+} as const;
+
+export const ServiceUpdateSchema = {
+    properties: {
+        type: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ServiceType'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        status: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ServiceStatus'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        execution_address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Execution Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        }
+    },
+    type: 'object',
+    title: 'ServiceUpdate'
+} as const;
+
+export const ServicesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ServiceRead'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'ServicesPublic'
+} as const;
+
+export const SetPermissionsInSchema = {
+    properties: {
+        permissions: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permissions'
+        }
+    },
+    type: 'object',
+    required: ['permissions'],
+    title: 'SetPermissionsIn'
 } as const;
 
 export const TokenSchema = {
@@ -318,6 +741,10 @@ export const UserCreateSchema = {
             ],
             title: 'Full Name'
         },
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'admin'
+        },
         password: {
             type: 'string',
             maxLength: 128,
@@ -328,6 +755,63 @@ export const UserCreateSchema = {
     type: 'object',
     required: ['email', 'password'],
     title: 'UserCreate'
+} as const;
+
+export const UserPermissionsOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        email: {
+            type: 'string',
+            title: 'Email'
+        },
+        full_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Full Name'
+        },
+        role: {
+            type: 'string',
+            title: 'Role'
+        },
+        is_superuser: {
+            type: 'boolean',
+            title: 'Is Superuser'
+        },
+        role_defaults: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Role Defaults'
+        },
+        overrides: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Overrides'
+        },
+        effective: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Effective'
+        }
+    },
+    type: 'object',
+    required: ['id', 'email', 'full_name', 'role', 'is_superuser', 'role_defaults', 'overrides', 'effective'],
+    title: 'UserPermissionsOut'
 } as const;
 
 export const UserPublicSchema = {
@@ -360,6 +844,10 @@ export const UserPublicSchema = {
             ],
             title: 'Full Name'
         },
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'admin'
+        },
         id: {
             type: 'string',
             format: 'uuid',
@@ -376,6 +864,14 @@ export const UserPublicSchema = {
                 }
             ],
             title: 'Created At'
+        },
+        permissions: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permissions',
+            default: []
         }
     },
     type: 'object',
@@ -415,6 +911,12 @@ export const UserRegisterSchema = {
     title: 'UserRegister'
 } as const;
 
+export const UserRoleSchema = {
+    type: 'string',
+    enum: ['admin', 'finance', 'client'],
+    title: 'UserRole'
+} as const;
+
 export const UserUpdateSchema = {
     properties: {
         email: {
@@ -451,6 +953,10 @@ export const UserUpdateSchema = {
                 }
             ],
             title: 'Full Name'
+        },
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'admin'
         },
         password: {
             anyOf: [
