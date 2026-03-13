@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import EmailStr, field_validator
-from sqlalchemy import DateTime, Text
+from sqlalchemy import DateTime, Text, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -62,12 +62,28 @@ class User(UserBase, table=True):
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
     )
+    user_permissions: list["UserPermission"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
 
 
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
+    permissions: list[str] = []
+
+
+class UserPermission(SQLModel, table=True):
+    __tablename__ = "user_permission"
+    __table_args__ = (UniqueConstraint("user_id", "permission"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE", index=True)
+    permission: str = Field(max_length=100)
+
+    user: User = Relationship(back_populates="user_permissions")
 
 
 class UsersPublic(SQLModel):

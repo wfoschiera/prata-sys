@@ -57,20 +57,21 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
     return current_user
 
 
-def require_role(*roles: str) -> Any:
-    """Dependency factory that restricts access to users with specified roles.
-    Superusers bypass role checks entirely.
-    """
-    from app.models import UserRole
+def require_permission(*permissions: str) -> Any:
+    """Dependency factory. Checks that the current user has ALL listed
+    permissions (from role defaults + DB overrides). Superusers bypass."""
 
-    def role_checker(current_user: CurrentUser) -> User:
+    from app.core.permissions import get_effective_permissions
+
+    def permission_checker(current_user: CurrentUser, session: SessionDep) -> User:
         if current_user.is_superuser:
             return current_user
-        if current_user.role not in [UserRole(r) for r in roles]:
+        effective = get_effective_permissions(session, current_user)
+        if not all(p in effective for p in permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="The user doesn't have enough privileges",
+                detail="Insufficient permissions",
             )
         return current_user
 
-    return role_checker
+    return permission_checker
