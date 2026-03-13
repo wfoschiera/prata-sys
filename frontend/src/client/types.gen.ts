@@ -9,6 +9,8 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type CategoriaTransacao = 'SERVICO' | 'VENDA_EQUIPAMENTO' | 'RENDIMENTO' | 'CAPITAL_FIXO' | 'COMBUSTIVEL' | 'MANUTENCAO_EQUIPAMENTO' | 'MANUTENCAO_VEICULO' | 'MANUTENCAO_ESCRITORIO' | 'COMPRA_MATERIAL' | 'MO_CLT' | 'MO_DIARISTA' | 'ADMIN';
+
 export type ClientCreate = {
     name: string;
     document_type: DocumentType;
@@ -73,6 +75,14 @@ export type PrivateUserCreate = {
     is_verified?: boolean;
 };
 
+export type ResumoMensal = {
+    ano: number;
+    mes: number;
+    total_receitas: string;
+    total_despesas: string;
+    resultado_liquido: string;
+};
+
 export type ServiceCreate = {
     type: ServiceType;
     execution_address: string;
@@ -116,6 +126,12 @@ export type ServicesPublic = {
 
 export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed';
 
+export type ServiceSummary = {
+    id: string;
+    type: ServiceType;
+    status: ServiceStatus;
+};
+
 export type ServiceType = 'perfuração' | 'reparo';
 
 export type ServiceUpdate = {
@@ -129,9 +145,55 @@ export type SetPermissionsIn = {
     permissions: Array<(string)>;
 };
 
+export type TipoTransacao = 'receita' | 'despesa';
+
 export type Token = {
     access_token: string;
     token_type?: string;
+};
+
+export type TransacaoCreate = {
+    tipo: TipoTransacao;
+    categoria: CategoriaTransacao;
+    valor: (number | string);
+    data_competencia: string;
+    descricao?: (string | null);
+    nome_contraparte?: (string | null);
+    service_id?: (string | null);
+    client_id?: (string | null);
+    fornecedor_id?: (string | null);
+};
+
+export type TransacaoPublic = {
+    tipo: TipoTransacao;
+    categoria: CategoriaTransacao;
+    valor: string;
+    data_competencia: string;
+    descricao?: (string | null);
+    nome_contraparte?: (string | null);
+    id: string;
+    service_id?: (string | null);
+    client_id?: (string | null);
+    fornecedor_id?: (string | null);
+    service?: (ServiceSummary | null);
+    client?: (ClientRef | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
+export type TransacaoUpdate = {
+    categoria?: (CategoriaTransacao | null);
+    valor?: (number | string | null);
+    data_competencia?: (string | null);
+    descricao?: (string | null);
+    nome_contraparte?: (string | null);
+    service_id?: (string | null);
+    fornecedor_id?: (string | null);
+};
+
+export type TransacoesPublic = {
+    data: Array<TransacaoPublic>;
+    count: number;
 };
 
 export type UpdatePassword = {
@@ -335,6 +397,50 @@ export type ServicesDeleteServiceItemData = {
 };
 
 export type ServicesDeleteServiceItemResponse = (void);
+
+export type TransacoesGetResumoMensalData = {
+    ano?: number;
+    mes?: number;
+};
+
+export type TransacoesGetResumoMensalResponse = (ResumoMensal);
+
+export type TransacoesReadTransacoesData = {
+    categoria?: (CategoriaTransacao | null);
+    dataFim?: (string | null);
+    dataInicio?: (string | null);
+    limit?: number;
+    serviceId?: (string | null);
+    skip?: number;
+    tipo?: (TipoTransacao | null);
+};
+
+export type TransacoesReadTransacoesResponse = (TransacoesPublic);
+
+export type TransacoesCreateTransacaoData = {
+    requestBody: TransacaoCreate;
+};
+
+export type TransacoesCreateTransacaoResponse = (TransacaoPublic);
+
+export type TransacoesReadTransacaoData = {
+    transacaoId: string;
+};
+
+export type TransacoesReadTransacaoResponse = (TransacaoPublic);
+
+export type TransacoesUpdateTransacaoData = {
+    requestBody: TransacaoUpdate;
+    transacaoId: string;
+};
+
+export type TransacoesUpdateTransacaoResponse = (TransacaoPublic);
+
+export type TransacoesDeleteTransacaoData = {
+    transacaoId: string;
+};
+
+export type TransacoesDeleteTransacaoResponse = (void);
 
 export type UsersReadUsersData = {
     limit?: number;
