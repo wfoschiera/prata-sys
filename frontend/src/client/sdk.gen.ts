@@ -3,22 +3,22 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesAddItemData, ServicesAddItemResponse, ServicesDeleteItemData } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
-export class ItemsService {
+export class ClientsService {
     /**
-     * Read Items
-     * Retrieve items.
+     * Read Clients
+     * List clients (admin and finance only).
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
-     * @returns ItemsPublic Successful Response
+     * @returns ClientsPublic Successful Response
      * @throws ApiError
      */
-    public static readItems(data: ItemsReadItemsData = {}): CancelablePromise<ItemsReadItemsResponse> {
+    public static readClients(data: ClientsReadClientsData = {}): CancelablePromise<ClientsReadClientsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/items/',
+            url: '/api/v1/clients/',
             query: {
                 skip: data.skip,
                 limit: data.limit
@@ -30,17 +30,17 @@ export class ItemsService {
     }
     
     /**
-     * Create Item
-     * Create new item.
+     * Create Client
+     * Create a new client.
      * @param data The data for the request.
      * @param data.requestBody
-     * @returns ItemPublic Successful Response
+     * @returns ClientPublic Successful Response
      * @throws ApiError
      */
-    public static createItem(data: ItemsCreateItemData): CancelablePromise<ItemsCreateItemResponse> {
+    public static createClient(data: ClientsCreateClientData): CancelablePromise<ClientsCreateClientResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/items/',
+            url: '/api/v1/clients/',
             body: data.requestBody,
             mediaType: 'application/json',
             errors: {
@@ -50,19 +50,19 @@ export class ItemsService {
     }
     
     /**
-     * Read Item
-     * Get item by ID.
+     * Read Client
+     * Get a client by ID.
      * @param data The data for the request.
-     * @param data.id
-     * @returns ItemPublic Successful Response
+     * @param data.clientId
+     * @returns ClientPublic Successful Response
      * @throws ApiError
      */
-    public static readItem(data: ItemsReadItemData): CancelablePromise<ItemsReadItemResponse> {
+    public static readClient(data: ClientsReadClientData): CancelablePromise<ClientsReadClientResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/items/{id}',
+            url: '/api/v1/clients/{client_id}',
             path: {
-                id: data.id
+                client_id: data.clientId
             },
             errors: {
                 422: 'Validation Error'
@@ -71,20 +71,20 @@ export class ItemsService {
     }
     
     /**
-     * Update Item
-     * Update an item.
+     * Update Client
+     * Update a client.
      * @param data The data for the request.
-     * @param data.id
+     * @param data.clientId
      * @param data.requestBody
-     * @returns ItemPublic Successful Response
+     * @returns ClientPublic Successful Response
      * @throws ApiError
      */
-    public static updateItem(data: ItemsUpdateItemData): CancelablePromise<ItemsUpdateItemResponse> {
+    public static updateClient(data: ClientsUpdateClientData): CancelablePromise<ClientsUpdateClientResponse> {
         return __request(OpenAPI, {
-            method: 'PUT',
-            url: '/api/v1/items/{id}',
+            method: 'PATCH',
+            url: '/api/v1/clients/{client_id}',
             path: {
-                id: data.id
+                client_id: data.clientId
             },
             body: data.requestBody,
             mediaType: 'application/json',
@@ -95,19 +95,19 @@ export class ItemsService {
     }
     
     /**
-     * Delete Item
-     * Delete an item.
+     * Delete Client
+     * Delete a client.
      * @param data The data for the request.
-     * @param data.id
+     * @param data.clientId
      * @returns Message Successful Response
      * @throws ApiError
      */
-    public static deleteItem(data: ItemsDeleteItemData): CancelablePromise<ItemsDeleteItemResponse> {
+    public static deleteClient(data: ClientsDeleteClientData): CancelablePromise<ClientsDeleteClientResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/v1/items/{id}',
+            url: '/api/v1/clients/{client_id}',
             path: {
-                id: data.id
+                client_id: data.clientId
             },
             errors: {
                 422: 'Validation Error'
@@ -213,6 +213,75 @@ export class LoginService {
     }
 }
 
+export class PermissionsService {
+    /**
+     * Get Available Permissions
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static getAvailablePermissions(): CancelablePromise<PermissionsGetAvailablePermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/permissions/available'
+        });
+    }
+    
+    /**
+     * Get Users Permissions
+     * @returns UserPermissionsOut Successful Response
+     * @throws ApiError
+     */
+    public static getUsersPermissions(): CancelablePromise<PermissionsGetUsersPermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/permissions/users'
+        });
+    }
+    
+    /**
+     * Get User Permissions
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns UserPermissionsOut Successful Response
+     * @throws ApiError
+     */
+    public static getUserPermissions(data: PermissionsGetUserPermissionsData): CancelablePromise<PermissionsGetUserPermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/permissions/users/{user_id}',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Set User Permissions
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.requestBody
+     * @returns UserPermissionsOut Successful Response
+     * @throws ApiError
+     */
+    public static setUserPermissions(data: PermissionsSetUserPermissionsData): CancelablePromise<PermissionsSetUserPermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/permissions/users/{user_id}',
+            path: {
+                user_id: data.userId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
 export class PrivateService {
     /**
      * Create User
@@ -228,6 +297,164 @@ export class PrivateService {
             url: '/api/v1/private/users/',
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class ServicesService {
+    /**
+     * Read Services
+     * List all services (admin and finance only).
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ServicesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readServices(data: ServicesReadServicesData = {}): CancelablePromise<ServicesReadServicesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/services/',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Service
+     * Create a new service order.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ServiceRead Successful Response
+     * @throws ApiError
+     */
+    public static createService(data: ServicesCreateServiceData): CancelablePromise<ServicesCreateServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Service
+     * Get a service order by ID.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @returns ServiceRead Successful Response
+     * @throws ApiError
+     */
+    public static readService(data: ServicesReadServiceData): CancelablePromise<ServicesReadServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/services/{service_id}',
+            path: {
+                service_id: data.serviceId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Service
+     * Update a service order (status transitions are enforced).
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @param data.requestBody
+     * @returns ServiceRead Successful Response
+     * @throws ApiError
+     */
+    public static updateService(data: ServicesUpdateServiceData): CancelablePromise<ServicesUpdateServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/services/{service_id}',
+            path: {
+                service_id: data.serviceId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Service
+     * Delete a service order and all its items (cascade).
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteService(data: ServicesDeleteServiceData): CancelablePromise<ServicesDeleteServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/services/{service_id}',
+            path: {
+                service_id: data.serviceId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Service Item
+     * Add a line item to a service order.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @param data.requestBody
+     * @returns ServiceItemRead Successful Response
+     * @throws ApiError
+     */
+    public static createServiceItem(data: ServicesCreateServiceItemData): CancelablePromise<ServicesCreateServiceItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/{service_id}/items',
+            path: {
+                service_id: data.serviceId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Service Item
+     * Remove a line item from a service order.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @param data.itemId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteServiceItem(data: ServicesDeleteServiceItemData): CancelablePromise<ServicesDeleteServiceItemResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/services/{service_id}/items/{item_id}',
+            path: {
+                service_id: data.serviceId,
+                item_id: data.itemId
+            },
             errors: {
                 422: 'Validation Error'
             }
@@ -463,196 +690,6 @@ export class UtilsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/utils/health-check/'
-        });
-    }
-}
-// NOTE: ClientsService and ServicesService were added manually — regenerate with `bash scripts/generate-client.sh`
-// inside the dev container after the backend has the services router running.
-export class ClientsService {
-    /**
-     * Read Clients
-     * Retrieve clients.
-     * @param data The data for the request.
-     * @param data.skip
-     * @param data.limit
-     * @returns ClientsPublic Successful Response
-     * @throws ApiError
-     */
-    public static readClients(data: ClientsReadClientsData = {}): CancelablePromise<ClientsReadClientsResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/clients/',
-            query: {
-                skip: data.skip,
-                limit: data.limit
-            },
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Create Client
-     * Create new client.
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns ClientPublic Successful Response
-     * @throws ApiError
-     */
-    public static createClient(data: ClientsCreateClientData): CancelablePromise<ClientsCreateClientResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/clients/',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                409: 'Conflict',
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Read Client
-     * Get client by ID.
-     * @param data The data for the request.
-     * @param data.clientId
-     * @returns ClientPublic Successful Response
-     * @throws ApiError
-     */
-    public static readClient(data: ClientsReadClientData): CancelablePromise<ClientsReadClientResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/clients/{client_id}',
-            path: {
-                client_id: data.clientId
-            },
-            errors: {
-                404: 'Not Found',
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Update Client
-     * Update a client.
-     * @param data The data for the request.
-     * @param data.clientId
-     * @param data.requestBody
-     * @returns ClientPublic Successful Response
-     * @throws ApiError
-     */
-    public static updateClient(data: ClientsUpdateClientData): CancelablePromise<ClientsUpdateClientResponse> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/api/v1/clients/{client_id}',
-            path: {
-                client_id: data.clientId
-            },
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                404: 'Not Found',
-                409: 'Conflict',
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Delete Client
-     * Delete a client.
-     * @param data The data for the request.
-     * @param data.clientId
-     * @returns Message Successful Response
-     * @throws ApiError
-     */
-    public static deleteClient(data: ClientsDeleteClientData): CancelablePromise<ClientsDeleteClientResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/v1/clients/{client_id}',
-            path: {
-                client_id: data.clientId
-            },
-            errors: {
-                404: 'Not Found',
-                422: 'Validation Error'
-            }
-        });
-    }
-}
-
-export class ServicesService {
-    public static readServices(data: ServicesReadServicesData = {}): CancelablePromise<ServicesReadServicesResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/services/',
-            query: {
-                skip: data.skip,
-                limit: data.limit
-            },
-            errors: { 422: 'Validation Error' }
-        });
-    }
-
-    public static createService(data: ServicesCreateServiceData): CancelablePromise<ServicesCreateServiceResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/services/',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: { 422: 'Validation Error' }
-        });
-    }
-
-    public static readService(data: ServicesReadServiceData): CancelablePromise<ServicesReadServiceResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/services/{service_id}',
-            path: { service_id: data.serviceId },
-            errors: { 404: 'Not Found', 422: 'Validation Error' }
-        });
-    }
-
-    public static updateService(data: ServicesUpdateServiceData): CancelablePromise<ServicesUpdateServiceResponse> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/api/v1/services/{service_id}',
-            path: { service_id: data.serviceId },
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: { 404: 'Not Found', 422: 'Validation Error' }
-        });
-    }
-
-    public static deleteService(data: ServicesDeleteServiceData): CancelablePromise<unknown> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/v1/services/{service_id}',
-            path: { service_id: data.serviceId },
-            errors: { 404: 'Not Found', 422: 'Validation Error' }
-        });
-    }
-
-    public static addItem(data: ServicesAddItemData): CancelablePromise<ServicesAddItemResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/services/{service_id}/items',
-            path: { service_id: data.serviceId },
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: { 404: 'Not Found', 422: 'Validation Error' }
-        });
-    }
-
-    public static deleteItem(data: ServicesDeleteItemData): CancelablePromise<unknown> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/v1/services/{service_id}/items/{item_id}',
-            path: { service_id: data.serviceId, item_id: data.itemId },
-            errors: { 404: 'Not Found', 422: 'Validation Error' }
         });
     }
 }
