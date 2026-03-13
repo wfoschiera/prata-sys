@@ -1,10 +1,11 @@
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any
 
-from pydantic import EmailStr, field_validator
-from sqlalchemy import DateTime, Text, UniqueConstraint
+from pydantic import EmailStr, field_validator, model_validator
+from sqlalchemy import DateTime, Numeric, Text, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -301,3 +302,182 @@ class Service(ServiceBase, table=True):
         back_populates="service",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+
+
+# ── Financeiro ────────────────────────────────────────────────────────────────
+
+
+class TipoTransacao(str, enum.Enum):
+    receita = "receita"
+    despesa = "despesa"
+
+
+class CategoriaTransacao(str, enum.Enum):
+    # Income categories (valid only when tipo=receita)
+    SERVICO = "SERVICO"
+    VENDA_EQUIPAMENTO = "VENDA_EQUIPAMENTO"
+    RENDIMENTO = "RENDIMENTO"
+    CAPITAL_FIXO = "CAPITAL_FIXO"
+    # Expense categories (valid only when tipo=despesa)
+    COMBUSTIVEL = "COMBUSTIVEL"
+    MANUTENCAO_EQUIPAMENTO = "MANUTENCAO_EQUIPAMENTO"
+    MANUTENCAO_VEICULO = "MANUTENCAO_VEICULO"
+    MANUTENCAO_ESCRITORIO = "MANUTENCAO_ESCRITORIO"
+    COMPRA_MATERIAL = "COMPRA_MATERIAL"
+    MO_CLT = "MO_CLT"
+    MO_DIARISTA = "MO_DIARISTA"
+    ADMIN = "ADMIN"
+
+
+INCOME_CATEGORIES: frozenset[CategoriaTransacao] = frozenset(
+    {
+        CategoriaTransacao.SERVICO,
+        CategoriaTransacao.VENDA_EQUIPAMENTO,
+        CategoriaTransacao.RENDIMENTO,
+        CategoriaTransacao.CAPITAL_FIXO,
+    }
+)
+
+EXPENSE_CATEGORIES: frozenset[CategoriaTransacao] = frozenset(
+    {
+        CategoriaTransacao.COMBUSTIVEL,
+        CategoriaTransacao.MANUTENCAO_EQUIPAMENTO,
+        CategoriaTransacao.MANUTENCAO_VEICULO,
+        CategoriaTransacao.MANUTENCAO_ESCRITORIO,
+        CategoriaTransacao.COMPRA_MATERIAL,
+        CategoriaTransacao.MO_CLT,
+        CategoriaTransacao.MO_DIARISTA,
+        CategoriaTransacao.ADMIN,
+    }
+)
+
+# PT-BR labels for frontend display
+CATEGORIA_LABELS: dict[CategoriaTransacao, str] = {
+    CategoriaTransacao.SERVICO: "Serviço",
+    CategoriaTransacao.VENDA_EQUIPAMENTO: "Venda de Equipamento",
+    CategoriaTransacao.RENDIMENTO: "Rendimento",
+    CategoriaTransacao.CAPITAL_FIXO: "Capital Fixo",
+    CategoriaTransacao.COMBUSTIVEL: "Combustível",
+    CategoriaTransacao.MANUTENCAO_EQUIPAMENTO: "Manutenção de Equipamento",
+    CategoriaTransacao.MANUTENCAO_VEICULO: "Manutenção de Veículo",
+    CategoriaTransacao.MANUTENCAO_ESCRITORIO: "Manutenção de Escritório",
+    CategoriaTransacao.COMPRA_MATERIAL: "Compra de Material",
+    CategoriaTransacao.MO_CLT: "Mão de Obra CLT",
+    CategoriaTransacao.MO_DIARISTA: "Mão de Obra Diarista",
+    CategoriaTransacao.ADMIN: "Administrativo",
+}
+
+
+class ServiceSummary(SQLModel):
+    id: uuid.UUID
+    type: ServiceType
+    status: ServiceStatus
+
+
+class TransacaoBase(SQLModel):
+    tipo: TipoTransacao
+    categoria: CategoriaTransacao
+    valor: Decimal = Field(sa_type=Numeric(12, 2))  # type: ignore
+    data_competencia: date
+    descricao: str | None = Field(default=None, sa_type=Text)
+    nome_contraparte: str | None = Field(default=None, max_length=200)
+
+
+class TransacaoCreate(TransacaoBase):
+    service_id: uuid.UUID | None = None
+    client_id: uuid.UUID | None = None
+    # fornecedor_id will be added in Phase 6 (FK constraint added then)
+    fornecedor_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def validate_tipo_categoria_and_client(self) -> "TransacaoCreate":
+        if self.valor <= 0:
+            raise ValueError("valor must be greater than zero")
+        if (
+            self.tipo == TipoTransacao.receita
+            and self.categoria not in INCOME_CATEGORIES
+        ):
+            raise ValueError(
+                f"categoria '{self.categoria}' is not valid for tipo='receita'. "
+                f"Valid categories: {[c.value for c in INCOME_CATEGORIES]}"
+            )
+        if (
+            self.tipo == TipoTransacao.despesa
+            and self.categoria not in EXPENSE_CATEGORIES
+        ):
+            raise ValueError(
+                f"categoria '{self.categoria}' is not valid for tipo='despesa'. "
+                f"Valid categories: {[c.value for c in EXPENSE_CATEGORIES]}"
+            )
+        if self.tipo == TipoTransacao.despesa and self.client_id is not None:
+            raise ValueError("client_id may only be set when tipo='receita'")
+        return self
+
+
+class TransacaoUpdate(SQLModel):
+    # tipo is intentionally omitted — immutable after creation
+    categoria: CategoriaTransacao | None = None
+    valor: Decimal | None = None
+    data_competencia: date | None = None
+    descricao: str | None = None
+    nome_contraparte: str | None = None
+    service_id: uuid.UUID | None = None
+    fornecedor_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def validate_valor(self) -> "TransacaoUpdate":
+        if self.valor is not None and self.valor <= 0:
+            raise ValueError("valor must be greater than zero")
+        return self
+
+
+class TransacaoPublic(TransacaoBase):
+    id: uuid.UUID
+    service_id: uuid.UUID | None = None
+    client_id: uuid.UUID | None = None
+    fornecedor_id: uuid.UUID | None = None
+    service: ServiceSummary | None = None
+    client: ClientRef | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class TransacoesPublic(SQLModel):
+    data: list[TransacaoPublic]
+    count: int
+
+
+class ResumoMensal(SQLModel):
+    ano: int
+    mes: int
+    total_receitas: Decimal
+    total_despesas: Decimal
+    resultado_liquido: Decimal
+
+
+class Transacao(TransacaoBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    service_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="service.id",
+        ondelete="SET NULL",
+        index=True,
+    )
+    client_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="client.id",
+        ondelete="SET NULL",
+        index=True,
+    )
+    # fornecedor_id stored without FK constraint until Phase 6 adds the fornecedor table
+    fornecedor_id: uuid.UUID | None = Field(default=None, index=True)
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    service: Service | None = Relationship()
+    client: Client | None = Relationship()
