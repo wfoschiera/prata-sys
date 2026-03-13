@@ -53,3 +53,18 @@ repos:
         pass_filenames: false
         language: unsupported
         files: ^backend/.*$|^scripts/generate-client\.sh$
+
+      - id: local-pytest
+        name: pytest (requires docker compose db to be running)
+        entry: bash -c '
+          if docker compose ps db 2>/dev/null | grep -q "running\|Up"; then
+            cd backend && uv run bash scripts/tests-start.sh
+          else
+            echo "⚠️  DB container not running — skipping tests. Run: docker compose up -d db mailcatcher" >&2
+            exit 0
+          fi
+        '
+        pass_filenames: false
+        require_serial: true
+        language: system
+        files: ^backend/
