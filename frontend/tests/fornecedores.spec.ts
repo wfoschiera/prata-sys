@@ -3,7 +3,7 @@
  *
  * F1 Superuser creates a fornecedor — appears in list
  * F2 Superuser adds a contact to a fornecedor
- * F3 Superuser edits a fornecedor's categories
+ * F3 Superuser edits a fornecedor's categories via checkbox toggle
  * F4 Finance user can view fornecedores list but cannot create
  * F5 Client user does not see Fornecedores in sidebar
  * F6 Invalid CNPJ shows validation error
@@ -74,10 +74,10 @@ test("F1 superuser creates fornecedor — appears in list", async ({ page }) => 
   await page.getByRole("button", { name: "Novo Fornecedor" }).click()
   await expect(page).toHaveURL(/\/fornecedores\/new/)
 
-  await page.getByLabel(/Razão Social/i).fill("Empresa Teste Ltda")
-  await page.getByRole("button", { name: "Salvar" }).click()
+  await page.getByLabel(/Nome da Empresa/i).fill("Empresa Teste Ltda")
+  await page.getByRole("button", { name: "Criar Fornecedor" }).click()
 
-  await expect(page.getByText("Fornecedor salvo")).toBeVisible()
+  await expect(page.getByText("Fornecedor criado")).toBeVisible()
   await page.goto("/fornecedores")
   await expect(page.getByText("Empresa Teste Ltda")).toBeVisible()
 })
@@ -108,12 +108,12 @@ test("F2 superuser adds contact to fornecedor", async ({ page }) => {
   await page.goto(`/fornecedores/${fornecedor.id}`)
   await expect(page.getByText("Contato Test Supplier")).toBeVisible()
 
-  await page.getByRole("button", { name: /Adicionar Contato/i }).click()
+  await page.getByRole("button", { name: "Adicionar" }).click()
   await expect(page.getByRole("dialog")).toBeVisible()
 
-  await page.getByLabel(/Nome/i).fill("João Silva")
-  await page.getByLabel(/Telefone/i).fill("11999999999")
-  await page.getByLabel(/Cargo/i).fill("Gerente")
+  await page.getByLabel(/^Nome$/i).fill("João Silva")
+  await page.getByLabel(/Cargo \/ Função/i).fill("Gerente")
+  await page.getByLabel(/^Telefone$/i).fill("11999999999")
   await page.getByRole("button", { name: "Salvar" }).click()
 
   await expect(page.getByRole("dialog")).not.toBeVisible()
@@ -121,10 +121,10 @@ test("F2 superuser adds contact to fornecedor", async ({ page }) => {
 })
 
 // ---------------------------------------------------------------------------
-// F3 Superuser edits a fornecedor's categories
+// F3 Superuser toggles categories on fornecedor
 // ---------------------------------------------------------------------------
 
-test("F3 superuser sets categories on fornecedor", async ({ page }) => {
+test("F3 superuser toggles category on fornecedor", async ({ page }) => {
   const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
 
   const res = await fetch(`${API_BASE}/api/v1/fornecedores`, {
@@ -143,17 +143,16 @@ test("F3 superuser sets categories on fornecedor", async ({ page }) => {
 
   await switchUser(page, firstSuperuser, firstSuperuserPassword)
   await page.goto(`/fornecedores/${fornecedor.id}`)
+  await expect(page.getByText("Category Test Supplier")).toBeVisible()
 
-  // Check a category checkbox
-  await page.getByRole("checkbox", { name: /Materiais/i }).check()
+  // Toggle Tubos checkbox — category is saved immediately on toggle
+  const checkbox = page.getByRole("checkbox", { name: /Tubos/i })
+  await expect(checkbox).not.toBeChecked()
+  await checkbox.check()
 
-  // Save
-  await page.getByRole("button", { name: "Salvar" }).click()
-  await expect(page.getByText("Fornecedor salvo")).toBeVisible()
-
-  // Reload and verify category is still checked
+  // Reload and verify it persisted
   await page.reload()
-  await expect(page.getByRole("checkbox", { name: /Materiais/i })).toBeChecked()
+  await expect(page.getByRole("checkbox", { name: /Tubos/i })).toBeChecked()
 })
 
 // ---------------------------------------------------------------------------
@@ -204,14 +203,14 @@ test("F6 invalid CNPJ shows validation error", async ({ page }) => {
   await switchUser(page, firstSuperuser, firstSuperuserPassword)
   await page.goto("/fornecedores/new")
 
-  await page.getByLabel(/Razão Social/i).fill("Test CNPJ Invalid")
-  await page.getByLabel(/CNPJ/i).fill("00000000000000")
+  await page.getByLabel(/Nome da Empresa/i).fill("Test CNPJ Invalid")
+  // Enter CNPJ with wrong format (lowercase letters — fails frontend regex)
+  await page.getByLabel(/^CNPJ$/i).fill("abcdefghij1234")
 
-  await page.getByRole("button", { name: "Salvar" }).click()
+  await page.getByRole("button", { name: "Criar Fornecedor" }).click()
 
-  // Should see a validation error (either frontend Zod or backend 422)
-  const error = page.getByText(/CNPJ/i)
-  await expect(error).toBeVisible()
+  // Frontend Zod validation error
+  await expect(page.getByText(/CNPJ inválido/i)).toBeVisible()
 })
 
 // ---------------------------------------------------------------------------
@@ -243,8 +242,8 @@ test("F7 superuser deletes fornecedor — removed from list", async ({
   await page.getByRole("button", { name: /Excluir Fornecedor/i }).click()
 
   // Confirm dialog
-  await expect(page.getByRole("dialog", { name: /Excluir/i })).toBeVisible()
-  await page.getByRole("button", { name: /Confirmar/i }).click()
+  await expect(page.getByText("Excluir fornecedor?")).toBeVisible()
+  await page.getByRole("button", { name: "Confirmar" }).click()
 
   await expect(page).toHaveURL(/\/fornecedores$/)
   await expect(page.getByText("To Be Deleted Supplier")).not.toBeVisible()
