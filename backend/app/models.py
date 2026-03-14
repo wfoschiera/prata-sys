@@ -1,4 +1,5 @@
 import enum
+import re
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -121,16 +122,84 @@ class DocumentType(str, enum.Enum):
     cnpj = "cnpj"
 
 
+def _cnpj_char_value(c: str) -> int:
+    """Return the numeric value of a CNPJ character using the ASCII-48 rule.
+
+    Digits '0'-'9' → 0-9 (unchanged).
+    Letters 'A'-'Z' → 17-42  (ord('A')=65, 65-48=17; ...; ord('Z')=90, 90-48=42).
+    This rule is defined by Receita Federal for the alphanumeric CNPJ format
+    effective from July 2026 (and is backwards-compatible with the old numeric format).
+    """
+    return ord(c) - 48
+
+
+def _validate_cnpj(value: str) -> str:
+    """Validate a CNPJ in either the current numeric format or the new
+    alphanumeric format introduced in July 2026.
+
+    Accepted input:
+      - Numeric:       14 digits, e.g. "11222333000181"
+      - Alphanumeric:  12 uppercase alphanumeric chars + 2 numeric check digits,
+                       e.g. "1A2B3C4D0001AB" (letters A-Z and digits 0-9 in
+                       positions 0-11; positions 12-13 are always digits).
+
+    Formatting characters (`.`, `/`, `-`) are stripped before validation.
+    Raises ValueError for wrong length, invalid characters, or bad check digits.
+    """
+    cnpj = value.strip().upper()
+    # Strip common formatting
+    cnpj = cnpj.replace(".", "").replace("/", "").replace("-", "")
+
+    if len(cnpj) != 14:
+        msg = "CNPJ must have 14 characters"
+        raise ValueError(msg)
+
+    # First 12 positions: alphanumeric (A-Z, 0-9); last 2: numeric check digits
+    if not re.match(r"^[A-Z0-9]{12}\d{2}$", cnpj):
+        msg = (
+            "CNPJ must contain only uppercase letters and digits in the first 12 "
+            "positions and digits in the last 2 positions"
+        )
+        raise ValueError(msg)
+
+    # Reject all-same-character sequences (e.g. "00000000000000")
+    if len(set(cnpj)) == 1:
+        msg = "CNPJ is invalid (all characters are the same)"
+        raise ValueError(msg)
+
+    # --- Check digit validation (Modulo 11, ASCII-48 values) ---
+    weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+
+    def _calc_dv(chars: str, weights: list[int]) -> int:
+        total = sum(
+            _cnpj_char_value(c) * w for c, w in zip(chars, weights, strict=False)
+        )
+        remainder = total % 11
+        return 0 if remainder < 2 else 11 - remainder
+
+    if _calc_dv(cnpj[:12], weights1) != int(cnpj[12]):
+        msg = "CNPJ has invalid check digits"
+        raise ValueError(msg)
+    if _calc_dv(cnpj[:13], weights2) != int(cnpj[13]):
+        msg = "CNPJ has invalid check digits"
+        raise ValueError(msg)
+
+    return cnpj
+
+
 def _validate_document_number(document_type: str, document_number: str) -> str:
-    digits = document_number.strip()
-    if not digits.isdigit():
+    value = document_number.strip()
+    if document_type == DocumentType.cnpj:
+        return _validate_cnpj(value)
+    # CPF: digits only, 11 characters
+    if not value.isdigit():
         msg = "document_number must contain only digits"
         raise ValueError(msg)
-    expected = 11 if document_type == DocumentType.cpf else 14
-    if len(digits) != expected:
-        msg = f"document_number must have {expected} digits for {document_type.upper()}"
+    if len(value) != 11:
+        msg = "document_number must have 11 digits for CPF"
         raise ValueError(msg)
-    return digits
+    return value
 
 
 class ClientBase(SQLModel):
@@ -556,8 +625,12 @@ class Transacao(TransacaoBase, table=True):
         ondelete="SET NULL",
         index=True,
     )
-    # fornecedor_id stored without FK constraint until Phase 6 adds the fornecedor table
-    fornecedor_id: uuid.UUID | None = Field(default=None, index=True)
+    fornecedor_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="fornecedor.id",
+        ondelete="SET NULL",
+        index=True,
+    )
     created_at: datetime = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -568,3 +641,123 @@ class Transacao(TransacaoBase, table=True):
     )
     service: Service | None = Relationship()
     client: Client | None = Relationship()
+
+
+# ── Fornecedor ─────────────────────────────────────────────────────────────────
+
+
+class FornecedorCategoryEnum(str, enum.Enum):
+    tubos = "tubos"
+    conexoes = "conexoes"
+    bombas = "bombas"
+    cabos = "cabos"
+    outros = "outros"
+
+
+class FornecedorBase(SQLModel):
+    company_name: str = Field(min_length=1, max_length=255)
+    cnpj: str | None = Field(default=None, max_length=14)
+    address: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, sa_type=Text)
+
+    @field_validator("cnpj", mode="before")
+    @classmethod
+    def validate_cnpj_field(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        return _validate_cnpj(v)
+
+
+class FornecedorCreate(FornecedorBase):
+    categories: list[FornecedorCategoryEnum] = []
+
+
+class FornecedorUpdate(SQLModel):
+    company_name: str | None = Field(default=None, min_length=1, max_length=255)
+    cnpj: str | None = Field(default=None, max_length=14)
+    address: str | None = Field(default=None, max_length=500)
+    notes: str | None = None
+    categories: list[FornecedorCategoryEnum] | None = None
+
+    @field_validator("cnpj", mode="before")
+    @classmethod
+    def validate_cnpj_field(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        return _validate_cnpj(v)
+
+
+class FornecedorContatoBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    telefone: str = Field(min_length=1, max_length=20)
+    whatsapp: str | None = Field(default=None, max_length=20)
+    description: str = Field(min_length=1, max_length=100)
+
+
+class FornecedorContatoCreate(FornecedorContatoBase):
+    pass
+
+
+class FornecedorContatoUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    telefone: str | None = Field(default=None, min_length=1, max_length=20)
+    whatsapp: str | None = Field(default=None, max_length=20)
+    description: str | None = Field(default=None, min_length=1, max_length=100)
+
+
+class FornecedorContatoPublic(FornecedorContatoBase):
+    id: uuid.UUID
+    fornecedor_id: uuid.UUID
+
+
+class FornecedorPublic(FornecedorBase):
+    id: uuid.UUID
+    categories: list[FornecedorCategoryEnum]
+    contatos: list[FornecedorContatoPublic]
+
+
+# ── Fornecedor DB tables ───────────────────────────────────────────────────────
+
+
+class Fornecedor(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_name: str = Field(min_length=1, max_length=255, index=True)
+    cnpj: str | None = Field(default=None, max_length=14)
+    address: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, sa_type=Text)
+
+    contatos: list["FornecedorContato"] = Relationship(
+        back_populates="fornecedor",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    categorias: list["FornecedorCategoria"] = Relationship(
+        back_populates="fornecedor",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    transacoes: list["Transacao"] = Relationship()
+
+
+class FornecedorContato(SQLModel, table=True):
+    __tablename__ = "fornecedor_contato"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    fornecedor_id: uuid.UUID = Field(
+        foreign_key="fornecedor.id", ondelete="CASCADE", index=True
+    )
+    name: str = Field(min_length=1, max_length=255)
+    telefone: str = Field(min_length=1, max_length=20)
+    whatsapp: str | None = Field(default=None, max_length=20)
+    description: str = Field(min_length=1, max_length=100)
+
+    fornecedor: Fornecedor = Relationship(back_populates="contatos")
+
+
+class FornecedorCategoria(SQLModel, table=True):
+    __tablename__ = "fornecedor_categoria"
+    __table_args__ = (UniqueConstraint("fornecedor_id", "category"),)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    fornecedor_id: uuid.UUID = Field(
+        foreign_key="fornecedor.id", ondelete="CASCADE", index=True
+    )
+    category: str = Field(max_length=20)
+
+    fornecedor: Fornecedor = Relationship(back_populates="categorias")

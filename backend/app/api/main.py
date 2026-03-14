@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     clients,
+    fornecedores,
     login,
     permissions,
     private,
@@ -20,6 +21,7 @@ api_router.include_router(clients.router)
 api_router.include_router(services.router)
 api_router.include_router(permissions.router)
 api_router.include_router(transacoes.router)
+api_router.include_router(fornecedores.router)
 
 
 if settings.ENVIRONMENT == "local":
