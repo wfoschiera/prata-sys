@@ -285,6 +285,10 @@ def update_service(
 
 
 def delete_service(*, session: Session, db_service: Service) -> None:
+    locked = {ServiceStatus.scheduled, ServiceStatus.executing}
+    if db_service.status in locked:
+        msg = f"Não é possível excluir um serviço com status '{db_service.status}'. Cancele-o primeiro."
+        raise ValueError(msg)
     session.delete(db_service)
     session.commit()
 
@@ -292,6 +296,13 @@ def delete_service(*, session: Session, db_service: Service) -> None:
 def create_service_item(
     *, session: Session, service_id: uuid.UUID, item_in: ServiceItemCreate
 ) -> ServiceItem:
+    service = session.get(Service, service_id)
+    locked = {ServiceStatus.executing, ServiceStatus.completed}
+    if service is not None and service.status in locked:
+        msg = (
+            f"Não é possível adicionar itens a um serviço com status '{service.status}'"
+        )
+        raise ValueError(msg)
     db_item = ServiceItem.model_validate(item_in, update={"service_id": service_id})
     session.add(db_item)
     session.commit()
@@ -304,6 +315,13 @@ def get_service_item(*, session: Session, item_id: uuid.UUID) -> ServiceItem | N
 
 
 def delete_service_item(*, session: Session, db_item: ServiceItem) -> None:
+    service = session.get(Service, db_item.service_id)
+    locked = {ServiceStatus.executing, ServiceStatus.completed}
+    if service is not None and service.status in locked:
+        msg = (
+            f"Não é possível remover itens de um serviço com status '{service.status}'"
+        )
+        raise ValueError(msg)
     session.delete(db_item)
     session.commit()
 
