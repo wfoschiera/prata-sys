@@ -15,6 +15,10 @@ import { firstSuperuser, firstSuperuserPassword } from "./config.ts"
 import { randomEmail, randomPassword } from "./utils/random"
 import { logInUser } from "./utils/user"
 
+// All tests in this file start with a clean browser state (no cookies, no localStorage).
+// switchUser handles logging in as a specific role for each test.
+test.use({ storageState: { cookies: [], origins: [] } })
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -54,15 +58,12 @@ async function createUserWithRole(
   return { email, password }
 }
 
-/** Clear localStorage auth token, then log in as a different user. */
+/** Log in as a specific user from a clean (no auth) state. */
 async function switchUser(
   page: import("@playwright/test").Page,
   email: string,
   password: string,
 ) {
-  // Navigate to the app so the page context is active before clearing storage
-  await page.goto("/")
-  await page.evaluate(() => localStorage.removeItem("access_token"))
   await logInUser(page, email, password)
 }
 
@@ -197,10 +198,13 @@ test("14.7 dashboard renders a bar chart with 6 month labels", async ({
 
   await page.goto("/financeiro")
 
-  // Recharts renders an SVG
-  await expect(page.locator("svg").first()).toBeVisible({ timeout: 10000 })
+  // Wait for the "Últimos 6 Meses" card title to appear (chart is rendered)
+  await expect(page.getByText("Últimos 6 Meses")).toBeVisible({
+    timeout: 10000,
+  })
 
-  // At least 6 month abbreviations should appear on the chart
+  // The chart renders 6 month abbreviation spans. Wait for loading to finish
+  // (skeleton replaces with actual bars), then count month labels found.
   const monthLabels = [
     "Jan",
     "Fev",
@@ -215,11 +219,13 @@ test("14.7 dashboard renders a bar chart with 6 month labels", async ({
     "Nov",
     "Dez",
   ]
-  let foundCount = 0
-  for (const label of monthLabels) {
-    foundCount += await page.getByText(label, { exact: true }).count()
-  }
-  expect(foundCount).toBeGreaterThanOrEqual(6)
+  await expect(async () => {
+    let foundCount = 0
+    for (const label of monthLabels) {
+      foundCount += await page.getByText(label, { exact: true }).count()
+    }
+    expect(foundCount).toBeGreaterThanOrEqual(6)
+  }).toPass({ timeout: 10000 })
 })
 
 // ---------------------------------------------------------------------------
@@ -246,25 +252,19 @@ test("14.8 admin-role user sees finance pages but has no Nova Transação button
 // 14.9 Client user sees no finance sidebar links
 // ---------------------------------------------------------------------------
 
-test.describe("14.9 client user has no finance sidebar links", () => {
-  test.use({ storageState: { cookies: [], origins: [] } })
+test("14.9 client role sees no Financeiro section in sidebar", async ({
+  page,
+}) => {
+  const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
+  const { email, password } = await createUserWithRole(superToken, "client")
+  await switchUser(page, email, password)
 
-  test("client role sees no Financeiro section in sidebar", async ({
-    page,
-  }) => {
-    const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
-    const { email, password } = await createUserWithRole(superToken, "client")
-    await switchUser(page, email, password)
-
-    await expect(
-      page.getByRole("link", { name: /Dashboard Financeiro/i }),
-    ).not.toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "Transações" }),
-    ).not.toBeVisible()
-    await expect(page.getByRole("link", { name: "Despesas" })).not.toBeVisible()
-    await expect(page.getByRole("link", { name: "Receitas" })).not.toBeVisible()
-  })
+  await expect(
+    page.getByRole("link", { name: /Dashboard Financeiro/i }),
+  ).not.toBeVisible()
+  await expect(page.getByRole("link", { name: "Transações" })).not.toBeVisible()
+  await expect(page.getByRole("link", { name: "Despesas" })).not.toBeVisible()
+  await expect(page.getByRole("link", { name: "Receitas" })).not.toBeVisible()
 })
 
 // ---------------------------------------------------------------------------
@@ -285,7 +285,10 @@ test("14.10 deleting a service sets service_id to null on linked transactions", 
     body: JSON.stringify({
       name: "Test Client 14.10",
       document_type: "cpf",
-      document_number: "11122233344",
+      // Use a random 11-digit CPF to avoid conflicts across test runs
+      document_number: String(
+        Math.floor(10000000000 + Math.random() * 89999999999),
+      ),
     }),
   })
   expect(clientRes.status).toBe(201)
