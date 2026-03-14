@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from http import HTTPStatus
 
 from fastapi.testclient import TestClient
@@ -739,3 +740,258 @@ def test_get_service_status_logs_crud(
     assert len(logs) == 2
     assert logs[0].from_status == ServiceStatus.requested
     assert logs[1].from_status == ServiceStatus.scheduled
+
+
+# ── Phase 8: Stock integration tests ─────────────────────────────────────────
+
+
+def _drain_em_estoque(db: Session) -> None:
+    """Mark all em_estoque items as utilizado to avoid cross-test contamination.
+
+    The db fixture is session-scoped, so stock state accumulates across tests.
+    Call this at the start of any test that relies on specific stock reservation
+    behavior.
+    """
+    from app.models import ProductItem, ProductItemStatus
+
+    items = db.exec(
+        select(ProductItem).where(ProductItem.status == ProductItemStatus.em_estoque)
+    ).all()
+    for item in items:
+        item.status = ProductItemStatus.utilizado
+        db.add(item)
+    db.commit()
+
+
+def _create_product_item(db: Session, quantity: float = 5.0) -> object:
+    """Create a ProductType, Product, and ProductItem with em_estoque status."""
+    from app.models import (
+        Product,
+        ProductCategory,
+        ProductItem,
+        ProductItemStatus,
+        ProductType,
+    )
+
+    pt = ProductType(
+        category=ProductCategory.tubos,
+        name=f"Tubo Teste {uuid.uuid4().hex[:6]}",
+        unit_of_measure="un",
+    )
+    db.add(pt)
+    db.flush()
+
+    prod = Product(
+        product_type_id=pt.id,
+        name=f"Produto {uuid.uuid4().hex[:6]}",
+        unit_price=Decimal("10.00"),
+    )
+    db.add(prod)
+    db.flush()
+
+    item = ProductItem(
+        product_id=prod.id,
+        quantity=Decimal(str(quantity)),
+        status=ProductItemStatus.em_estoque,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def _reserved_for_service(db: Session, service_id: object) -> list:
+    """Return all ProductItems currently reserved for a service."""
+    from app.models import ProductItem, ProductItemStatus
+
+    return list(
+        db.exec(
+            select(ProductItem).where(
+                ProductItem.service_id == service_id,
+                ProductItem.status == ProductItemStatus.reservado,
+            )
+        ).all()
+    )
+
+
+def _utilizado_for_service(db: Session, service_id: object) -> list:
+    """Return all ProductItems marked utilizado that were reserved for a service."""
+    from app.models import ProductItem, ProductItemStatus
+
+    return list(
+        db.exec(
+            select(ProductItem).where(
+                ProductItem.service_id == service_id,
+                ProductItem.status == ProductItemStatus.utilizado,
+            )
+        ).all()
+    )
+
+
+def test_transition_to_scheduled_reserves_stock(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Transitioning to scheduled reserves em_estoque ProductItems for the service."""
+    _drain_em_estoque(db)
+
+    svc = create_random_service(db)
+    create_service_item(db, svc)
+    _create_product_item(db, quantity=20.0)
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["service"]["status"] == "scheduled"
+
+    reserved = _reserved_for_service(db, svc.id)
+    assert len(reserved) >= 1
+    assert all(item.service_id == svc.id for item in reserved)
+
+
+def test_transition_to_scheduled_with_insufficient_stock_returns_warning(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Insufficient stock produces a warning but does not block transition."""
+    _drain_em_estoque(db)
+
+    svc = create_random_service(db)
+    # Service item needs 10 units, only 2 available
+    item_in = ServiceItemCreate(
+        item_type=ItemType.material,
+        description="Material escasso",
+        quantity=10.0,
+        unit_price=5.0,
+    )
+    crud.create_service_item(session=db, service_id=svc.id, item_in=item_in)
+    _create_product_item(db, quantity=2.0)
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    data = r.json()
+    assert data["service"]["status"] == "scheduled"
+    assert len(data["stock_warnings"]) >= 1
+    warning = data["stock_warnings"][0]
+    assert warning["shortfall"] > 0
+
+
+def test_transition_to_cancelled_releases_reserved_stock(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cancelling a service releases all reserved ProductItems back to em_estoque."""
+    from app.models import ProductItemStatus
+
+    _drain_em_estoque(db)
+
+    svc = create_random_service(db)
+    create_service_item(db, svc)
+    _create_product_item(db, quantity=20.0)
+
+    # Schedule (reserves stock)
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    reserved = _reserved_for_service(db, svc.id)
+    assert len(reserved) >= 1
+
+    # Cancel (should release)
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "cancelled", "reason": "Obra cancelada pelo cliente"},
+    )
+    assert r.status_code == HTTPStatus.OK
+
+    # All items reserved for this service should be released
+    assert len(_reserved_for_service(db, svc.id)) == 0
+    # Released items no longer point to this service
+    from app.models import ProductItem
+
+    released = db.exec(
+        select(ProductItem).where(
+            ProductItem.status == ProductItemStatus.em_estoque,
+            ProductItem.service_id.is_(None),  # type: ignore[union-attr]
+        )
+    ).all()
+    assert len(released) >= 1
+
+
+def test_transition_to_completed_marks_stock_utilizado(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Completing a service marks reserved ProductItems as utilizado."""
+    _drain_em_estoque(db)
+
+    svc = create_random_service(db)
+    svc_item = create_service_item(db, svc)
+    _create_product_item(db, quantity=20.0)
+
+    # requested → scheduled → executing → completed
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={
+            "to_status": "completed",
+            "deduction_items": [
+                {"service_item_id": str(svc_item.id), "quantity": 10.0}
+            ],
+        },
+    )
+    assert r.status_code == HTTPStatus.OK
+
+    # No items should remain reserved for this service
+    assert len(_reserved_for_service(db, svc.id)) == 0
+    # Items reserved for this service are now utilizado
+    utilizado = _utilizado_for_service(db, svc.id)
+    assert len(utilizado) >= 1
+
+
+def test_deduct_stock_marks_reserved_items_utilizado(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /deduct-stock on an executing service marks reserved items utilizado."""
+    _drain_em_estoque(db)
+
+    svc = create_random_service(db)
+    create_service_item(db, svc)
+    _create_product_item(db, quantity=20.0)
+
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/deduct-stock",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+
+    # All reserved items are now utilizado
+    assert len(_reserved_for_service(db, svc.id)) == 0
+    utilizado = _utilizado_for_service(db, svc.id)
+    assert len(utilizado) >= 1
