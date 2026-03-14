@@ -54,13 +54,15 @@ async function createUserWithRole(
   return { email, password }
 }
 
-/** Clear existing session cookies so we can log in as a different user. */
+/** Clear localStorage auth token, then log in as a different user. */
 async function switchUser(
   page: import("@playwright/test").Page,
   email: string,
   password: string,
 ) {
-  await page.context().clearCookies()
+  // Navigate to the app so the page context is active before clearing storage
+  await page.goto("/")
+  await page.evaluate(() => localStorage.removeItem("access_token"))
   await logInUser(page, email, password)
 }
 
@@ -286,6 +288,7 @@ test("14.10 deleting a service sets service_id to null on linked transactions", 
       document_number: "11122233344",
     }),
   })
+  expect(clientRes.status).toBe(201)
   const client = (await clientRes.json()) as { id: string }
 
   // Create service
@@ -301,6 +304,7 @@ test("14.10 deleting a service sets service_id to null on linked transactions", 
       execution_address: "Rua Teste, 1, Cidade SP",
     }),
   })
+  expect(serviceRes.status).toBe(201)
   const service = (await serviceRes.json()) as { id: string }
 
   // Create transaction linked to service
@@ -318,6 +322,7 @@ test("14.10 deleting a service sets service_id to null on linked transactions", 
       service_id: service.id,
     }),
   })
+  expect(txRes.status).toBe(201)
   const tx = (await txRes.json()) as { id: string; service_id: string | null }
   expect(tx.service_id).toBe(service.id)
 
@@ -326,7 +331,7 @@ test("14.10 deleting a service sets service_id to null on linked transactions", 
     method: "DELETE",
     headers: { Authorization: `Bearer ${superToken}` },
   })
-  expect(delRes.status).toBe(200)
+  expect(delRes.status).toBe(204)
 
   // Fetch transaction again — service_id must be null
   const txAfterRes = await fetch(`${API_BASE}/api/v1/transacoes/${tx.id}`, {
