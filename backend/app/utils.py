@@ -114,6 +114,11 @@ def generate_password_reset_token(email: str) -> str:
 
 
 def verify_password_reset_token(token: str) -> str | None:
+    """Decode and validate a password reset JWT.
+
+    Returns the email address if the token is valid and unexpired.
+    Does NOT check for reuse — call is_token_used() after this for that check.
+    """
     try:
         decoded_token = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
@@ -121,3 +126,36 @@ def verify_password_reset_token(token: str) -> str | None:
         return str(decoded_token["sub"])
     except InvalidTokenError:
         return None
+
+
+def _token_hash(token: str) -> str:
+    """SHA-256 hex digest of the raw token string (safe to store)."""
+    import hashlib
+
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def is_token_used(session: Any, token: str) -> bool:
+    """Return True if this token has already been consumed."""
+    from sqlmodel import select
+
+    from app.models import UsedPasswordResetToken
+
+    token_hash = _token_hash(token)
+    return (
+        session.exec(
+            select(UsedPasswordResetToken).where(
+                UsedPasswordResetToken.token_hash == token_hash
+            )
+        ).first()
+        is not None
+    )
+
+
+def consume_password_reset_token(session: Any, token: str) -> None:
+    """Mark a password reset token as used so it cannot be reused."""
+    from app.models import UsedPasswordResetToken
+
+    record = UsedPasswordResetToken(token_hash=_token_hash(token))
+    session.add(record)
+    session.commit()

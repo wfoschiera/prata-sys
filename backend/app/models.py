@@ -114,6 +114,19 @@ class NewPassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class UsedPasswordResetToken(SQLModel, table=True):
+    """Tracks consumed password reset tokens to prevent reuse within expiry window."""
+
+    __tablename__ = "used_password_reset_token"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    token_hash: str = Field(unique=True, index=True, max_length=64)
+    used_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+
 # ── Client ────────────────────────────────────────────────────────────────────
 
 
