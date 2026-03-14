@@ -383,6 +383,23 @@ export const DeductionItemSchema = {
     title: 'DeductionItem'
 } as const;
 
+export const DeductionSummarySchema = {
+    properties: {
+        product_item_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Product Item Id'
+        },
+        quantity: {
+            type: 'number',
+            title: 'Quantity'
+        }
+    },
+    type: 'object',
+    required: ['product_item_id', 'quantity'],
+    title: 'DeductionSummary'
+} as const;
+
 export const DocumentTypeSchema = {
     type: 'string',
     enum: ['cpf', 'cnpj'],
@@ -1341,6 +1358,117 @@ export const ServiceItemReadSchema = {
     title: 'ServiceItemRead'
 } as const;
 
+export const ServiceListReadSchema = {
+    properties: {
+        type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        cancelled_reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cancelled Reason'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        },
+        client: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ClientRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/ServiceItemRead'
+            },
+            type: 'array',
+            title: 'Items',
+            default: []
+        },
+        has_stock_warning: {
+            type: 'boolean',
+            title: 'Has Stock Warning',
+            default: false
+        }
+    },
+    type: 'object',
+    required: ['type', 'execution_address', 'id', 'client_id', 'status'],
+    title: 'ServiceListRead',
+    description: 'Lightweight service summary for list responses — omits status_logs.'
+} as const;
+
 export const ServiceReadSchema = {
     properties: {
         type: {
@@ -1456,7 +1584,8 @@ export const ServiceReadSchema = {
     },
     type: 'object',
     required: ['type', 'execution_address', 'id', 'client_id', 'status'],
-    title: 'ServiceRead'
+    title: 'ServiceRead',
+    description: 'Full service detail — includes status_logs. Used by GET /services/{id}.'
 } as const;
 
 export const ServiceStatusSchema = {
@@ -1659,7 +1788,7 @@ export const ServicesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ServiceRead'
+                '$ref': '#/components/schemas/ServiceListRead'
             },
             type: 'array',
             title: 'Data'

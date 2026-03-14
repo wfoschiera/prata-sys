@@ -41,7 +41,7 @@ async function createClientUser(): Promise<{
 
 test("Admin page is accessible and shows correct title", async ({ page }) => {
   await page.goto("/admin")
-  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Usuários" })).toBeVisible()
   await expect(
     page.getByText("Manage user accounts and permissions"),
   ).toBeVisible()
@@ -223,7 +223,9 @@ test.describe("Admin page access control", () => {
 
     await page.goto("/admin")
 
-    await expect(page.getByRole("heading", { name: "Users" })).not.toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Usuários" }),
+    ).not.toBeVisible()
     await expect(page).not.toHaveURL(/\/admin/)
   })
 
@@ -232,6 +234,6 @@ test.describe("Admin page access control", () => {
 
     await page.goto("/admin")
 
-    await expect(page.getByRole("heading", { name: "Users" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Usuários" })).toBeVisible()
   })
 })

@@ -68,6 +68,11 @@ export type DeductionItem = {
     quantity: number;
 };
 
+export type DeductionSummary = {
+    product_item_id: string;
+    quantity: number;
+};
+
 export type DocumentType = 'cpf' | 'cnpj';
 
 export type FornecedorCategoryEnum = 'tubos' | 'conexoes' | 'bombas' | 'cabos' | 'outros';
@@ -245,6 +250,28 @@ export type ServiceItemRead = {
     service_id: string;
 };
 
+/**
+ * Lightweight service summary for list responses — omits status_logs.
+ */
+export type ServiceListRead = {
+    type: ServiceType;
+    execution_address: string;
+    notes?: (string | null);
+    id: string;
+    client_id: string;
+    status: ServiceStatus;
+    description?: (string | null);
+    cancelled_reason?: (string | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+    client?: (ClientRef | null);
+    items?: Array<ServiceItemRead>;
+    has_stock_warning?: boolean;
+};
+
+/**
+ * Full service detail — includes status_logs. Used by GET /services/{id}.
+ */
 export type ServiceRead = {
     type: ServiceType;
     execution_address: string;
@@ -263,7 +290,7 @@ export type ServiceRead = {
 };
 
 export type ServicesPublic = {
-    data: Array<ServiceRead>;
+    data: Array<ServiceListRead>;
     count: number;
 };
 
@@ -717,9 +744,7 @@ export type ServicesDeductStockData = {
     serviceId: string;
 };
 
-export type ServicesDeductStockResponse = (Array<{
-    [key: string]: unknown;
-}>);
+export type ServicesDeductStockResponse = (Array<DeductionSummary>);
 
 export type ServicesBaixarEstoqueData = {
     serviceId: string;
