@@ -114,7 +114,8 @@ test("F2 superuser adds contact to fornecedor", async ({ page }) => {
   await page.getByLabel(/^Nome$/i).fill("João Silva")
   await page.getByLabel(/Cargo \/ Função/i).fill("Gerente")
   await page.getByLabel(/^Telefone$/i).fill("11999999999")
-  await page.getByRole("button", { name: "Salvar" }).click()
+  // Submit button says "Adicionar" when creating a new contact
+  await page.getByRole("button", { name: "Adicionar" }).last().click()
 
   await expect(page.getByRole("dialog")).not.toBeVisible()
   await expect(page.getByText("João Silva")).toBeVisible()
@@ -145,10 +146,20 @@ test("F3 superuser toggles category on fornecedor", async ({ page }) => {
   await page.goto(`/fornecedores/${fornecedor.id}`)
   await expect(page.getByText("Category Test Supplier")).toBeVisible()
 
-  // Toggle Tubos checkbox — category is saved immediately on toggle
+  // Toggle Tubos checkbox — category is saved immediately via API call on toggle
   const checkbox = page.getByRole("checkbox", { name: /Tubos/i })
   await expect(checkbox).not.toBeChecked()
-  await checkbox.check()
+
+  // Wait for the PATCH request triggered by toggling
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().includes("/fornecedores/") &&
+        res.request().method() === "PATCH",
+    ),
+    checkbox.check(),
+  ])
+  await expect(response.status()).toBe(200)
 
   // Reload and verify it persisted
   await page.reload()
