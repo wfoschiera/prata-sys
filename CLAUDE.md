@@ -157,3 +157,8 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 
 **Docker: tests not found**
 - The `backend/tests/` directory must be explicitly `COPY`-ed in `backend/Dockerfile` — it is not included by default and pytest will fail with "file or directory not found: tests/"
+
+**Python 3.14: HTTP response header names must be valid (no trailing colon)**
+- Python 3.14 tightened RFC 5322 validation in `email.message` — header field names with trailing colons (e.g. `"subject:"`) now raise `ValueError`
+- This surfaces as a crash in `httpx` when processing HTTP responses containing such headers
+- Always use valid header names without trailing colons: `{"subject": value}` not `{"subject:": value}`

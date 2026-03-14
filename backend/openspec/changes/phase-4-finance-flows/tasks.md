@@ -141,11 +141,11 @@
 
 - [x] 14.1 Run backend tests: `bash scripts/test.sh` — all pass; check that `test_transacoes.py` covers all scenarios in the spec
 - [x] 14.2 Run frontend lint + build: `cd frontend && bun run lint && bun run build`
-- [ ] 14.3 Manual test: finance user can create a receita linked to a service order; the transaction appears in the list
-- [ ] 14.4 Manual test: finance user creates a despesa with `categoria=COMBUSTIVEL`; the transaction appears under Despesas
-- [ ] 14.5 Manual test: attempt to create a despesa with `categoria=SERVICO` — API returns 422
-- [ ] 14.6 Manual test: Finance Dashboard KPI cards show correct totals for the current month
-- [ ] 14.7 Manual test: 6-month bar chart renders with correct monthly labels and grouped bars
-- [ ] 14.8 Manual test: admin user (with `view_financeiro`) can view but not create transactions (no "Nova Transação" button visible)
-- [ ] 14.9 Manual test: client user sees no finance sidebar links
-- [ ] 14.10 Manual test: delete a service that has linked transactions — verify transactions remain with `service_id=null`
+- [x] 14.3 E2E test (Playwright): finance user can create a receita linked to a service order; the transaction appears in the list
+- [x] 14.4 E2E test (Playwright): finance user creates a despesa with `categoria=COMBUSTIVEL`; the transaction appears under Despesas
+- [x] 14.5 E2E test (Playwright): attempt to create a despesa with `categoria=SERVICO` — API returns 422
+- [x] 14.6 E2E test (Playwright): Finance Dashboard KPI cards show correct totals for the current month
+- [x] 14.7 E2E test (Playwright): 6-month bar chart renders with correct monthly labels and grouped bars
+- [x] 14.8 E2E test (Playwright): admin user (with `view_financeiro`) can view but not create transactions (no "Nova Transação" button visible)
+- [x] 14.9 E2E test (Playwright): client user sees no finance sidebar links
+- [x] 14.10 E2E test (Playwright): delete a service that has linked transactions — verify transactions remain with `service_id=null`
