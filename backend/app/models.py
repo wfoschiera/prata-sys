@@ -3,7 +3,7 @@ import re
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import EmailStr, field_validator, model_validator
 from sqlalchemy import DateTime, Numeric, Text, UniqueConstraint
@@ -396,6 +396,7 @@ class Service(ServiceBase, table=True):
             "order_by": "ServiceStatusLog.changed_at",
         },
     )
+    product_items: list["ProductItem"] = Relationship(back_populates="service")
 
 
 class ServiceStatusLog(SQLModel, table=True):
@@ -761,3 +762,228 @@ class FornecedorCategoria(SQLModel, table=True):
     category: str = Field(max_length=20)
 
     fornecedor: Fornecedor = Relationship(back_populates="categorias")
+
+
+# ── Estoque (Inventory) ────────────────────────────────────────────────────────
+
+
+class ProductCategory(str, enum.Enum):
+    tubos = "tubos"
+    conexoes = "conexoes"
+    bombas = "bombas"
+    cabos = "cabos"
+    outros = "outros"
+
+
+class ProductItemStatus(str, enum.Enum):
+    em_estoque = "em_estoque"
+    reservado = "reservado"
+    utilizado = "utilizado"
+
+
+class ProductType(SQLModel, table=True):
+    __tablename__ = "producttype"
+    __table_args__ = (UniqueConstraint("category", "name"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    category: ProductCategory = Field(nullable=False)
+    name: str = Field(max_length=255, nullable=False)
+    unit_of_measure: str = Field(max_length=50, nullable=False)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    products: list["Product"] = Relationship(back_populates="product_type")
+
+
+class Product(SQLModel, table=True):
+    __tablename__ = "product"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    product_type_id: uuid.UUID = Field(
+        foreign_key="producttype.id", nullable=False, ondelete="RESTRICT"
+    )
+    name: str = Field(max_length=255, nullable=False)
+    fornecedor_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="fornecedor.id",
+        nullable=True,
+        ondelete="SET NULL",
+    )
+    unit_price: Decimal = Field(sa_type=Numeric(10, 2), nullable=False)  # type: ignore
+    description: str | None = Field(default=None, sa_type=Text)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    product_type: ProductType = Relationship(back_populates="products")
+    fornecedor: Fornecedor | None = Relationship()
+    items: list["ProductItem"] = Relationship(back_populates="product")
+
+
+class ProductItem(SQLModel, table=True):
+    __tablename__ = "productitem"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    product_id: uuid.UUID = Field(
+        foreign_key="product.id", nullable=False, ondelete="CASCADE"
+    )
+    quantity: Decimal = Field(sa_type=Numeric(12, 4), nullable=False)  # type: ignore
+    status: ProductItemStatus = Field(
+        default=ProductItemStatus.em_estoque, nullable=False
+    )
+    service_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="service.id",
+        nullable=True,
+        ondelete="SET NULL",
+    )
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    product: Product = Relationship(back_populates="items")
+    service: Optional["Service"] = Relationship(back_populates="product_items")
+
+
+# ── Estoque Pydantic Schemas ───────────────────────────────────────────────────
+
+
+class ProductTypeCreate(SQLModel):
+    category: ProductCategory
+    name: str = Field(min_length=1, max_length=255)
+    unit_of_measure: str = Field(min_length=1, max_length=50)
+
+
+class ProductTypeRead(SQLModel):
+    id: uuid.UUID
+    category: ProductCategory
+    name: str
+    unit_of_measure: str
+    created_at: datetime | None = None
+
+
+class ProductTypeUpdate(SQLModel):
+    category: ProductCategory | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    unit_of_measure: str | None = Field(default=None, min_length=1, max_length=50)
+
+
+class FornecedorRef(SQLModel):
+    id: uuid.UUID
+    company_name: str
+
+
+class ProductCreate(SQLModel):
+    product_type_id: uuid.UUID
+    name: str = Field(min_length=1, max_length=255)
+    fornecedor_id: uuid.UUID | None = None
+    unit_price: Decimal
+    description: str | None = None
+
+    @field_validator("unit_price", mode="before")
+    @classmethod
+    def validate_unit_price(cls, v: Any) -> Decimal:
+        d = Decimal(str(v))
+        if d < 0:
+            msg = "unit_price must be >= 0"
+            raise ValueError(msg)
+        return d
+
+
+class ProductRead(SQLModel):
+    id: uuid.UUID
+    product_type_id: uuid.UUID
+    product_type: ProductTypeRead
+    name: str
+    fornecedor_id: uuid.UUID | None = None
+    fornecedor: FornecedorRef | None = None
+    unit_price: Decimal
+    description: str | None = None
+    created_at: datetime | None = None
+
+
+class ProductUpdate(SQLModel):
+    product_type_id: uuid.UUID | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    fornecedor_id: uuid.UUID | None = None
+    unit_price: Decimal | None = None
+    description: str | None = None
+
+    @field_validator("unit_price", mode="before")
+    @classmethod
+    def validate_unit_price(cls, v: Any) -> Decimal | None:
+        if v is None:
+            return None
+        d = Decimal(str(v))
+        if d < 0:
+            msg = "unit_price must be >= 0"
+            raise ValueError(msg)
+        return d
+
+
+class ProductItemCreate(SQLModel):
+    product_id: uuid.UUID
+    quantity: Decimal
+
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def validate_quantity(cls, v: Any) -> Decimal:
+        d = Decimal(str(v))
+        if d <= 0:
+            msg = "quantity must be > 0"
+            raise ValueError(msg)
+        return d
+
+
+class ProductItemRead(SQLModel):
+    id: uuid.UUID
+    product_id: uuid.UUID
+    quantity: Decimal
+    status: ProductItemStatus
+    service_id: uuid.UUID | None = None
+    created_at: datetime | None = None
+
+
+class StockPredictionRead(SQLModel):
+    product_id: uuid.UUID
+    days_to_stockout: int | None = None
+    level: str  # "green" | "yellow" | "red"
+    em_estoque_qty: Decimal
+    reservado_qty: Decimal
+    avg_daily_consumption: Decimal | None = None
+
+
+class CategoryDashboardItem(SQLModel):
+    category: ProductCategory
+    em_estoque_total: Decimal
+    reservado_total: Decimal
+    utilizado_total: Decimal
+
+
+class InventoryStockWarning(SQLModel):
+    product_id: uuid.UUID
+    product_name: str
+    required_qty: Decimal
+    available_qty: Decimal
+    shortfall_qty: Decimal
+
+
+class BaixarEstoqueResponse(SQLModel):
+    service_id: uuid.UUID
+    items_updated: int

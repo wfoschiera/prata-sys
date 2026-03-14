@@ -9,7 +9,9 @@ from sqlmodel import Session, func, select
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     VALID_STATUS_TRANSITIONS,
+    BaixarEstoqueResponse,
     CategoriaTransacao,
+    CategoryDashboardItem,
     Client,
     ClientCreate,
     ClientRef,
@@ -23,7 +25,18 @@ from app.models import (
     FornecedorContatoUpdate,
     FornecedorCreate,
     FornecedorUpdate,
+    InventoryStockWarning,
     ItemType,
+    Product,
+    ProductCategory,
+    ProductCreate,
+    ProductItem,
+    ProductItemCreate,
+    ProductItemStatus,
+    ProductType,
+    ProductTypeCreate,
+    ProductTypeUpdate,
+    ProductUpdate,
     ResumoMensal,
     Service,
     ServiceCreate,
@@ -33,6 +46,7 @@ from app.models import (
     ServiceStatusLog,
     ServiceSummary,
     ServiceUpdate,
+    StockPredictionRead,
     StockWarning,
     TipoTransacao,
     Transacao,
@@ -706,3 +720,409 @@ def update_contato(
 def delete_contato(*, session: Session, contato: FornecedorContato) -> None:
     session.delete(contato)
     session.commit()
+
+
+# ── ProductType CRUD ───────────────────────────────────────────────────────────
+
+
+def create_product_type(*, session: Session, pt_in: ProductTypeCreate) -> ProductType:
+    from sqlalchemy.exc import IntegrityError
+
+    existing = session.exec(
+        select(ProductType).where(
+            ProductType.category == pt_in.category,
+            ProductType.name == pt_in.name,
+        )
+    ).first()
+    if existing:
+        msg = f"ProductType with category '{pt_in.category}' and name '{pt_in.name}' already exists"
+        raise ValueError(msg)
+    pt = ProductType.model_validate(pt_in)
+    session.add(pt)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        msg = f"ProductType with category '{pt_in.category}' and name '{pt_in.name}' already exists"
+        raise ValueError(msg)
+    session.refresh(pt)
+    return pt
+
+
+def get_product_type(
+    *, session: Session, product_type_id: uuid.UUID
+) -> ProductType | None:
+    return session.get(ProductType, product_type_id)
+
+
+def get_product_types(*, session: Session) -> list[ProductType]:
+    return list(session.exec(select(ProductType)).all())
+
+
+def update_product_type(
+    *, session: Session, pt: ProductType, pt_in: ProductTypeUpdate
+) -> ProductType:
+    update_data = pt_in.model_dump(exclude_unset=True)
+    pt.sqlmodel_update(update_data)
+    pt.updated_at = get_datetime_utc()
+    session.add(pt)
+    session.commit()
+    session.refresh(pt)
+    return pt
+
+
+def delete_product_type(*, session: Session, product_type_id: uuid.UUID) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    pt = session.get(ProductType, product_type_id)
+    if pt is None:
+        return
+    try:
+        session.delete(pt)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        msg = "Cannot delete ProductType: products reference this type"
+        raise ValueError(msg)
+
+
+# ── Product CRUD ───────────────────────────────────────────────────────────────
+
+
+def _product_options() -> list[Any]:
+    return [
+        selectinload(Product.product_type),  # type: ignore[arg-type]
+        selectinload(Product.fornecedor),  # type: ignore[arg-type]
+    ]
+
+
+def create_product(*, session: Session, product_in: ProductCreate) -> Product:
+    from fastapi import HTTPException
+
+    if session.get(ProductType, product_in.product_type_id) is None:
+        raise HTTPException(status_code=404, detail="ProductType not found")
+    if product_in.fornecedor_id is not None:
+        if session.get(Fornecedor, product_in.fornecedor_id) is None:
+            raise HTTPException(status_code=404, detail="Fornecedor not found")
+    product = Product.model_validate(product_in)
+    session.add(product)
+    session.commit()
+    result = get_product(session=session, product_id=product.id)
+    assert result is not None
+    return result
+
+
+def get_product(*, session: Session, product_id: uuid.UUID) -> Product | None:
+    statement = (
+        select(Product).where(Product.id == product_id).options(*_product_options())
+    )
+    return session.exec(statement).first()
+
+
+def get_products(
+    *,
+    session: Session,
+    category: ProductCategory | None = None,
+    fornecedor_id: uuid.UUID | None = None,
+) -> list[Product]:
+    statement = select(Product).options(*_product_options())
+    if category is not None:
+        statement = statement.join(ProductType).where(ProductType.category == category)
+    if fornecedor_id is not None:
+        statement = statement.where(Product.fornecedor_id == fornecedor_id)
+    return list(session.exec(statement).all())
+
+
+def update_product(
+    *, session: Session, product: Product, product_in: ProductUpdate
+) -> Product:
+    from fastapi import HTTPException
+
+    update_data = product_in.model_dump(exclude_unset=True)
+    if "product_type_id" in update_data and update_data["product_type_id"] is not None:
+        if session.get(ProductType, update_data["product_type_id"]) is None:
+            raise HTTPException(status_code=404, detail="ProductType not found")
+    if "fornecedor_id" in update_data and update_data["fornecedor_id"] is not None:
+        if session.get(Fornecedor, update_data["fornecedor_id"]) is None:
+            raise HTTPException(status_code=404, detail="Fornecedor not found")
+    product.sqlmodel_update(update_data)
+    product.updated_at = get_datetime_utc()
+    session.add(product)
+    session.commit()
+    result = get_product(session=session, product_id=product.id)
+    assert result is not None
+    return result
+
+
+def delete_product(*, session: Session, product_id: uuid.UUID) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    product = session.get(Product, product_id)
+    if product is None:
+        return
+    try:
+        session.delete(product)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        msg = "Cannot delete Product: stock items reference this product"
+        raise ValueError(msg)
+
+
+# ── ProductItem CRUD ───────────────────────────────────────────────────────────
+
+
+def create_product_item(*, session: Session, item_in: ProductItemCreate) -> ProductItem:
+    from fastapi import HTTPException
+
+    if session.get(Product, item_in.product_id) is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    item = ProductItem(
+        product_id=item_in.product_id,
+        quantity=item_in.quantity,
+        status=ProductItemStatus.em_estoque,
+        service_id=None,
+    )
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+def get_product_items_by_product(
+    *, session: Session, product_id: uuid.UUID
+) -> list[ProductItem]:
+    statement = (
+        select(ProductItem)
+        .where(ProductItem.product_id == product_id)
+        .options(selectinload(ProductItem.service))  # type: ignore[arg-type]
+        .order_by(ProductItem.created_at.desc())  # type: ignore[union-attr]
+    )
+    return list(session.exec(statement).all())
+
+
+def get_product_items_by_service(
+    *,
+    session: Session,
+    service_id: uuid.UUID,
+    status: ProductItemStatus | None = None,
+) -> list[ProductItem]:
+    statement = select(ProductItem).where(ProductItem.service_id == service_id)
+    if status is not None:
+        statement = statement.where(ProductItem.status == status)
+    return list(session.exec(statement).all())
+
+
+def get_product_items(
+    *,
+    session: Session,
+    product_id: uuid.UUID | None = None,
+    status: ProductItemStatus | None = None,
+    service_id: uuid.UUID | None = None,
+) -> list[ProductItem]:
+    statement = select(ProductItem)
+    if product_id is not None:
+        statement = statement.where(ProductItem.product_id == product_id)
+    if status is not None:
+        statement = statement.where(ProductItem.status == status)
+    if service_id is not None:
+        statement = statement.where(ProductItem.service_id == service_id)
+    return list(session.exec(statement).all())
+
+
+def validate_product_item_transition(
+    current_status: ProductItemStatus, new_status: ProductItemStatus
+) -> None:
+    allowed: set[tuple[ProductItemStatus, ProductItemStatus]] = {
+        (ProductItemStatus.em_estoque, ProductItemStatus.reservado),
+        (ProductItemStatus.reservado, ProductItemStatus.utilizado),
+    }
+    if (current_status, new_status) not in allowed:
+        msg = f"Invalid transition from '{current_status}' to '{new_status}'"
+        raise ValueError(msg)
+
+
+def reserve_stock_for_service(
+    session: Session,
+    service_id: uuid.UUID,
+    product_quantities: list[tuple[uuid.UUID, Decimal]],
+) -> list[InventoryStockWarning]:
+    warnings: list[InventoryStockWarning] = []
+    for product_id, needed_qty in product_quantities:
+        product = session.get(Product, product_id)
+        if product is None:
+            continue
+        # Select em_estoque items for this product, ordered by oldest first
+        items = list(
+            session.exec(
+                select(ProductItem)
+                .where(
+                    ProductItem.product_id == product_id,
+                    ProductItem.status == ProductItemStatus.em_estoque,
+                )
+                .order_by(ProductItem.created_at)  # type: ignore[arg-type]
+            ).all()
+        )
+        available_qty = sum((i.quantity for i in items), Decimal("0"))
+        remaining = needed_qty
+        for item in items:
+            if remaining <= 0:
+                break
+            item.status = ProductItemStatus.reservado
+            item.service_id = service_id
+            item.updated_at = get_datetime_utc()
+            session.add(item)
+            remaining -= item.quantity
+        if remaining > 0:
+            # Shortfall
+            warnings.append(
+                InventoryStockWarning(
+                    product_id=product_id,
+                    product_name=product.name,
+                    required_qty=needed_qty,
+                    available_qty=available_qty,
+                    shortfall_qty=remaining,
+                )
+            )
+    session.commit()
+    return warnings
+
+
+def utilize_reserved_items_for_service(session: Session, service_id: uuid.UUID) -> int:
+    items = list(
+        session.exec(
+            select(ProductItem).where(
+                ProductItem.service_id == service_id,
+                ProductItem.status == ProductItemStatus.reservado,
+            )
+        ).all()
+    )
+    for item in items:
+        item.status = ProductItemStatus.utilizado
+        item.updated_at = get_datetime_utc()
+        session.add(item)
+    session.commit()
+    return len(items)
+
+
+# ── Stock Prediction & Dashboard ──────────────────────────────────────────────
+
+
+def get_stock_prediction(
+    *, session: Session, product_id: uuid.UUID
+) -> StockPredictionRead:
+    from datetime import timedelta
+
+    now = get_datetime_utc()
+    window_start = now - timedelta(days=90)
+
+    em_estoque_qty = session.exec(
+        select(func.sum(ProductItem.quantity)).where(
+            ProductItem.product_id == product_id,
+            ProductItem.status == ProductItemStatus.em_estoque,
+        )
+    ).one() or Decimal("0")
+
+    reservado_qty = session.exec(
+        select(func.sum(ProductItem.quantity)).where(
+            ProductItem.product_id == product_id,
+            ProductItem.status == ProductItemStatus.reservado,
+        )
+    ).one() or Decimal("0")
+
+    utilizado_90d = session.exec(
+        select(func.sum(ProductItem.quantity)).where(
+            ProductItem.product_id == product_id,
+            ProductItem.status == ProductItemStatus.utilizado,
+            ProductItem.created_at >= window_start,  # type: ignore[operator]
+        )
+    ).one() or Decimal("0")
+
+    avg_daily = Decimal(str(utilizado_90d)) / Decimal("90") if utilizado_90d else None
+
+    days_to_stockout: int | None = None
+    net_stock = Decimal(str(em_estoque_qty)) - Decimal(str(reservado_qty))
+    if avg_daily is None or avg_daily == 0:
+        # No known consumption history — cannot predict, treat as green
+        if net_stock <= 0 and (em_estoque_qty > 0 or reservado_qty > 0):
+            # Had stock but it's all reserved; still no consumption data
+            level = "yellow"
+        else:
+            level = "green"
+    elif net_stock <= 0:
+        level = "red"
+    else:
+        days_to_stockout = int(net_stock / avg_daily)
+        if days_to_stockout <= 7:
+            level = "red"
+        elif days_to_stockout <= 30:
+            level = "yellow"
+        else:
+            level = "green"
+
+    return StockPredictionRead(
+        product_id=product_id,
+        days_to_stockout=days_to_stockout,
+        level=level,
+        em_estoque_qty=Decimal(str(em_estoque_qty)),
+        reservado_qty=Decimal(str(reservado_qty)),
+        avg_daily_consumption=avg_daily,
+    )
+
+
+def get_stock_dashboard(*, session: Session) -> list[CategoryDashboardItem]:
+
+    # Query all categories and statuses in one pass using GROUP BY
+    rows = session.exec(
+        select(
+            ProductType.category,
+            ProductItem.status,
+            func.sum(ProductItem.quantity),
+        )
+        .join(Product, Product.product_type_id == ProductType.id)  # type: ignore[arg-type]
+        .join(ProductItem, ProductItem.product_id == Product.id)  # type: ignore[arg-type]
+        .group_by(ProductType.category, ProductItem.status)
+    ).all()
+
+    # Build a dict: category -> status -> total
+    totals: dict[str, dict[str, Decimal]] = {}
+    for cat_val, status_val, total in rows:
+        cat = cat_val.value if isinstance(cat_val, ProductCategory) else cat_val
+        status = (
+            status_val.value
+            if isinstance(status_val, ProductItemStatus)
+            else status_val
+        )
+        if cat not in totals:
+            totals[cat] = {}
+        totals[cat][status] = Decimal(str(total or 0))
+
+    result = []
+    for cat in ProductCategory:
+        cat_data = totals.get(cat.value, {})
+        result.append(
+            CategoryDashboardItem(
+                category=cat,
+                em_estoque_total=cat_data.get(
+                    ProductItemStatus.em_estoque.value, Decimal("0")
+                ),
+                reservado_total=cat_data.get(
+                    ProductItemStatus.reservado.value, Decimal("0")
+                ),
+                utilizado_total=cat_data.get(
+                    ProductItemStatus.utilizado.value, Decimal("0")
+                ),
+            )
+        )
+    return result
+
+
+def baixar_estoque_for_service(
+    *, session: Session, service_id: uuid.UUID
+) -> BaixarEstoqueResponse:
+    service = session.get(Service, service_id)
+    if service is None or service.status != ServiceStatus.executing:
+        msg = "Service must be in 'executing' status to baixar estoque"
+        raise ValueError(msg)
+    count = utilize_reserved_items_for_service(session=session, service_id=service_id)
+    return BaixarEstoqueResponse(service_id=service_id, items_updated=count)
