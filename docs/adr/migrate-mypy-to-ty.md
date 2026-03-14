@@ -7,7 +7,7 @@
 
 [ty](https://github.com/astral-sh/ty) is Astral's new type checker for Python (the same team behind Ruff and uv). It is written in Rust and is reported to be 10–100x faster than mypy.
 
-We currently use `mirrors-mypy` in `.pre-commit-config.yaml` with `--python-version=3.13` and `additional_dependencies` for sqlmodel, pydantic, and fastapi.
+We currently use `mirrors-mypy` in `.pre-commit-config.yaml` with `--python-version=3.14` and `additional_dependencies` for sqlmodel, pydantic, and fastapi.
 
 ## Why we haven't migrated yet
 
@@ -31,7 +31,7 @@ Remove:
   rev: v1.19.1
   hooks:
     - id: mypy
-      args: [--ignore-missing-imports, --python-version=3.13]
+      args: [--ignore-missing-imports, --python-version=3.14]
       files: ^backend/
       additional_dependencies:
         - sqlmodel
