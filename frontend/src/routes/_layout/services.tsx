@@ -24,6 +24,7 @@ const STATUS_LABELS: Record<ServiceStatus, string> = {
   scheduled: "Agendado",
   executing: "Em Execução",
   completed: "Concluído",
+  cancelled: "Cancelado",
 }
 
 const STATUS_VARIANTS: Record<
@@ -34,6 +35,7 @@ const STATUS_VARIANTS: Record<
   scheduled: "outline",
   executing: "default",
   completed: "secondary",
+  cancelled: "destructive",
 }
 
 const TYPE_LABELS: Record<string, string> = {
