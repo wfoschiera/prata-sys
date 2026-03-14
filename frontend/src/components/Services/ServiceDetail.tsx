@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { type ServiceStatus, ServicesService } from "@/client"
 import { Badge } from "@/components/ui/badge"
+import { LoadingButton } from "@/components/ui/loading-button"
 import {
   Sheet,
   SheetContent,
@@ -18,6 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import useAuth from "@/hooks/useAuth"
+import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
+import StatusTimeline from "./StatusTimeline"
+import StockWarningBadge from "./StockWarningBadge"
+import TransitionButtons from "./TransitionButtons"
 
 const STATUS_LABELS: Record<ServiceStatus, string> = {
   requested: "Solicitado",
@@ -49,10 +56,27 @@ interface ServiceDetailProps {
 }
 
 const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
+  const queryClient = useQueryClient()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { user } = useAuth()
+  const isAdmin = !!user?.is_superuser || user?.role === "admin"
+
   const { data: service } = useQuery({
     queryKey: ["services", serviceId],
     queryFn: () => ServicesService.readService({ serviceId: serviceId! }),
     enabled: !!serviceId,
+  })
+
+  const deductMutation = useMutation({
+    mutationFn: () => ServicesService.deductStock({ serviceId: serviceId! }),
+    onSuccess: () => {
+      showSuccessToast("Materiais baixados do estoque com sucesso")
+      queryClient.invalidateQueries({ queryKey: ["services"] })
+      queryClient.invalidateQueries({ queryKey: ["services", serviceId] })
+    },
+    onError: (err: any) => {
+      handleError.call(showErrorToast, err)
+    },
   })
 
   const grandTotal =
@@ -60,6 +84,10 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
       (sum, item) => sum + item.quantity * item.unit_price,
       0,
     ) ?? 0
+
+  const materialItems = (service?.items ?? []).filter(
+    (item) => item.item_type === "material",
+  )
 
   return (
     <Sheet open={!!serviceId} onOpenChange={(open) => !open && onClose()}>
@@ -77,6 +105,32 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
             </SheetHeader>
 
             <div className="space-y-4">
+              <StatusTimeline
+                currentStatus={service.status}
+                cancelledReason={service.cancelled_reason}
+              />
+
+              {service.status === "scheduled" && service.has_stock_warning && (
+                <StockWarningBadge hasStockWarning />
+              )}
+
+              <TransitionButtons
+                serviceId={service.id}
+                currentStatus={service.status}
+                isAdmin={isAdmin}
+                materialItems={materialItems}
+              />
+
+              {isAdmin && service.status === "executing" && (
+                <LoadingButton
+                  variant="outline"
+                  onClick={() => deductMutation.mutate()}
+                  loading={deductMutation.isPending}
+                >
+                  Baixar do Estoque
+                </LoadingButton>
+              )}
+
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                   Endereço de Execução
