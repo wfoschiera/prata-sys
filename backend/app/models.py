@@ -315,6 +315,9 @@ class ServiceItemBase(SQLModel):
     description: str = Field(min_length=1, max_length=500)
     quantity: float = Field(gt=0)
     unit_price: float = Field(ge=0)
+    # Optional link to a catalog Product — enables product-scoped stock reservation.
+    # When set, _check_stock_for_service() will reserve ProductItems for this product.
+    product_id: uuid.UUID | None = Field(default=None)
 
 
 class ServiceItemCreate(ServiceItemBase):
@@ -329,6 +332,12 @@ class ServiceItemRead(ServiceItemBase):
 class ServiceItem(ServiceItemBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     service_id: uuid.UUID = Field(foreign_key="service.id", nullable=False)
+    product_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="product.id",
+        nullable=True,
+        ondelete="SET NULL",
+    )
     service: "Service" = Relationship(back_populates="items")
 
 

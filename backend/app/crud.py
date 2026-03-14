@@ -357,15 +357,24 @@ def _check_stock_for_service(session: Session, service: Service) -> list[StockWa
     Items are reserved FIFO (oldest created_at first). Reservation is best-effort:
     partial reservation is allowed — a StockWarning is emitted for any shortfall
     but the transition is not blocked.
+
+    When service_item.product_id is set, only ProductItems for that specific product
+    are considered. Without product_id, all em_estoque items are candidates (legacy).
     """
     warnings: list[StockWarning] = []
     material_items = [i for i in service.items if i.item_type == ItemType.material]
 
     for service_item in material_items:
         needed = Decimal(str(service_item.quantity))
+        # Use product-scoped reservation when product_id is set (T-20)
+        stock_filter = ProductItem.status == ProductItemStatus.em_estoque
+        if service_item.product_id is not None:
+            stock_filter = stock_filter & (
+                ProductItem.product_id == service_item.product_id
+            )
         candidates = session.exec(
             select(ProductItem)
-            .where(ProductItem.status == ProductItemStatus.em_estoque)
+            .where(stock_filter)
             .order_by(ProductItem.created_at)  # type: ignore[arg-type]
             .with_for_update()
         ).all()
