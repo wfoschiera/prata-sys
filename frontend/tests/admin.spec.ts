@@ -63,7 +63,7 @@ test.describe("Admin user management", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible()
 
     const userRow = page.getByRole("row").filter({ hasText: email })
-    await expect(userRow.getByText("Superuser")).toBeVisible()
+    await expect(userRow.getByTitle("Superuser")).toBeVisible()
   })
 
   test("Edit a user successfully", async ({ page }) => {

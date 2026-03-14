@@ -54,7 +54,7 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
   })
 
   const grandTotal =
-    service?.items.reduce(
+    (service?.items ?? []).reduce(
       (sum, item) => sum + item.quantity * item.unit_price,
       0,
     ) ?? 0
@@ -95,7 +95,7 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                   Itens
                 </p>
-                {service.items.length === 0 ? (
+                {(service.items ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Nenhum item cadastrado.
                   </p>
@@ -112,7 +112,7 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {service.items.map((item) => (
+                      {(service.items ?? []).map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
                             <span className="font-medium text-xs uppercase text-muted-foreground mr-1">
