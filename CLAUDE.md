@@ -128,6 +128,11 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 - **Before every commit**: run linter, typecheck, and tests (see `/git-commit` skill for commands)
 - **Never commit `htmlcov/`** — generated artifacts, already in `.gitignore`
 
+### Git Worktrees
+Use [Worktrunk](https://worktrunk.dev) (`wt`) for creating and managing git worktrees — prefer worktrees over branch-switching in the same directory for parallel or isolated work. See `docs/git-worktrees.md` for full usage.
+- **Always use `wt`** — never raw `git worktree` commands
+- Project hooks auto-run setup on new worktrees (no manual steps needed)
+
 ### PR Labels (required by CI)
 Every PR must have exactly one label (`feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`). Use `/create-pr` skill which handles this automatically.
 
