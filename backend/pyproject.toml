@@ -55,6 +55,7 @@ select = [
     "UP",  # pyupgrade
     "ARG001", # unused arguments in functions
     "T201",   # print statements are not allowed
+    "EM",     # flake8-errmsg: ban magic numbers / string literals in exceptions and HTTP responses
 ]
 ignore = [
     "E501",  # line too long, handled by black

@@ -20,6 +20,10 @@ import { Route as LayoutServicesRouteImport } from './routes/_layout/services'
 import { Route as LayoutPermissionsRouteImport } from './routes/_layout/permissions'
 import { Route as LayoutClientsRouteImport } from './routes/_layout/clients'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutFinanceiroIndexRouteImport } from './routes/_layout/financeiro/index'
+import { Route as LayoutFinanceiroTransacoesRouteImport } from './routes/_layout/financeiro/transacoes'
+import { Route as LayoutFinanceiroContasAReceberRouteImport } from './routes/_layout/financeiro/contas-a-receber'
+import { Route as LayoutFinanceiroContasAPagarRouteImport } from './routes/_layout/financeiro/contas-a-pagar'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -75,6 +79,29 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFinanceiroIndexRoute = LayoutFinanceiroIndexRouteImport.update({
+  id: '/financeiro/',
+  path: '/financeiro/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutFinanceiroTransacoesRoute =
+  LayoutFinanceiroTransacoesRouteImport.update({
+    id: '/financeiro/transacoes',
+    path: '/financeiro/transacoes',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutFinanceiroContasAReceberRoute =
+  LayoutFinanceiroContasAReceberRouteImport.update({
+    id: '/financeiro/contas-a-receber',
+    path: '/financeiro/contas-a-receber',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutFinanceiroContasAPagarRoute =
+  LayoutFinanceiroContasAPagarRouteImport.update({
+    id: '/financeiro/contas-a-pagar',
+    path: '/financeiro/contas-a-pagar',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -87,6 +114,10 @@ export interface FileRoutesByFullPath {
   '/permissions': typeof LayoutPermissionsRoute
   '/services': typeof LayoutServicesRoute
   '/settings': typeof LayoutSettingsRoute
+  '/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
+  '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
+  '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/financeiro/': typeof LayoutFinanceiroIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -99,6 +130,10 @@ export interface FileRoutesByTo {
   '/services': typeof LayoutServicesRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
+  '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
+  '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/financeiro': typeof LayoutFinanceiroIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +148,10 @@ export interface FileRoutesById {
   '/_layout/services': typeof LayoutServicesRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
+  '/_layout/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
+  '/_layout/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/_layout/financeiro/': typeof LayoutFinanceiroIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +166,10 @@ export interface FileRouteTypes {
     | '/permissions'
     | '/services'
     | '/settings'
+    | '/financeiro/contas-a-pagar'
+    | '/financeiro/contas-a-receber'
+    | '/financeiro/transacoes'
+    | '/financeiro/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -139,6 +182,10 @@ export interface FileRouteTypes {
     | '/services'
     | '/settings'
     | '/'
+    | '/financeiro/contas-a-pagar'
+    | '/financeiro/contas-a-receber'
+    | '/financeiro/transacoes'
+    | '/financeiro'
   id:
     | '__root__'
     | '/_layout'
@@ -152,6 +199,10 @@ export interface FileRouteTypes {
     | '/_layout/services'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/financeiro/contas-a-pagar'
+    | '/_layout/financeiro/contas-a-receber'
+    | '/_layout/financeiro/transacoes'
+    | '/_layout/financeiro/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -241,6 +292,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/financeiro/': {
+      id: '/_layout/financeiro/'
+      path: '/financeiro'
+      fullPath: '/financeiro/'
+      preLoaderRoute: typeof LayoutFinanceiroIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/financeiro/transacoes': {
+      id: '/_layout/financeiro/transacoes'
+      path: '/financeiro/transacoes'
+      fullPath: '/financeiro/transacoes'
+      preLoaderRoute: typeof LayoutFinanceiroTransacoesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/financeiro/contas-a-receber': {
+      id: '/_layout/financeiro/contas-a-receber'
+      path: '/financeiro/contas-a-receber'
+      fullPath: '/financeiro/contas-a-receber'
+      preLoaderRoute: typeof LayoutFinanceiroContasAReceberRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/financeiro/contas-a-pagar': {
+      id: '/_layout/financeiro/contas-a-pagar'
+      path: '/financeiro/contas-a-pagar'
+      fullPath: '/financeiro/contas-a-pagar'
+      preLoaderRoute: typeof LayoutFinanceiroContasAPagarRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -251,6 +330,10 @@ interface LayoutRouteChildren {
   LayoutServicesRoute: typeof LayoutServicesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutFinanceiroContasAPagarRoute: typeof LayoutFinanceiroContasAPagarRoute
+  LayoutFinanceiroContasAReceberRoute: typeof LayoutFinanceiroContasAReceberRoute
+  LayoutFinanceiroTransacoesRoute: typeof LayoutFinanceiroTransacoesRoute
+  LayoutFinanceiroIndexRoute: typeof LayoutFinanceiroIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -260,6 +343,10 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutServicesRoute: LayoutServicesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutFinanceiroContasAPagarRoute: LayoutFinanceiroContasAPagarRoute,
+  LayoutFinanceiroContasAReceberRoute: LayoutFinanceiroContasAReceberRoute,
+  LayoutFinanceiroTransacoesRoute: LayoutFinanceiroTransacoesRoute,
+  LayoutFinanceiroIndexRoute: LayoutFinanceiroIndexRoute,
 }
 
 const LayoutRouteWithChildren =

@@ -122,11 +122,15 @@ def update_password_me(
 
 
 @router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
+def read_user_me(current_user: CurrentUser, session: SessionDep) -> Any:
     """
-    Get current user.
+    Get current user, including effective permissions.
     """
-    return current_user
+    from app.core.permissions import get_effective_permissions
+
+    result = UserPublic.model_validate(current_user)
+    result.permissions = sorted(get_effective_permissions(session, current_user))
+    return result
 
 
 @router.delete("/me", response_model=Message)

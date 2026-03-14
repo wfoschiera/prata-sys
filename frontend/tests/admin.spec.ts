@@ -1,8 +1,43 @@
 import { expect, test } from "@playwright/test"
 import { firstSuperuser, firstSuperuserPassword } from "./config.ts"
-import { createUser } from "./utils/privateApi"
 import { randomEmail, randomPassword } from "./utils/random"
 import { logInUser } from "./utils/user"
+
+const API_BASE = process.env.VITE_API_URL ?? "http://localhost:8000"
+
+async function getToken(email: string, password: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/v1/login/access-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username: email, password }),
+  })
+  const data = (await res.json()) as { access_token: string }
+  return data.access_token
+}
+
+async function createClientUser(): Promise<{
+  email: string
+  password: string
+}> {
+  const superToken = await getToken(firstSuperuser, firstSuperuserPassword)
+  const email = randomEmail()
+  const password = randomPassword()
+  await fetch(`${API_BASE}/api/v1/users/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${superToken}`,
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      full_name: "Test Client",
+      is_verified: true,
+      role: "client", // client role has no manage_users permission
+    }),
+  })
+  return { email, password }
+}
 
 test("Admin page is accessible and shows correct title", async ({ page }) => {
   await page.goto("/admin")
@@ -183,10 +218,7 @@ test.describe("Admin page access control", () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
   test("Non-superuser cannot access admin page", async ({ page }) => {
-    const email = randomEmail()
-    const password = randomPassword()
-
-    await createUser({ email, password })
+    const { email, password } = await createClientUser()
     await logInUser(page, email, password)
 
     await page.goto("/admin")
