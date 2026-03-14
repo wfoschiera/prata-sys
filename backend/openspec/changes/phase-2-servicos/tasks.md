@@ -12,7 +12,7 @@
 
 - [x] 2.1 Run `alembic revision --autogenerate -m "add service and service_item tables"` and verify the generated file creates both tables with correct FK constraints
 - [x] 2.2 Confirm `service_item.service_id` FK has `ondelete="CASCADE"` in the migration
-- [ ] 2.3 Run `alembic upgrade head` in the development environment and verify no errors
+- [x] 2.3 Run `alembic upgrade head` in the development environment and verify no errors
 
 ## 3. Backend Schemas
 
