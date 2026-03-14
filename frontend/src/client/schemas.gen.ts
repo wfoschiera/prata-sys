@@ -57,6 +57,12 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const CategoriaTransacaoSchema = {
+    type: 'string',
+    enum: ['SERVICO', 'VENDA_EQUIPAMENTO', 'RENDIMENTO', 'CAPITAL_FIXO', 'COMBUSTIVEL', 'MANUTENCAO_EQUIPAMENTO', 'MANUTENCAO_VEICULO', 'MANUTENCAO_ESCRITORIO', 'COMPRA_MATERIAL', 'MO_CLT', 'MO_DIARISTA', 'ADMIN'],
+    title: 'CategoriaTransacao'
+} as const;
+
 export const ClientCreateSchema = {
     properties: {
         name: {
@@ -397,6 +403,37 @@ export const PrivateUserCreateSchema = {
     title: 'PrivateUserCreate'
 } as const;
 
+export const ResumoMensalSchema = {
+    properties: {
+        ano: {
+            type: 'integer',
+            title: 'Ano'
+        },
+        mes: {
+            type: 'integer',
+            title: 'Mes'
+        },
+        total_receitas: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Receitas'
+        },
+        total_despesas: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Despesas'
+        },
+        resultado_liquido: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Resultado Liquido'
+        }
+    },
+    type: 'object',
+    required: ['ano', 'mes', 'total_receitas', 'total_despesas', 'resultado_liquido'],
+    title: 'ResumoMensal'
+} as const;
+
 export const ServiceCreateSchema = {
     properties: {
         type: {
@@ -583,6 +620,25 @@ export const ServiceStatusSchema = {
     title: 'ServiceStatus'
 } as const;
 
+export const ServiceSummarySchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        }
+    },
+    type: 'object',
+    required: ['id', 'type', 'status'],
+    title: 'ServiceSummary'
+} as const;
+
 export const ServiceTypeSchema = {
     type: 'string',
     enum: ['perfuração', 'reparo'],
@@ -674,6 +730,12 @@ export const SetPermissionsInSchema = {
     title: 'SetPermissionsIn'
 } as const;
 
+export const TipoTransacaoSchema = {
+    type: 'string',
+    enum: ['receita', 'despesa'],
+    title: 'TipoTransacao'
+} as const;
+
 export const TokenSchema = {
     properties: {
         access_token: {
@@ -689,6 +751,337 @@ export const TokenSchema = {
     type: 'object',
     required: ['access_token'],
     title: 'Token'
+} as const;
+
+export const TransacaoCreateSchema = {
+    properties: {
+        tipo: {
+            '$ref': '#/components/schemas/TipoTransacao'
+        },
+        categoria: {
+            '$ref': '#/components/schemas/CategoriaTransacao'
+        },
+        valor: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Valor'
+        },
+        data_competencia: {
+            type: 'string',
+            format: 'date',
+            title: 'Data Competencia'
+        },
+        descricao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Descricao'
+        },
+        nome_contraparte: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 200
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nome Contraparte'
+        },
+        service_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Service Id'
+        },
+        client_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Client Id'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        }
+    },
+    type: 'object',
+    required: ['tipo', 'categoria', 'valor', 'data_competencia'],
+    title: 'TransacaoCreate'
+} as const;
+
+export const TransacaoPublicSchema = {
+    properties: {
+        tipo: {
+            '$ref': '#/components/schemas/TipoTransacao'
+        },
+        categoria: {
+            '$ref': '#/components/schemas/CategoriaTransacao'
+        },
+        valor: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Valor'
+        },
+        data_competencia: {
+            type: 'string',
+            format: 'date',
+            title: 'Data Competencia'
+        },
+        descricao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Descricao'
+        },
+        nome_contraparte: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 200
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nome Contraparte'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        service_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Service Id'
+        },
+        client_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Client Id'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        },
+        service: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ServiceSummary'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        client: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ClientRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['tipo', 'categoria', 'valor', 'data_competencia', 'id'],
+    title: 'TransacaoPublic'
+} as const;
+
+export const TransacaoUpdateSchema = {
+    properties: {
+        categoria: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/CategoriaTransacao'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        valor: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Valor'
+        },
+        data_competencia: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data Competencia'
+        },
+        descricao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Descricao'
+        },
+        nome_contraparte: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nome Contraparte'
+        },
+        service_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Service Id'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        }
+    },
+    type: 'object',
+    title: 'TransacaoUpdate'
+} as const;
+
+export const TransacoesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/TransacaoPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'TransacoesPublic'
 } as const;
 
 export const UpdatePasswordSchema = {

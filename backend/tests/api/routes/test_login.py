@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -20,7 +21,7 @@ def test_get_access_token(client: TestClient) -> None:
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     tokens = r.json()
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert "access_token" in tokens
     assert tokens["access_token"]
 
@@ -31,7 +32,7 @@ def test_get_access_token_incorrect_password(client: TestClient) -> None:
         "password": "incorrect",
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    assert r.status_code == 400
+    assert r.status_code == HTTPStatus.BAD_REQUEST
 
 
 def test_use_access_token(
@@ -42,7 +43,7 @@ def test_use_access_token(
         headers=superuser_token_headers,
     )
     result = r.json()
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert "email" in result
 
 
@@ -58,7 +59,7 @@ def test_recovery_password(
             f"{settings.API_V1_STR}/password-recovery/{email}",
             headers=normal_user_token_headers,
         )
-        assert r.status_code == 200
+        assert r.status_code == HTTPStatus.OK
         assert r.json() == {
             "message": "If that email is registered, we sent a password recovery link"
         }
@@ -73,7 +74,7 @@ def test_recovery_password_user_not_exits(
         headers=normal_user_token_headers,
     )
     # Should return 200 with generic message to prevent email enumeration attacks
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json() == {
         "message": "If that email is registered, we sent a password recovery link"
     }
@@ -102,7 +103,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         json=data,
     )
 
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json() == {"message": "Password updated successfully"}
 
     db.refresh(user)
@@ -122,7 +123,7 @@ def test_reset_password_invalid_token(
     response = r.json()
 
     assert "detail" in response
-    assert r.status_code == 400
+    assert r.status_code == HTTPStatus.BAD_REQUEST
     assert response["detail"] == "Invalid token"
 
 
@@ -147,7 +148,7 @@ def test_login_with_bcrypt_password_upgrades_to_argon2(
 
     login_data = {"username": email, "password": password}
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     tokens = r.json()
     assert "access_token" in tokens
 
@@ -181,7 +182,7 @@ def test_login_with_argon2_password_keeps_hash(client: TestClient, db: Session) 
 
     login_data = {"username": email, "password": password}
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     tokens = r.json()
     assert "access_token" in tokens
 
@@ -198,7 +199,7 @@ def test_get_access_token_inactive_user(client: TestClient, db: Session) -> None
     create_user(session=db, user_create=user_create)
     login_data = {"username": email, "password": password}
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    assert r.status_code == 400
+    assert r.status_code == HTTPStatus.BAD_REQUEST
     assert r.json()["detail"] == "Inactive user"
 
 
@@ -210,7 +211,7 @@ def test_reset_password_inactive_user(client: TestClient, db: Session) -> None:
     token = generate_password_reset_token(email=email)
     data = {"new_password": "newpassword123", "token": token}
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=data)
-    assert r.status_code == 400
+    assert r.status_code == HTTPStatus.BAD_REQUEST
     assert r.json()["detail"] == "Inactive user"
 
 
@@ -224,7 +225,7 @@ def test_reset_password_nonexistent_user(
         headers=superuser_token_headers,
         json=data,
     )
-    assert r.status_code == 400
+    assert r.status_code == HTTPStatus.BAD_REQUEST
     assert r.json()["detail"] == "Invalid token"
 
 
@@ -235,7 +236,7 @@ def test_recover_password_html_content(
         f"{settings.API_V1_STR}/password-recovery-html-content/{settings.FIRST_SUPERUSER}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert "subject:" in r.headers
 
 
@@ -246,4 +247,4 @@ def test_recover_password_html_content_not_found(
         f"{settings.API_V1_STR}/password-recovery-html-content/nobody@example.com",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
