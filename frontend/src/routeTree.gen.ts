@@ -20,7 +20,9 @@ import { Route as LayoutServicesRouteImport } from './routes/_layout/services'
 import { Route as LayoutPermissionsRouteImport } from './routes/_layout/permissions'
 import { Route as LayoutClientsRouteImport } from './routes/_layout/clients'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutFornecedoresIndexRouteImport } from './routes/_layout/fornecedores/index'
 import { Route as LayoutFinanceiroIndexRouteImport } from './routes/_layout/financeiro/index'
+import { Route as LayoutFornecedoresFornecedorIdRouteImport } from './routes/_layout/fornecedores/$fornecedorId'
 import { Route as LayoutFinanceiroTransacoesRouteImport } from './routes/_layout/financeiro/transacoes'
 import { Route as LayoutFinanceiroContasAReceberRouteImport } from './routes/_layout/financeiro/contas-a-receber'
 import { Route as LayoutFinanceiroContasAPagarRouteImport } from './routes/_layout/financeiro/contas-a-pagar'
@@ -79,11 +81,22 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFornecedoresIndexRoute = LayoutFornecedoresIndexRouteImport.update({
+  id: '/fornecedores/',
+  path: '/fornecedores/',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutFinanceiroIndexRoute = LayoutFinanceiroIndexRouteImport.update({
   id: '/financeiro/',
   path: '/financeiro/',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFornecedoresFornecedorIdRoute =
+  LayoutFornecedoresFornecedorIdRouteImport.update({
+    id: '/fornecedores/$fornecedorId',
+    path: '/fornecedores/$fornecedorId',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 const LayoutFinanceiroTransacoesRoute =
   LayoutFinanceiroTransacoesRouteImport.update({
     id: '/financeiro/transacoes',
@@ -117,7 +130,9 @@ export interface FileRoutesByFullPath {
   '/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
   '/financeiro/': typeof LayoutFinanceiroIndexRoute
+  '/fornecedores/': typeof LayoutFornecedoresIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -133,7 +148,9 @@ export interface FileRoutesByTo {
   '/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
   '/financeiro': typeof LayoutFinanceiroIndexRoute
+  '/fornecedores': typeof LayoutFornecedoresIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,7 +168,9 @@ export interface FileRoutesById {
   '/_layout/financeiro/contas-a-pagar': typeof LayoutFinanceiroContasAPagarRoute
   '/_layout/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/_layout/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
+  '/_layout/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
   '/_layout/financeiro/': typeof LayoutFinanceiroIndexRoute
+  '/_layout/fornecedores/': typeof LayoutFornecedoresIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,7 +188,9 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-pagar'
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
+    | '/fornecedores/$fornecedorId'
     | '/financeiro/'
+    | '/fornecedores/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -185,7 +206,9 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-pagar'
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
+    | '/fornecedores/$fornecedorId'
     | '/financeiro'
+    | '/fornecedores'
   id:
     | '__root__'
     | '/_layout'
@@ -202,7 +225,9 @@ export interface FileRouteTypes {
     | '/_layout/financeiro/contas-a-pagar'
     | '/_layout/financeiro/contas-a-receber'
     | '/_layout/financeiro/transacoes'
+    | '/_layout/fornecedores/$fornecedorId'
     | '/_layout/financeiro/'
+    | '/_layout/fornecedores/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -292,11 +317,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/fornecedores/': {
+      id: '/_layout/fornecedores/'
+      path: '/fornecedores'
+      fullPath: '/fornecedores/'
+      preLoaderRoute: typeof LayoutFornecedoresIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/financeiro/': {
       id: '/_layout/financeiro/'
       path: '/financeiro'
       fullPath: '/financeiro/'
       preLoaderRoute: typeof LayoutFinanceiroIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/fornecedores/$fornecedorId': {
+      id: '/_layout/fornecedores/$fornecedorId'
+      path: '/fornecedores/$fornecedorId'
+      fullPath: '/fornecedores/$fornecedorId'
+      preLoaderRoute: typeof LayoutFornecedoresFornecedorIdRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/financeiro/transacoes': {
@@ -333,7 +372,9 @@ interface LayoutRouteChildren {
   LayoutFinanceiroContasAPagarRoute: typeof LayoutFinanceiroContasAPagarRoute
   LayoutFinanceiroContasAReceberRoute: typeof LayoutFinanceiroContasAReceberRoute
   LayoutFinanceiroTransacoesRoute: typeof LayoutFinanceiroTransacoesRoute
+  LayoutFornecedoresFornecedorIdRoute: typeof LayoutFornecedoresFornecedorIdRoute
   LayoutFinanceiroIndexRoute: typeof LayoutFinanceiroIndexRoute
+  LayoutFornecedoresIndexRoute: typeof LayoutFornecedoresIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -346,7 +387,9 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutFinanceiroContasAPagarRoute: LayoutFinanceiroContasAPagarRoute,
   LayoutFinanceiroContasAReceberRoute: LayoutFinanceiroContasAReceberRoute,
   LayoutFinanceiroTransacoesRoute: LayoutFinanceiroTransacoesRoute,
+  LayoutFornecedoresFornecedorIdRoute: LayoutFornecedoresFornecedorIdRoute,
   LayoutFinanceiroIndexRoute: LayoutFinanceiroIndexRoute,
+  LayoutFornecedoresIndexRoute: LayoutFornecedoresIndexRoute,
 }
 
 const LayoutRouteWithChildren =

@@ -5,6 +5,7 @@ import {
   Home,
   LayoutDashboard,
   Lock,
+  Truck,
   UserSquare2,
   Users,
   Wallet,
@@ -80,6 +81,15 @@ export function AppSidebar() {
             icon: ArrowUpCircle,
             title: "Receitas",
             path: "/financeiro/contas-a-receber" as const,
+          },
+        ]
+      : []),
+    ...(hasPerm(perms, su, "view_fornecedores")
+      ? [
+          {
+            icon: Truck,
+            title: "Fornecedores",
+            path: "/fornecedores" as const,
           },
         ]
       : []),
