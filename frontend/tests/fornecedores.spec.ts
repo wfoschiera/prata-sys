@@ -146,8 +146,12 @@ test("F3 superuser toggles category on fornecedor", async ({ page }) => {
   await page.goto(`/fornecedores/${fornecedor.id}`)
   await expect(page.getByText("Category Test Supplier")).toBeVisible()
 
+  // Wait for the Categorias section to render (it only shows for existing records)
+  await expect(page.getByRole("heading", { name: "Categorias" })).toBeVisible()
+
   // Toggle Tubos checkbox — category is saved immediately via API call on toggle
   const checkbox = page.getByRole("checkbox", { name: /Tubos/i })
+  await expect(checkbox).toBeEnabled()
   await expect(checkbox).not.toBeChecked()
 
   // Wait for the PATCH request triggered by toggling
