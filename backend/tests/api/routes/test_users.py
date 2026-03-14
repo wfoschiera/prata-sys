@@ -162,15 +162,21 @@ def test_create_user_existing_username(
     assert "_id" not in created_user
 
 
-def test_create_user_by_normal_user(
-    client: TestClient, normal_user_token_headers: dict[str, str]
-) -> None:
-    username = random_email()
+def test_create_user_by_unprivileged_user(client: TestClient, db: Session) -> None:
+    """A client-role user (no manage_users permission) cannot create users."""
+    from app.models import UserCreate, UserRole
+    from tests.utils.user import user_authentication_headers
+
+    email = f"{random_lower_string()}@example.com"
     password = random_lower_string()
-    data = {"email": username, "password": password}
+    user_in = UserCreate(email=email, password=password, role=UserRole.client)
+    crud.create_user(session=db, user_create=user_in)
+    headers = user_authentication_headers(client=client, email=email, password=password)
+
+    data = {"email": random_email(), "password": random_lower_string()}
     r = client.post(
         f"{settings.API_V1_STR}/users/",
-        headers=normal_user_token_headers,
+        headers=headers,
         json=data,
     )
     assert r.status_code == 403
@@ -505,17 +511,25 @@ def test_delete_user_current_super_user_error(
     assert r.json()["detail"] == "Super users are not allowed to delete themselves"
 
 
-def test_delete_user_without_privileges(
-    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
-) -> None:
-    username = random_email()
+def test_delete_user_without_privileges(client: TestClient, db: Session) -> None:
+    """A client-role user (no manage_users permission) cannot delete users."""
+    from app.models import UserCreate as UC2
+    from app.models import UserRole
+    from tests.utils.user import user_authentication_headers
+
+    email = f"{random_lower_string()}@example.com"
     password = random_lower_string()
-    user_in = UserCreate(email=username, password=password)
-    user = crud.create_user(session=db, user_create=user_in)
+    client_user = UC2(email=email, password=password, role=UserRole.client)
+    crud.create_user(session=db, user_create=client_user)
+    headers = user_authentication_headers(client=client, email=email, password=password)
+
+    # Create a target user to delete
+    target = UserCreate(email=random_email(), password=random_lower_string())
+    target_user = crud.create_user(session=db, user_create=target)
 
     r = client.delete(
-        f"{settings.API_V1_STR}/users/{user.id}",
-        headers=normal_user_token_headers,
+        f"{settings.API_V1_STR}/users/{target_user.id}",
+        headers=headers,
     )
     assert r.status_code == 403
-    assert r.json()["detail"] == "The user doesn't have enough privileges"
+    assert r.json()["detail"] == "Insufficient permissions"

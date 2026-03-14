@@ -115,7 +115,7 @@ const ServiceForm = ({ isOpen, onClose }: ServiceFormProps) => {
         } as ServiceCreate,
       })
       for (const item of data.items) {
-        await ServicesService.addItem({
+        await ServicesService.createServiceItem({
           serviceId: service.id,
           requestBody: item as ServiceItemCreate,
         })

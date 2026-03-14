@@ -1,10 +1,9 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import func, select
 
 from app import crud
-from app.api.deps import SessionDep, require_role
+from app.api.deps import SessionDep, require_permission
 from app.models import (
     Client,
     ClientCreate,
@@ -16,7 +15,7 @@ from app.models import (
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
-RoleGuard = Depends(require_role("admin", "finance"))
+PermGuard = Depends(require_permission("manage_clients"))
 
 
 @router.get("/", response_model=ClientsPublic)
@@ -24,7 +23,7 @@ def read_clients(
     session: SessionDep,
     skip: int = 0,
     limit: int = 100,
-    _: None = RoleGuard,
+    _: None = PermGuard,
 ) -> ClientsPublic:
     """List clients (admin and finance only)."""
     clients, count = crud.get_clients(session=session, skip=skip, limit=limit)
@@ -36,14 +35,16 @@ def create_client(
     *,
     session: SessionDep,
     client_in: ClientCreate,
-    _: None = RoleGuard,
+    _: None = PermGuard,
 ) -> Client:
     """Create a new client."""
     existing = crud.get_client_by_document(
         session=session, document_number=client_in.document_number
     )
     if existing:
-        raise HTTPException(status_code=409, detail="Document number already registered")
+        raise HTTPException(
+            status_code=409, detail="Document number already registered"
+        )
     return crud.create_client(session=session, client_in=client_in)
 
 
@@ -52,7 +53,7 @@ def read_client(
     *,
     session: SessionDep,
     client_id: uuid.UUID,
-    _: None = RoleGuard,
+    _: None = PermGuard,
 ) -> Client:
     """Get a client by ID."""
     db_client = crud.get_client(session=session, client_id=client_id)
@@ -67,18 +68,23 @@ def update_client(
     session: SessionDep,
     client_id: uuid.UUID,
     client_in: ClientUpdate,
-    _: None = RoleGuard,
+    _: None = PermGuard,
 ) -> Client:
     """Update a client."""
     db_client = crud.get_client(session=session, client_id=client_id)
     if not db_client:
         raise HTTPException(status_code=404, detail="Client not found")
-    if client_in.document_number and client_in.document_number != db_client.document_number:
+    if (
+        client_in.document_number
+        and client_in.document_number != db_client.document_number
+    ):
         existing = crud.get_client_by_document(
             session=session, document_number=client_in.document_number
         )
         if existing:
-            raise HTTPException(status_code=409, detail="Document number already registered")
+            raise HTTPException(
+                status_code=409, detail="Document number already registered"
+            )
     return crud.update_client(session=session, db_client=db_client, client_in=client_in)
 
 
@@ -87,7 +93,7 @@ def delete_client(
     *,
     session: SessionDep,
     client_id: uuid.UUID,
-    _: None = RoleGuard,
+    _: None = PermGuard,
 ) -> Message:
     """Delete a client."""
     db_client = crud.get_client(session=session, client_id=client_id)

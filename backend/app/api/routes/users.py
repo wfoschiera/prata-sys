@@ -8,7 +8,7 @@ from app import crud
 from app.api.deps import (
     CurrentUser,
     SessionDep,
-    get_current_active_superuser,
+    require_permission,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(require_permission("manage_users"))],
     response_model=UsersPublic,
 )
 def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
@@ -50,7 +50,9 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 
 @router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+    "/",
+    dependencies=[Depends(require_permission("manage_users"))],
+    response_model=UserPublic,
 )
 def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     """
@@ -179,7 +181,7 @@ def read_user_by_id(
 
 @router.patch(
     "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(require_permission("manage_users"))],
     response_model=UserPublic,
 )
 def update_user(
@@ -205,11 +207,15 @@ def update_user(
                 status_code=409, detail="User with this email already exists"
             )
 
+    # If role is changing, clear permission overrides
+    role_changing = user_in.role is not None and user_in.role != db_user.role
     db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
+    if role_changing:
+        crud.clear_user_permissions(session=session, user_id=user_id)
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{user_id}", dependencies=[Depends(require_permission("manage_users"))])
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:

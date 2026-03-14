@@ -57,7 +57,8 @@ def test_read_clients_superuser(
         assert "id" in item
 
 
-def test_read_clients_finance_user(client: TestClient, db: Session) -> None:
+def test_read_clients_finance_user_forbidden(client: TestClient, db: Session) -> None:
+    """Finance role does not have manage_clients by default."""
     from app.models import UserCreate, UserRole
     from tests.utils.user import user_authentication_headers
 
@@ -68,10 +69,11 @@ def test_read_clients_finance_user(client: TestClient, db: Session) -> None:
     headers = user_authentication_headers(client=client, email=email, password=password)
 
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == 403
 
 
-def test_read_clients_wrong_role_forbidden(client: TestClient, db: Session) -> None:
+def test_read_clients_no_permission_forbidden(client: TestClient, db: Session) -> None:
+    """Client role has no permissions by default."""
     from app.models import UserCreate, UserRole
     from tests.utils.user import user_authentication_headers
 
@@ -83,7 +85,7 @@ def test_read_clients_wrong_role_forbidden(client: TestClient, db: Session) -> N
 
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
     assert r.status_code == 403
-    assert r.json()["detail"] == "The user doesn't have enough privileges"
+    assert r.json()["detail"] == "Insufficient permissions"
 
 
 def test_read_clients_unauthenticated(client: TestClient) -> None:
