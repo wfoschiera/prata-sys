@@ -1,7 +1,7 @@
 import uuid
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 import app.crud as crud
 from app.api.deps import SessionDep, require_permission
@@ -19,7 +19,10 @@ def create_product_item(
     body: ProductItemCreate,
     _: None = ManageGuard,
 ) -> ProductItemRead:
-    item = crud.create_product_item(session=session, item_in=body)
+    try:
+        item = crud.create_product_item(session=session, item_in=body)
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
     return ProductItemRead.model_validate(item)
 
 

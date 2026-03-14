@@ -549,14 +549,14 @@ def _get_transacao_with_relations(
 def create_transacao(
     *, session: Session, transacao_in: TransacaoCreate
 ) -> TransacaoPublic:
-    from fastapi import HTTPException
-
     if transacao_in.service_id is not None:
         if session.get(Service, transacao_in.service_id) is None:
-            raise HTTPException(status_code=404, detail="Service not found")
+            msg = "Service not found"
+            raise ValueError(msg)
     if transacao_in.client_id is not None:
         if session.get(Client, transacao_in.client_id) is None:
-            raise HTTPException(status_code=404, detail="Client not found")
+            msg = "Client not found"
+            raise ValueError(msg)
 
     db_transacao = Transacao.model_validate(transacao_in)
     session.add(db_transacao)
@@ -624,13 +624,12 @@ def update_transacao(
     db_transacao: Transacao,
     transacao_in: TransacaoUpdate,
 ) -> TransacaoPublic:
-    from fastapi import HTTPException
-
     update_data = transacao_in.model_dump(exclude_unset=True)
 
     if "service_id" in update_data and update_data["service_id"] is not None:
         if session.get(Service, update_data["service_id"]) is None:
-            raise HTTPException(status_code=404, detail="Service not found")
+            msg = "Service not found"
+            raise ValueError(msg)
 
     # validate categoria/tipo compatibility if categoria is being changed
     if "categoria" in update_data and update_data["categoria"] is not None:
@@ -641,18 +640,14 @@ def update_transacao(
             db_transacao.tipo == TipoTransacao.receita
             and new_cat not in INCOME_CATEGORIES
         ):
-            raise HTTPException(
-                status_code=422,
-                detail=f"categoria '{new_cat}' is not valid for tipo='receita'",
-            )
+            msg = f"categoria '{new_cat}' is not valid for tipo='receita'"
+            raise ValueError(msg)
         if (
             db_transacao.tipo == TipoTransacao.despesa
             and new_cat not in EXPENSE_CATEGORIES
         ):
-            raise HTTPException(
-                status_code=422,
-                detail=f"categoria '{new_cat}' is not valid for tipo='despesa'",
-            )
+            msg = f"categoria '{new_cat}' is not valid for tipo='despesa'"
+            raise ValueError(msg)
 
     db_transacao.sqlmodel_update(update_data)
     db_transacao.updated_at = datetime.now(timezone.utc)
@@ -901,13 +896,13 @@ def _product_options() -> list[Any]:
 
 
 def create_product(*, session: Session, product_in: ProductCreate) -> Product:
-    from fastapi import HTTPException
-
     if session.get(ProductType, product_in.product_type_id) is None:
-        raise HTTPException(status_code=404, detail="ProductType not found")
+        msg = "ProductType not found"
+        raise ValueError(msg)
     if product_in.fornecedor_id is not None:
         if session.get(Fornecedor, product_in.fornecedor_id) is None:
-            raise HTTPException(status_code=404, detail="Fornecedor not found")
+            msg = "Fornecedor not found"
+            raise ValueError(msg)
     product = Product.model_validate(product_in)
     session.add(product)
     session.commit()
@@ -942,15 +937,15 @@ def get_products(
 def update_product(
     *, session: Session, product: Product, product_in: ProductUpdate
 ) -> Product:
-    from fastapi import HTTPException
-
     update_data = product_in.model_dump(exclude_unset=True)
     if "product_type_id" in update_data and update_data["product_type_id"] is not None:
         if session.get(ProductType, update_data["product_type_id"]) is None:
-            raise HTTPException(status_code=404, detail="ProductType not found")
+            msg = "ProductType not found"
+            raise ValueError(msg)
     if "fornecedor_id" in update_data and update_data["fornecedor_id"] is not None:
         if session.get(Fornecedor, update_data["fornecedor_id"]) is None:
-            raise HTTPException(status_code=404, detail="Fornecedor not found")
+            msg = "Fornecedor not found"
+            raise ValueError(msg)
     product.sqlmodel_update(update_data)
     product.updated_at = get_datetime_utc()
     session.add(product)
@@ -981,10 +976,9 @@ def delete_product(*, session: Session, product_id: uuid.UUID) -> None:
 
 
 def create_product_item(*, session: Session, item_in: ProductItemCreate) -> ProductItem:
-    from fastapi import HTTPException
-
     if session.get(Product, item_in.product_id) is None:
-        raise HTTPException(status_code=404, detail="Product not found")
+        msg = "Product not found"
+        raise ValueError(msg)
     item = ProductItem(
         product_id=item_in.product_id,
         quantity=item_in.quantity,
