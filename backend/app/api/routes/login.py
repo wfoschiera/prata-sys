@@ -12,8 +12,10 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.models import Message, NewPassword, Token, UserPublic, UserUpdate
 from app.utils import (
+    consume_password_reset_token,
     generate_password_reset_token,
     generate_reset_password_email,
+    is_token_used,
     send_email,
     verify_password_reset_token,
 )
@@ -86,6 +88,8 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
     email = verify_password_reset_token(token=body.token)
     if not email:
         raise HTTPException(status_code=400, detail="Invalid token")
+    if is_token_used(session, body.token):
+        raise HTTPException(status_code=400, detail="Invalid token")
     user = crud.get_user_by_email(session=session, email=email)
     if not user:
         # Don't reveal that the user doesn't exist - use same error as invalid token
@@ -98,6 +102,7 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
         db_user=user,
         user_in=user_in_update,
     )
+    consume_password_reset_token(session, body.token)
     return Message(message="Password updated successfully")
 
 
