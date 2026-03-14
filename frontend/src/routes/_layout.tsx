@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
+import { UsersService } from "@/client"
 import { Footer } from "@/components/Common/Footer"
 import AppSidebar from "@/components/Sidebar/AppSidebar"
 import {
@@ -7,15 +8,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { isLoggedIn } from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout")({
   component: Layout,
   beforeLoad: async () => {
-    if (!isLoggedIn()) {
-      throw redirect({
-        to: "/login",
-      })
+    // Validate the token against the backend on every navigation into the
+    // protected layout. Any failure (expired, revoked, network error, empty
+    // localStorage) clears the stored token and redirects to login.
+    try {
+      await UsersService.readUserMe()
+    } catch {
+      localStorage.removeItem("access_token")
+      throw redirect({ to: "/login" })
     }
   },
 })

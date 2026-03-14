@@ -4,20 +4,20 @@
 
 **prata-sys** is a business management system for a **water well drilling company** in Brazil. It manages clients, service orders, suppliers, and internal operations.
 
-The project is built on the [FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template) and is being developed as an MVP with planned expansion.
+The project is built on the [FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template).
 
-### Current Scope (MVP)
-- **Cadastro** (registration) for Admins, Finance users, and Clients
-- **Serviços** (service orders): associate a service to a client (N client → 1 service), with execution site address
-- System is admin/finance-facing only for now; client portal is planned for the future
+### Implemented
+- **Cadastro** (registration) for Admins, Finance users, and Clients (CPF/CNPJ)
+- **Serviços** (service orders): linked to a client with execution site address; full lifecycle enforcement in progress
+- **RBAC**: role-based permissions (`admin`, `finance`, `client`) with per-user overrides
+- **Financeiro**: transaction management (receitas/despesas), finance dashboard with KPI cards and 6-month chart
 
-### Planned Future Scope
+### Roadmap
+- Service lifecycle: enforced status transitions with audit log and stock integration (Phase 5)
+- Supplier ("fornecedores") management with contacts and bank account info (Phase 6)
+- Inventory control — stock of materials (Phase 7)
 - Client portal: clients monitor water well status and fill well data
-- Service order management with full lifecycle (requested → scheduled → executing → completed)
-- Supplier ("fornecedores") management with contacts and bank account info
-- Inventory control (stock of materials: tubes, connections, etc.)
-- Materials and services catalog (with unit prices, e.g., drilling price per diameter)
-- Outgoing orders tied to service type, client, and location
+- Materials and services catalog with unit prices (e.g., drilling price per diameter)
 - Roles: field technician ("técnico de campo"), geologist ("geólogo"), supervisor
 
 ---
@@ -49,7 +49,7 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
   - Each service can have line items of type `material` or `serviço`
 - **Endereço de execução**: The site where the service is performed — may differ from the client's address.
 - **Fornecedor**: Supplier with contact info and bank account details for payment.
-- **Roles**: `admin`, `finance`, `client` (MVP); `technician`, `geologist`, `supervisor` (future)
+- **Roles**: `admin`, `finance`, `client` (implemented); `technician`, `geologist`, `supervisor` (planned)
 
 ---
 
@@ -111,6 +111,13 @@ Config lives in `backend/openspec/config.yaml`. Changes are tracked under `backe
 | `/opsx:onboard` | Guided walkthrough of the full OpenSpec cycle |
 
 Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a direct implementation is fine.
+
+---
+
+## Language Policy
+
+- **UI / user-facing text**: always in **Brazilian Portuguese (PT-BR)** — labels, messages, toasts, error text, placeholders, page titles, everything the user sees
+- **Code, comments, commit messages, PR descriptions, and documentation**: always in **plain English**
 
 ---
 
