@@ -276,7 +276,7 @@ class ServiceStatusLogRead(SQLModel):
     id: uuid.UUID
     from_status: ServiceStatus
     to_status: ServiceStatus
-    changed_by: uuid.UUID
+    changed_by: uuid.UUID | None
     changed_at: datetime
     notes: str | None = None
     changed_by_name: str | None = None
@@ -337,7 +337,9 @@ class ServiceStatusLog(SQLModel, table=True):
     )
     from_status: ServiceStatus
     to_status: ServiceStatus
-    changed_by: uuid.UUID = Field(foreign_key="user.id", nullable=False)
+    changed_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", nullable=True, ondelete="SET NULL"
+    )
     changed_at: datetime = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
