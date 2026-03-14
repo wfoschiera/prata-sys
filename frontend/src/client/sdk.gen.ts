@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, EstoqueGetDashboardResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProductItemsCreateProductItemData, ProductItemsCreateProductItemResponse, ProductItemsListProductItemsData, ProductItemsListProductItemsResponse, ProductsCreateProductData, ProductsCreateProductResponse, ProductsListProductsData, ProductsListProductsResponse, ProductsGetProductData, ProductsGetProductResponse, ProductsUpdateProductData, ProductsUpdateProductResponse, ProductsDeleteProductData, ProductsDeleteProductResponse, ProductsGetProductItemsData, ProductsGetProductItemsResponse, ProductsGetProductPredictionData, ProductsGetProductPredictionResponse, ProductTypesListProductTypesResponse, ProductTypesCreateProductTypeData, ProductTypesCreateProductTypeResponse, ProductTypesGetProductTypeData, ProductTypesGetProductTypeResponse, ProductTypesUpdateProductTypeData, ProductTypesUpdateProductTypeResponse, ProductTypesDeleteProductTypeData, ProductTypesDeleteProductTypeResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesBaixarEstoqueData, ServicesBaixarEstoqueResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -112,6 +112,20 @@ export class ClientsService {
             errors: {
                 422: 'Validation Error'
             }
+        });
+    }
+}
+
+export class EstoqueService {
+    /**
+     * Get Dashboard
+     * @returns CategoryDashboardItem Successful Response
+     * @throws ApiError
+     */
+    public static getDashboard(): CancelablePromise<EstoqueGetDashboardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/estoque/dashboard'
         });
     }
 }
@@ -480,6 +494,293 @@ export class PrivateService {
     }
 }
 
+export class ProductItemsService {
+    /**
+     * Create Product Item
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProductItemRead Successful Response
+     * @throws ApiError
+     */
+    public static createProductItem(data: ProductItemsCreateProductItemData): CancelablePromise<ProductItemsCreateProductItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/product-items',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Product Items
+     * @param data The data for the request.
+     * @param data.productId
+     * @param data.status
+     * @param data.serviceId
+     * @returns ProductItemRead Successful Response
+     * @throws ApiError
+     */
+    public static listProductItems(data: ProductItemsListProductItemsData = {}): CancelablePromise<ProductItemsListProductItemsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/product-items',
+            query: {
+                product_id: data.productId,
+                status: data.status,
+                service_id: data.serviceId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class ProductsService {
+    /**
+     * Create Product
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static createProduct(data: ProductsCreateProductData): CancelablePromise<ProductsCreateProductResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/products',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Products
+     * @param data The data for the request.
+     * @param data.category
+     * @param data.fornecedorId
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static listProducts(data: ProductsListProductsData = {}): CancelablePromise<ProductsListProductsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/products',
+            query: {
+                category: data.category,
+                fornecedor_id: data.fornecedorId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Product
+     * @param data The data for the request.
+     * @param data.productId
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static getProduct(data: ProductsGetProductData): CancelablePromise<ProductsGetProductResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/products/{product_id}',
+            path: {
+                product_id: data.productId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Product
+     * @param data The data for the request.
+     * @param data.productId
+     * @param data.requestBody
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static updateProduct(data: ProductsUpdateProductData): CancelablePromise<ProductsUpdateProductResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/products/{product_id}',
+            path: {
+                product_id: data.productId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Product
+     * @param data The data for the request.
+     * @param data.productId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteProduct(data: ProductsDeleteProductData): CancelablePromise<ProductsDeleteProductResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/products/{product_id}',
+            path: {
+                product_id: data.productId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Product Items
+     * @param data The data for the request.
+     * @param data.productId
+     * @returns ProductItemRead Successful Response
+     * @throws ApiError
+     */
+    public static getProductItems(data: ProductsGetProductItemsData): CancelablePromise<ProductsGetProductItemsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/products/{product_id}/items',
+            path: {
+                product_id: data.productId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Product Prediction
+     * @param data The data for the request.
+     * @param data.productId
+     * @returns StockPredictionRead Successful Response
+     * @throws ApiError
+     */
+    public static getProductPrediction(data: ProductsGetProductPredictionData): CancelablePromise<ProductsGetProductPredictionResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/products/{product_id}/prediction',
+            path: {
+                product_id: data.productId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class ProductTypesService {
+    /**
+     * List Product Types
+     * @returns ProductTypeRead Successful Response
+     * @throws ApiError
+     */
+    public static listProductTypes(): CancelablePromise<ProductTypesListProductTypesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/product-types'
+        });
+    }
+    
+    /**
+     * Create Product Type
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProductTypeRead Successful Response
+     * @throws ApiError
+     */
+    public static createProductType(data: ProductTypesCreateProductTypeData): CancelablePromise<ProductTypesCreateProductTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/product-types',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Product Type
+     * @param data The data for the request.
+     * @param data.productTypeId
+     * @returns ProductTypeRead Successful Response
+     * @throws ApiError
+     */
+    public static getProductType(data: ProductTypesGetProductTypeData): CancelablePromise<ProductTypesGetProductTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/product-types/{product_type_id}',
+            path: {
+                product_type_id: data.productTypeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Product Type
+     * @param data The data for the request.
+     * @param data.productTypeId
+     * @param data.requestBody
+     * @returns ProductTypeRead Successful Response
+     * @throws ApiError
+     */
+    public static updateProductType(data: ProductTypesUpdateProductTypeData): CancelablePromise<ProductTypesUpdateProductTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/product-types/{product_type_id}',
+            path: {
+                product_type_id: data.productTypeId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Product Type
+     * @param data The data for the request.
+     * @param data.productTypeId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteProductType(data: ProductTypesDeleteProductTypeData): CancelablePromise<ProductTypesDeleteProductTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/product-types/{product_type_id}',
+            path: {
+                product_type_id: data.productTypeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
 export class ServicesService {
     /**
      * Read Services
@@ -632,6 +933,27 @@ export class ServicesService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/services/{service_id}/deduct-stock',
+            path: {
+                service_id: data.serviceId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Baixar Estoque
+     * Utilize all reserved stock items for a service in 'executing' status.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @returns BaixarEstoqueResponse Successful Response
+     * @throws ApiError
+     */
+    public static baixarEstoque(data: ServicesBaixarEstoqueData): CancelablePromise<ServicesBaixarEstoqueResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/{service_id}/baixar-estoque',
             path: {
                 service_id: data.serviceId
             },
