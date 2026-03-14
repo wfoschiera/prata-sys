@@ -123,6 +123,25 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
   - Frontend: `bun run lint && bun run build && bun run test`
 - **Never commit `htmlcov/` or any coverage HTML report files** — generated artifacts, already in `.gitignore`
 
+### PR Labels (required by CI)
+Every PR must have exactly one label from the list below — the `check-labels` CI job will fail otherwise.
+Use the label that matches the conventional commit prefix of the primary change:
+
+| Label | Use for |
+|-------|---------|
+| `feat` | New features (`feat:` commits) |
+| `fix` | Bug fixes (`fix:` commits) |
+| `chore` | Maintenance, tooling, config (`chore:` commits) |
+| `refact` | Refactoring (`refactor:` commits) |
+| `docs` | Documentation only (`docs:` commits) |
+| `upgrade` | Dependency upgrades |
+| `breaking` | Breaking changes |
+| `security` | Security fixes |
+| `bug` | Bug reports / confirmed bugs |
+| `feature` | Feature requests |
+| `internal` | Internal / CI / infra changes |
+| `lang-all` | Translations / i18n |
+
 ### Backend
 - Models go in `backend/app/models.py` (SQLModel)
 - CRUD operations go in `backend/app/crud.py`
