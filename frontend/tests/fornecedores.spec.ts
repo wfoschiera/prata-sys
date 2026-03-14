@@ -149,24 +149,21 @@ test("F3 superuser toggles category on fornecedor", async ({ page }) => {
   // Wait for the Categorias section to render (it only shows for existing records)
   await expect(page.getByRole("heading", { name: "Categorias" })).toBeVisible()
 
-  // Toggle Tubos checkbox — category is saved immediately via API call on toggle
-  const checkbox = page.getByRole("checkbox", { name: /Tubos/i })
-  await expect(checkbox).toBeEnabled()
-  await expect(checkbox).not.toBeChecked()
-
-  // Wait for the PATCH request triggered by toggling
+  // Wait for the PATCH request triggered by toggling the Tubos label
+  // (Radix UI Checkbox responds to label click; wait for API response before reloading)
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
         res.url().includes("/fornecedores/") &&
         res.request().method() === "PATCH",
     ),
-    checkbox.check(),
+    page.getByText("Tubos").click(),
   ])
   await expect(response.status()).toBe(200)
 
   // Reload and verify it persisted
   await page.reload()
+  await expect(page.getByRole("heading", { name: "Categorias" })).toBeVisible()
   await expect(page.getByRole("checkbox", { name: /Tubos/i })).toBeChecked()
 })
 
