@@ -840,7 +840,7 @@ class ProductItem(SQLModel, table=True):
     )
     quantity: Decimal = Field(sa_type=Numeric(12, 4), nullable=False)  # type: ignore
     status: ProductItemStatus = Field(
-        default=ProductItemStatus.em_estoque, nullable=False
+        default=ProductItemStatus.em_estoque, nullable=False, index=True
     )
     service_id: uuid.UUID | None = Field(
         default=None,
