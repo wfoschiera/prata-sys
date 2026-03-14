@@ -1131,7 +1131,7 @@ def get_stock_prediction(
         select(func.sum(ProductItem.quantity)).where(
             ProductItem.product_id == product_id,
             ProductItem.status == ProductItemStatus.utilizado,
-            ProductItem.created_at >= window_start,  # type: ignore[operator]
+            ProductItem.updated_at >= window_start,  # type: ignore[operator]
         )
     ).one() or Decimal("0")
 
