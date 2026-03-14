@@ -7,6 +7,7 @@ from app import crud
 from app.api.deps import CurrentUser, SessionDep, require_permission
 from app.models import (
     BaixarEstoqueResponse,
+    DeductionSummary,
     Service,
     ServiceCreate,
     ServiceItem,
@@ -133,18 +134,15 @@ def transition_service(
     )
 
 
-@router.post("/{service_id}/deduct-stock")
+@router.post("/{service_id}/deduct-stock", response_model=list[DeductionSummary])
 def deduct_stock(
     *,
     session: SessionDep,
     service_id: uuid.UUID,
     current_user: CurrentUser,
     _: None = AdminDep,
-) -> list[dict]:  # type: ignore[type-arg]
-    """Manually deduct material quantities from stock for a service in 'executing' status.
-
-    Only valid when the service is in the executing state. Fully implemented in Phase 7.
-    """
+) -> list[DeductionSummary]:
+    """Manually deduct all reserved stock for a service in 'executing' status."""
     db_service = crud.get_service(session=session, service_id=service_id)
     if not db_service:
         raise HTTPException(
