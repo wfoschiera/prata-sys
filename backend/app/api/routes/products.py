@@ -49,7 +49,10 @@ def create_product(
     body: ProductCreate,
     _: None = ManageGuard,
 ) -> ProductRead:
-    product = crud.create_product(session=session, product_in=body)
+    try:
+        product = crud.create_product(session=session, product_in=body)
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
     return _to_product_read(product)
 
 
@@ -92,7 +95,10 @@ def update_product(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Product not found"
         )
-    updated = crud.update_product(session=session, product=product, product_in=body)
+    try:
+        updated = crud.update_product(session=session, product=product, product_in=body)
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
     return _to_product_read(updated)
 
 

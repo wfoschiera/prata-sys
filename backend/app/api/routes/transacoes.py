@@ -66,7 +66,10 @@ def create_transacao(
     _: None = ManageGuard,
 ) -> TransacaoPublic:
     """Create a new transaction."""
-    return crud.create_transacao(session=session, transacao_in=transacao_in)
+    try:
+        return crud.create_transacao(session=session, transacao_in=transacao_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.get("/{transacao_id}", response_model=TransacaoPublic)
@@ -93,9 +96,12 @@ def update_transacao(
     db_transacao = session.get(Transacao, transacao_id)
     if db_transacao is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    return crud.update_transacao(
-        session=session, db_transacao=db_transacao, transacao_in=transacao_in
-    )
+    try:
+        return crud.update_transacao(
+            session=session, db_transacao=db_transacao, transacao_in=transacao_in
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.delete("/{transacao_id}", status_code=204)
