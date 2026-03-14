@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -454,6 +454,150 @@ export class ServicesService {
             path: {
                 service_id: data.serviceId,
                 item_id: data.itemId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class TransacoesService {
+    /**
+     * Get Resumo Mensal
+     * Monthly financial summary: total receitas, total despesas, resultado líquido.
+     * @param data The data for the request.
+     * @param data.ano
+     * @param data.mes
+     * @returns ResumoMensal Successful Response
+     * @throws ApiError
+     */
+    public static getResumoMensal(data: TransacoesGetResumoMensalData = {}): CancelablePromise<TransacoesGetResumoMensalResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/transacoes/resumo',
+            query: {
+                ano: data.ano,
+                mes: data.mes
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Transacoes
+     * List transactions with optional filters.
+     * @param data The data for the request.
+     * @param data.tipo
+     * @param data.categoria
+     * @param data.dataInicio
+     * @param data.dataFim
+     * @param data.serviceId
+     * @param data.skip
+     * @param data.limit
+     * @returns TransacoesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readTransacoes(data: TransacoesReadTransacoesData = {}): CancelablePromise<TransacoesReadTransacoesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/transacoes/',
+            query: {
+                tipo: data.tipo,
+                categoria: data.categoria,
+                data_inicio: data.dataInicio,
+                data_fim: data.dataFim,
+                service_id: data.serviceId,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Transacao
+     * Create a new transaction.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TransacaoPublic Successful Response
+     * @throws ApiError
+     */
+    public static createTransacao(data: TransacoesCreateTransacaoData): CancelablePromise<TransacoesCreateTransacaoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/transacoes/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Transacao
+     * Get a single transaction by ID.
+     * @param data The data for the request.
+     * @param data.transacaoId
+     * @returns TransacaoPublic Successful Response
+     * @throws ApiError
+     */
+    public static readTransacao(data: TransacoesReadTransacaoData): CancelablePromise<TransacoesReadTransacaoResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/transacoes/{transacao_id}',
+            path: {
+                transacao_id: data.transacaoId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Transacao
+     * Update a transaction. tipo is immutable.
+     * @param data The data for the request.
+     * @param data.transacaoId
+     * @param data.requestBody
+     * @returns TransacaoPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateTransacao(data: TransacoesUpdateTransacaoData): CancelablePromise<TransacoesUpdateTransacaoResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/transacoes/{transacao_id}',
+            path: {
+                transacao_id: data.transacaoId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Transacao
+     * Delete a transaction.
+     * @param data The data for the request.
+     * @param data.transacaoId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteTransacao(data: TransacoesDeleteTransacaoData): CancelablePromise<TransacoesDeleteTransacaoResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/transacoes/{transacao_id}',
+            path: {
+                transacao_id: data.transacaoId
             },
             errors: {
                 422: 'Validation Error'
