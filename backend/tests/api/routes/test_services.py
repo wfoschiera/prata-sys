@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -92,7 +93,7 @@ def test_read_services_superuser(
 ) -> None:
     create_random_service(db)
     r = client.get(f"{settings.API_V1_STR}/services/", headers=superuser_token_headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "data" in data
     assert "count" in data
@@ -106,20 +107,20 @@ def test_read_services_finance_role_forbidden(client: TestClient, db: Session) -
     """Finance role does not have manage_services by default."""
     headers = _finance_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_read_services_no_permission_forbidden(client: TestClient, db: Session) -> None:
     """Client role has no permissions by default."""
     headers = _client_role_headers(client, db)
     r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
 
 
 def test_read_services_unauthenticated(client: TestClient) -> None:
     r = client.get(f"{settings.API_V1_STR}/services/")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_read_services_pagination(
@@ -131,7 +132,7 @@ def test_read_services_pagination(
         f"{settings.API_V1_STR}/services/?skip=0&limit=1",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert len(r.json()["data"]) == 1
 
 
@@ -152,7 +153,7 @@ def test_create_service(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     data = r.json()
     assert data["client_id"] == str(db_client.id)
     assert data["status"] == "requested"
@@ -174,7 +175,7 @@ def test_create_service_with_notes(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     assert r.json()["notes"] == "Urgente"
 
 
@@ -191,7 +192,7 @@ def test_create_service_client_not_found(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Client not found"
 
 
@@ -203,7 +204,7 @@ def test_create_service_unauthenticated(client: TestClient, db: Session) -> None
         "client_id": str(db_client.id),
     }
     r = client.post(f"{settings.API_V1_STR}/services/", json=payload)
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_create_service_wrong_role_forbidden(client: TestClient, db: Session) -> None:
@@ -215,7 +216,7 @@ def test_create_service_wrong_role_forbidden(client: TestClient, db: Session) ->
         "client_id": str(db_client.id),
     }
     r = client.post(f"{settings.API_V1_STR}/services/", headers=headers, json=payload)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 # ── Read single service ───────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ def test_read_service(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert data["id"] == str(svc.id)
     assert data["status"] == "requested"
@@ -244,14 +245,14 @@ def test_read_service_not_found(
         f"{settings.API_V1_STR}/services/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Service not found"
 
 
 def test_read_service_unauthenticated(client: TestClient, db: Session) -> None:
     svc = create_random_service(db)
     r = client.get(f"{settings.API_V1_STR}/services/{svc.id}")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Update service ────────────────────────────────────────────────────────────
@@ -266,7 +267,7 @@ def test_update_service_address(
         headers=superuser_token_headers,
         json={"execution_address": "Av. Atualizada, 500"},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json()["execution_address"] == "Av. Atualizada, 500"
     assert r.json()["updated_at"] is not None
 
@@ -281,7 +282,7 @@ def test_update_service_valid_status_transition(
         headers=superuser_token_headers,
         json={"status": "scheduled"},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json()["status"] == "scheduled"
 
 
@@ -296,7 +297,7 @@ def test_update_service_full_status_chain(
             headers=superuser_token_headers,
             json={"status": new_status},
         )
-        assert r.status_code == 200
+        assert r.status_code == HTTPStatus.OK
         assert r.json()["status"] == new_status
 
 
@@ -310,7 +311,7 @@ def test_update_service_invalid_status_transition(
         headers=superuser_token_headers,
         json={"status": "executing"},
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_update_service_completed_no_further_transitions(
@@ -330,7 +331,7 @@ def test_update_service_completed_no_further_transitions(
         headers=superuser_token_headers,
         json={"status": "requested"},
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_update_service_not_found(
@@ -341,7 +342,7 @@ def test_update_service_not_found(
         headers=superuser_token_headers,
         json={"execution_address": "Ghost Street"},
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Service not found"
 
 
@@ -351,7 +352,7 @@ def test_update_service_unauthenticated(client: TestClient, db: Session) -> None
         f"{settings.API_V1_STR}/services/{svc.id}",
         json={"execution_address": "No Auth"},
     )
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Delete service ────────────────────────────────────────────────────────────
@@ -366,7 +367,7 @@ def test_delete_service(
         f"{settings.API_V1_STR}/services/{svc_id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 204
+    assert r.status_code == HTTPStatus.NO_CONTENT
     assert crud.get_service(session=db, service_id=svc_id) is None
 
 
@@ -377,21 +378,21 @@ def test_delete_service_not_found(
         f"{settings.API_V1_STR}/services/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Service not found"
 
 
 def test_delete_service_unauthenticated(client: TestClient, db: Session) -> None:
     svc = create_random_service(db)
     r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_delete_service_wrong_role_forbidden(client: TestClient, db: Session) -> None:
     svc = create_random_service(db)
     headers = _client_role_headers(client, db)
     r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 # ── Service items ─────────────────────────────────────────────────────────────
@@ -412,7 +413,7 @@ def test_create_service_item(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     data = r.json()
     assert data["service_id"] == str(svc.id)
     assert data["description"] == "Tubo PVC 50mm"
@@ -436,7 +437,7 @@ def test_create_service_item_servico_type(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     assert r.json()["item_type"] == "serviço"
 
 
@@ -454,7 +455,7 @@ def test_create_service_item_service_not_found(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Service not found"
 
 
@@ -473,7 +474,7 @@ def test_create_service_item_invalid_quantity(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_create_service_item_unauthenticated(client: TestClient, db: Session) -> None:
@@ -485,7 +486,7 @@ def test_create_service_item_unauthenticated(client: TestClient, db: Session) ->
         "unit_price": 5.0,
     }
     r = client.post(f"{settings.API_V1_STR}/services/{svc.id}/items", json=payload)
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Delete service item ───────────────────────────────────────────────────────
@@ -502,7 +503,7 @@ def test_delete_service_item(
         f"{settings.API_V1_STR}/services/{svc.id}/items/{item_id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 204
+    assert r.status_code == HTTPStatus.NO_CONTENT
     result = db.exec(select(ServiceItem).where(ServiceItem.id == item_id)).first()
     assert result is None
 
@@ -515,7 +516,7 @@ def test_delete_service_item_not_found(
         f"{settings.API_V1_STR}/services/{svc.id}/items/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Item not found"
 
 
@@ -531,7 +532,7 @@ def test_delete_service_item_wrong_service(
         f"{settings.API_V1_STR}/services/{svc2.id}/items/{item.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Item not found"
 
 
@@ -539,7 +540,7 @@ def test_delete_service_item_unauthenticated(client: TestClient, db: Session) ->
     svc = create_random_service(db)
     item = create_service_item(db, svc)
     r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}/items/{item.id}")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Read service includes items ───────────────────────────────────────────────
@@ -555,7 +556,7 @@ def test_read_service_includes_items(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "items" in data
     assert len(data["items"]) == 2
@@ -572,7 +573,7 @@ def test_delete_service_cascades_items(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 204
+    assert r.status_code == HTTPStatus.NO_CONTENT
     # Item should also be gone (cascade)
     result = db.exec(select(ServiceItem).where(ServiceItem.id == item_id)).first()
     assert result is None
