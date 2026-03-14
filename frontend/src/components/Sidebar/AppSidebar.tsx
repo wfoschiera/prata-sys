@@ -1,4 +1,14 @@
-import { Drill, Home, Lock, UserSquare2, Users } from "lucide-react"
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Drill,
+  Home,
+  LayoutDashboard,
+  Lock,
+  UserSquare2,
+  Users,
+  Wallet,
+} from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -36,6 +46,42 @@ export function AppSidebar() {
       : []),
     ...(hasPerm(perms, su, "manage_services")
       ? [{ icon: Drill, title: "Serviços", path: "/services" as const }]
+      : []),
+    ...(hasPerm(perms, su, "view_financeiro")
+      ? [
+          {
+            icon: Wallet,
+            title: "Financeiro",
+            path: "/financeiro" as const,
+          },
+        ]
+      : []),
+    ...(hasPerm(perms, su, "view_financeiro")
+      ? [
+          {
+            icon: LayoutDashboard,
+            title: "Transações",
+            path: "/financeiro/transacoes" as const,
+          },
+        ]
+      : []),
+    ...(hasPerm(perms, su, "view_contas_pagar")
+      ? [
+          {
+            icon: ArrowDownCircle,
+            title: "Despesas",
+            path: "/financeiro/contas-a-pagar" as const,
+          },
+        ]
+      : []),
+    ...(hasPerm(perms, su, "view_contas_receber")
+      ? [
+          {
+            icon: ArrowUpCircle,
+            title: "Receitas",
+            path: "/financeiro/contas-a-receber" as const,
+          },
+        ]
       : []),
     ...(hasPerm(perms, su, "manage_users")
       ? [{ icon: Users, title: "Usuários", path: "/admin" as const }]
