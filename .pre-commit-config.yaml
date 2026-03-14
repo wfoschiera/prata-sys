@@ -9,6 +9,7 @@ repos:
       - id: check-yaml
         args:
           - --unsafe
+        exclude: ^\.claude/skills/gstack/
       - id: end-of-file-fixer
         exclude: |
           (?x)^(
