@@ -372,8 +372,8 @@ class ServicesPublic(SQLModel):
 
 class Service(ServiceBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False)
-    status: ServiceStatus = Field(default=ServiceStatus.requested)
+    client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False, index=True)
+    status: ServiceStatus = Field(default=ServiceStatus.requested, index=True)
     description: str | None = Field(default=None, sa_type=Text)
     cancelled_reason: str | None = Field(default=None, max_length=500)
     created_at: datetime | None = Field(
