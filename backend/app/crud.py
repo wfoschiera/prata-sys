@@ -242,15 +242,17 @@ def get_service(*, session: Session, service_id: uuid.UUID) -> Service | None:
 def get_services(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> tuple[list[Service], int]:
+    """Return a lightweight list of services — does NOT load status_logs.
+
+    status_logs are only loaded by get_service() (single-item detail endpoint)
+    to avoid fetching hundreds of log rows for a list response.
+    """
     count = session.exec(select(func.count()).select_from(Service)).one()
     statement = (
         select(Service)
         .options(
             selectinload(Service.client),  # type: ignore[arg-type]
             selectinload(Service.items),  # type: ignore[arg-type]
-            selectinload(Service.status_logs).selectinload(  # type: ignore[arg-type]
-                ServiceStatusLog.changed_by_user  # type: ignore[arg-type]
-            ),
         )
         .offset(skip)
         .limit(limit)
