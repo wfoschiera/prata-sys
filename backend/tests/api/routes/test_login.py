@@ -237,7 +237,7 @@ def test_recover_password_html_content(
         headers=superuser_token_headers,
     )
     assert r.status_code == HTTPStatus.OK
-    assert "subject:" in r.headers
+    assert "subject" in r.headers
 
 
 def test_recover_password_html_content_not_found(
