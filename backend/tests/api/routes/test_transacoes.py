@@ -385,7 +385,7 @@ def _make_transacao_db(db: Session, **kwargs: object) -> Transacao:
         "data_competencia": date(2024, 6, 15),
     }
     defaults.update(kwargs)
-    t = Transacao(**defaults)  # type: ignore[arg-type]
+    t = Transacao(**defaults)
     db.add(t)
     db.commit()
     db.refresh(t)

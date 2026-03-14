@@ -30,8 +30,20 @@ def _cpf() -> str:
 
 
 def _cnpj() -> str:
-    uid_digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    return (uid_digits + "00000000000000")[:14]
+    import random
+
+    def calc_dv(digits: list[int], weights: list[int]) -> int:
+        remainder = sum(d * w for d, w in zip(digits, weights, strict=False)) % 11
+        return 0 if remainder < 2 else 11 - remainder
+
+    while True:
+        root = [random.randint(0, 9) for _ in range(8)]
+        base = root + [0, 0, 0, 1]
+        if len(set(base)) == 1:
+            continue
+        dv1 = calc_dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+        dv2 = calc_dv(base + [dv1], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+        return "".join(str(d) for d in base + [dv1, dv2])
 
 
 def create_random_client(db: Session) -> Client:

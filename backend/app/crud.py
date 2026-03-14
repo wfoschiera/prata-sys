@@ -15,6 +15,14 @@ from app.models import (
     ClientRef,
     ClientUpdate,
     DeductionItem,
+    Fornecedor,
+    FornecedorCategoria,
+    FornecedorCategoryEnum,
+    FornecedorContato,
+    FornecedorContatoCreate,
+    FornecedorContatoUpdate,
+    FornecedorCreate,
+    FornecedorUpdate,
     ItemType,
     ResumoMensal,
     Service,
@@ -573,3 +581,128 @@ def get_resumo_mensal(*, session: Session, ano: int, mes: int) -> ResumoMensal:
         total_despesas=total_despesas,
         resultado_liquido=total_receitas - total_despesas,
     )
+
+
+# ── Fornecedor ────────────────────────────────────────────────────────────────
+
+
+def _fornecedor_options() -> list[Any]:
+    return [
+        selectinload(Fornecedor.contatos),  # type: ignore[arg-type]
+        selectinload(Fornecedor.categorias),  # type: ignore[arg-type]
+    ]
+
+
+def get_fornecedores(
+    *,
+    session: Session,
+    search: str | None = None,
+    category: FornecedorCategoryEnum | None = None,
+) -> list[Fornecedor]:
+    statement = select(Fornecedor).options(*_fornecedor_options())
+    if search:
+        statement = statement.where(Fornecedor.company_name.ilike(f"%{search}%"))  # type: ignore[attr-defined]
+    if category:
+        statement = statement.where(
+            Fornecedor.id.in_(  # type: ignore[attr-defined]
+                select(FornecedorCategoria.fornecedor_id).where(
+                    FornecedorCategoria.category == category.value
+                )
+            )
+        )
+    return list(session.exec(statement).all())
+
+
+def get_fornecedor(*, session: Session, fornecedor_id: uuid.UUID) -> Fornecedor | None:
+    statement = (
+        select(Fornecedor)
+        .where(Fornecedor.id == fornecedor_id)
+        .options(*_fornecedor_options())
+    )
+    return session.exec(statement).first()
+
+
+def create_fornecedor(*, session: Session, data: FornecedorCreate) -> Fornecedor:
+    fornecedor = Fornecedor(
+        company_name=data.company_name,
+        cnpj=data.cnpj,
+        address=data.address,
+        notes=data.notes,
+    )
+    session.add(fornecedor)
+    session.flush()
+    for cat in data.categories:
+        session.add(
+            FornecedorCategoria(fornecedor_id=fornecedor.id, category=cat.value)
+        )
+    session.commit()
+    session.refresh(fornecedor)
+    # reload with relationships
+    return get_fornecedor(session=session, fornecedor_id=fornecedor.id)  # type: ignore[return-value]
+
+
+def update_fornecedor(
+    *, session: Session, fornecedor: Fornecedor, data: FornecedorUpdate
+) -> Fornecedor:
+    update_data = data.model_dump(exclude_unset=True)
+    categories = update_data.pop("categories", None)
+
+    for field, value in update_data.items():
+        setattr(fornecedor, field, value)
+
+    if categories is not None:
+        for existing_cat in list(fornecedor.categorias):
+            session.delete(existing_cat)
+        fornecedor.categorias.clear()
+        session.flush()
+        for cat in categories:
+            session.add(
+                FornecedorCategoria(
+                    fornecedor_id=fornecedor.id,
+                    category=cat.value
+                    if isinstance(cat, FornecedorCategoryEnum)
+                    else cat,
+                )
+            )
+
+    session.add(fornecedor)
+    session.commit()
+    return get_fornecedor(session=session, fornecedor_id=fornecedor.id)  # type: ignore[return-value]
+
+
+def delete_fornecedor(*, session: Session, fornecedor: Fornecedor) -> None:
+    session.delete(fornecedor)
+    session.commit()
+
+
+def create_contato(
+    *, session: Session, fornecedor_id: uuid.UUID, data: FornecedorContatoCreate
+) -> FornecedorContato:
+    contato = FornecedorContato(
+        fornecedor_id=fornecedor_id,
+        name=data.name,
+        telefone=data.telefone,
+        whatsapp=data.whatsapp,
+        description=data.description,
+    )
+    session.add(contato)
+    session.commit()
+    session.refresh(contato)
+    return contato
+
+
+def update_contato(
+    *, session: Session, contato: FornecedorContato, data: FornecedorContatoUpdate
+) -> FornecedorContato:
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(contato, field, value)
+    session.add(contato)
+    session.commit()
+    session.refresh(contato)
+    return contato
+
+
+def delete_contato(*, session: Session, contato: FornecedorContato) -> None:
+    session.delete(contato)
+    session.commit()
