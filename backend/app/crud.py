@@ -261,7 +261,9 @@ def create_service(*, session: Session, service_in: ServiceCreate) -> Service:
     session.commit()
     session.refresh(db_service)
     result = get_service(session=session, service_id=db_service.id)
-    assert result is not None
+    if result is None:
+        msg = f"Service {db_service.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -280,7 +282,9 @@ def update_service(
     session.add(db_service)
     session.commit()
     result = get_service(session=session, service_id=db_service.id)
-    assert result is not None
+    if result is None:
+        msg = f"Service {db_service.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -558,7 +562,9 @@ def create_transacao(
     session.add(db_transacao)
     session.commit()
     result = _get_transacao_with_relations(session, db_transacao.id)
-    assert result is not None
+    if result is None:
+        msg = f"Transacao {db_transacao.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return _build_transacao_public(result)
 
 
@@ -648,7 +654,9 @@ def update_transacao(
     session.add(db_transacao)
     session.commit()
     result = _get_transacao_with_relations(session, db_transacao.id)
-    assert result is not None
+    if result is None:
+        msg = f"Transacao {db_transacao.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return _build_transacao_public(result)
 
 
@@ -899,7 +907,9 @@ def create_product(*, session: Session, product_in: ProductCreate) -> Product:
     session.add(product)
     session.commit()
     result = get_product(session=session, product_id=product.id)
-    assert result is not None
+    if result is None:
+        msg = f"Product {product.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -941,7 +951,9 @@ def update_product(
     session.add(product)
     session.commit()
     result = get_product(session=session, product_id=product.id)
-    assert result is not None
+    if result is None:
+        msg = f"Product {product.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
