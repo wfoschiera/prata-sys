@@ -1,0 +1,8 @@
+# Worktrunk Project Configuration
+# Shared across all developers via git.
+
+# After creating a new worktree, install all dependencies so it's
+# immediately ready to run tests and start the dev server.
+[post-create]
+backend-deps = "cd {{ worktree_path }}/backend && uv sync"
+frontend-deps = "cd {{ worktree_path }}/frontend && bun install"
