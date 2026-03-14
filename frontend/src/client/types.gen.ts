@@ -58,6 +58,57 @@ export type DeductionItem = {
 
 export type DocumentType = 'cpf' | 'cnpj';
 
+export type FornecedorCategoryEnum = 'tubos' | 'conexoes' | 'bombas' | 'cabos' | 'outros';
+
+export type FornecedorContatoCreate = {
+    name: string;
+    telefone: string;
+    whatsapp?: (string | null);
+    description: string;
+};
+
+export type FornecedorContatoPublic = {
+    name: string;
+    telefone: string;
+    whatsapp?: (string | null);
+    description: string;
+    id: string;
+    fornecedor_id: string;
+};
+
+export type FornecedorContatoUpdate = {
+    name?: (string | null);
+    telefone?: (string | null);
+    whatsapp?: (string | null);
+    description?: (string | null);
+};
+
+export type FornecedorCreate = {
+    company_name: string;
+    cnpj?: (string | null);
+    address?: (string | null);
+    notes?: (string | null);
+    categories?: Array<FornecedorCategoryEnum>;
+};
+
+export type FornecedorPublic = {
+    company_name: string;
+    cnpj?: (string | null);
+    address?: (string | null);
+    notes?: (string | null);
+    id: string;
+    categories: Array<FornecedorCategoryEnum>;
+    contatos: Array<FornecedorContatoPublic>;
+};
+
+export type FornecedorUpdate = {
+    company_name?: (string | null);
+    cnpj?: (string | null);
+    address?: (string | null);
+    notes?: (string | null);
+    categories?: (Array<FornecedorCategoryEnum> | null);
+};
+
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
@@ -338,6 +389,60 @@ export type ClientsDeleteClientData = {
 };
 
 export type ClientsDeleteClientResponse = (Message);
+
+export type FornecedoresListFornecedoresData = {
+    category?: (FornecedorCategoryEnum | null);
+    search?: (string | null);
+};
+
+export type FornecedoresListFornecedoresResponse = (Array<FornecedorPublic>);
+
+export type FornecedoresCreateFornecedorData = {
+    requestBody: FornecedorCreate;
+};
+
+export type FornecedoresCreateFornecedorResponse = (FornecedorPublic);
+
+export type FornecedoresGetFornecedorData = {
+    fornecedorId: string;
+};
+
+export type FornecedoresGetFornecedorResponse = (FornecedorPublic);
+
+export type FornecedoresUpdateFornecedorData = {
+    fornecedorId: string;
+    requestBody: FornecedorUpdate;
+};
+
+export type FornecedoresUpdateFornecedorResponse = (FornecedorPublic);
+
+export type FornecedoresDeleteFornecedorData = {
+    fornecedorId: string;
+};
+
+export type FornecedoresDeleteFornecedorResponse = (void);
+
+export type FornecedoresCreateContatoData = {
+    fornecedorId: string;
+    requestBody: FornecedorContatoCreate;
+};
+
+export type FornecedoresCreateContatoResponse = (FornecedorContatoPublic);
+
+export type FornecedoresUpdateContatoData = {
+    contatoId: string;
+    fornecedorId: string;
+    requestBody: FornecedorContatoUpdate;
+};
+
+export type FornecedoresUpdateContatoResponse = (FornecedorContatoPublic);
+
+export type FornecedoresDeleteContatoData = {
+    contatoId: string;
+    fornecedorId: string;
+};
+
+export type FornecedoresDeleteContatoResponse = (void);
 
 export type LoginLoginAccessTokenData = {
     formData: Body_login_login_access_token;

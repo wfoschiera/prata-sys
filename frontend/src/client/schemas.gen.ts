@@ -346,6 +346,350 @@ export const DocumentTypeSchema = {
     title: 'DocumentType'
 } as const;
 
+export const FornecedorCategoryEnumSchema = {
+    type: 'string',
+    enum: ['tubos', 'conexoes', 'bombas', 'cabos', 'outros'],
+    title: 'FornecedorCategoryEnum'
+} as const;
+
+export const FornecedorContatoCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        telefone: {
+            type: 'string',
+            maxLength: 20,
+            minLength: 1,
+            title: 'Telefone'
+        },
+        whatsapp: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 20
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Whatsapp'
+        },
+        description: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 1,
+            title: 'Description'
+        }
+    },
+    type: 'object',
+    required: ['name', 'telefone', 'description'],
+    title: 'FornecedorContatoCreate'
+} as const;
+
+export const FornecedorContatoPublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        telefone: {
+            type: 'string',
+            maxLength: 20,
+            minLength: 1,
+            title: 'Telefone'
+        },
+        whatsapp: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 20
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Whatsapp'
+        },
+        description: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 1,
+            title: 'Description'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        fornecedor_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Fornecedor Id'
+        }
+    },
+    type: 'object',
+    required: ['name', 'telefone', 'description', 'id', 'fornecedor_id'],
+    title: 'FornecedorContatoPublic'
+} as const;
+
+export const FornecedorContatoUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        telefone: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 20,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Telefone'
+        },
+        whatsapp: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 20
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Whatsapp'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        }
+    },
+    type: 'object',
+    title: 'FornecedorContatoUpdate'
+} as const;
+
+export const FornecedorCreateSchema = {
+    properties: {
+        company_name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Company Name'
+        },
+        cnpj: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 14
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cnpj'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        categories: {
+            items: {
+                '$ref': '#/components/schemas/FornecedorCategoryEnum'
+            },
+            type: 'array',
+            title: 'Categories',
+            default: []
+        }
+    },
+    type: 'object',
+    required: ['company_name'],
+    title: 'FornecedorCreate'
+} as const;
+
+export const FornecedorPublicSchema = {
+    properties: {
+        company_name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Company Name'
+        },
+        cnpj: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 14
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cnpj'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        categories: {
+            items: {
+                '$ref': '#/components/schemas/FornecedorCategoryEnum'
+            },
+            type: 'array',
+            title: 'Categories'
+        },
+        contatos: {
+            items: {
+                '$ref': '#/components/schemas/FornecedorContatoPublic'
+            },
+            type: 'array',
+            title: 'Contatos'
+        }
+    },
+    type: 'object',
+    required: ['company_name', 'id', 'categories', 'contatos'],
+    title: 'FornecedorPublic'
+} as const;
+
+export const FornecedorUpdateSchema = {
+    properties: {
+        company_name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Company Name'
+        },
+        cnpj: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 14
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cnpj'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        categories: {
+            anyOf: [
+                {
+                    items: {
+                        '$ref': '#/components/schemas/FornecedorCategoryEnum'
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Categories'
+        }
+    },
+    type: 'object',
+    title: 'FornecedorUpdate'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {

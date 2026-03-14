@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -108,6 +108,182 @@ export class ClientsService {
             url: '/api/v1/clients/{client_id}',
             path: {
                 client_id: data.clientId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class FornecedoresService {
+    /**
+     * List Fornecedores
+     * @param data The data for the request.
+     * @param data.search
+     * @param data.category
+     * @returns FornecedorPublic Successful Response
+     * @throws ApiError
+     */
+    public static listFornecedores(data: FornecedoresListFornecedoresData = {}): CancelablePromise<FornecedoresListFornecedoresResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fornecedores',
+            query: {
+                search: data.search,
+                category: data.category
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Fornecedor
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns FornecedorPublic Successful Response
+     * @throws ApiError
+     */
+    public static createFornecedor(data: FornecedoresCreateFornecedorData): CancelablePromise<FornecedoresCreateFornecedorResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fornecedores',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Fornecedor
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @returns FornecedorPublic Successful Response
+     * @throws ApiError
+     */
+    public static getFornecedor(data: FornecedoresGetFornecedorData): CancelablePromise<FornecedoresGetFornecedorResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fornecedores/{fornecedor_id}',
+            path: {
+                fornecedor_id: data.fornecedorId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Fornecedor
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @param data.requestBody
+     * @returns FornecedorPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateFornecedor(data: FornecedoresUpdateFornecedorData): CancelablePromise<FornecedoresUpdateFornecedorResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fornecedores/{fornecedor_id}',
+            path: {
+                fornecedor_id: data.fornecedorId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Fornecedor
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteFornecedor(data: FornecedoresDeleteFornecedorData): CancelablePromise<FornecedoresDeleteFornecedorResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fornecedores/{fornecedor_id}',
+            path: {
+                fornecedor_id: data.fornecedorId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Contato
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @param data.requestBody
+     * @returns FornecedorContatoPublic Successful Response
+     * @throws ApiError
+     */
+    public static createContato(data: FornecedoresCreateContatoData): CancelablePromise<FornecedoresCreateContatoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fornecedores/{fornecedor_id}/contatos',
+            path: {
+                fornecedor_id: data.fornecedorId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Contato
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @param data.contatoId
+     * @param data.requestBody
+     * @returns FornecedorContatoPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateContato(data: FornecedoresUpdateContatoData): CancelablePromise<FornecedoresUpdateContatoResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fornecedores/{fornecedor_id}/contatos/{contato_id}',
+            path: {
+                fornecedor_id: data.fornecedorId,
+                contato_id: data.contatoId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Contato
+     * @param data The data for the request.
+     * @param data.fornecedorId
+     * @param data.contatoId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteContato(data: FornecedoresDeleteContatoData): CancelablePromise<FornecedoresDeleteContatoResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fornecedores/{fornecedor_id}/contatos/{contato_id}',
+            path: {
+                fornecedor_id: data.fornecedorId,
+                contato_id: data.contatoId
             },
             errors: {
                 422: 'Validation Error'
