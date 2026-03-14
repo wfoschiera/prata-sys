@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -17,6 +18,7 @@ from app.models import (
     ClientRef,
     ClientUpdate,
     DeductionItem,
+    DeductionSummary,
     Fornecedor,
     FornecedorCategoria,
     FornecedorCategoryEnum,
@@ -59,6 +61,8 @@ from app.models import (
     UserUpdate,
     get_datetime_utc,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -429,9 +433,27 @@ def transition_service_status(
 
     stock_warnings: list[StockWarning] = []
 
+    logger.info(
+        "service_transition_start",
+        extra={
+            "service_id": str(service.id),
+            "from_status": service.status,
+            "to_status": to_status,
+            "changed_by_id": str(changed_by_id),
+        },
+    )
+
     # Handle stock reservation when moving to scheduled
     if to_status == ServiceStatus.scheduled:
         stock_warnings = _check_stock_for_service(session, service)
+        if stock_warnings:
+            logger.warning(
+                "service_transition_stock_warnings",
+                extra={
+                    "service_id": str(service.id),
+                    "warning_count": len(stock_warnings),
+                },
+            )
 
     # Handle stock deduction when moving to completed
     if to_status == ServiceStatus.completed:
@@ -476,7 +498,7 @@ def deduct_stock(
     session: Session,
     service: Service,
     _changed_by_id: uuid.UUID,
-) -> list[dict]:  # type: ignore[type-arg]
+) -> list[DeductionSummary]:
     """Manually deduct all reserved ProductItems for a service in executing status."""
     if service.status != ServiceStatus.executing:
         msg = "Stock can only be deducted from a service in 'executing' status"
@@ -489,13 +511,13 @@ def deduct_stock(
         )
     ).all()
 
-    result = []
+    result: list[DeductionSummary] = []
     for item in reserved_items:
         item.status = ProductItemStatus.utilizado
         item.updated_at = get_datetime_utc()
         session.add(item)
         result.append(
-            {"product_item_id": str(item.id), "quantity": float(item.quantity)}
+            DeductionSummary(product_item_id=item.id, quantity=float(item.quantity))
         )
 
     session.commit()
