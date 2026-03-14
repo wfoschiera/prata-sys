@@ -49,45 +49,45 @@
 
 ## 6. Frontend API Client Regeneration
 
-- [ ] 6.1 Regenerate the typed API client from the updated OpenAPI schema (`bash ./scripts/generate-client.sh`) so that `transition`, `deductStock`, `ServiceTransitionRequest`, `ServiceStatusLogRead`, and `StockWarning` types are available in the frontend
+- [x] 6.1 Regenerate the typed API client from the updated OpenAPI schema (`bash ./scripts/generate-client.sh`) so that `transition`, `deductStock`, `ServiceTransitionRequest`, `ServiceStatusLogRead`, and `StockWarning` types are available in the frontend
 
 ## 7. Frontend Status Timeline Component
 
-- [ ] 7.1 Create `frontend/src/components/StatusTimeline.tsx` — a presentational component that receives `currentStatus: ServiceStatus` and renders an ordered step indicator for `requested → scheduled → executing → completed`; completed steps are visually distinct from future steps; if `currentStatus === "cancelled"`, render the last reached step followed by a `cancelled` terminal node styled distinctly (e.g., red)
-- [ ] 7.2 The `StatusTimeline` component must accept an optional `cancelledReason` prop and render it below the cancelled node when present
-- [ ] 7.3 Import and render `StatusTimeline` in the service detail route (`frontend/src/routes/services/$serviceId.tsx`) below the service header
+- [x] 7.1 Create `frontend/src/components/StatusTimeline.tsx` — a presentational component that receives `currentStatus: ServiceStatus` and renders an ordered step indicator for `requested → scheduled → executing → completed`; completed steps are visually distinct from future steps; if `currentStatus === "cancelled"`, render the last reached step followed by a `cancelled` terminal node styled distinctly (e.g., red)
+- [x] 7.2 The `StatusTimeline` component must accept an optional `cancelledReason` prop and render it below the cancelled node when present
+- [x] 7.3 Import and render `StatusTimeline` in the service detail route (`frontend/src/routes/services/$serviceId.tsx`) below the service header
 
 ## 8. Frontend Transition Buttons
 
-- [ ] 8.1 Create `frontend/src/components/TransitionButtons.tsx` — a component that receives `currentStatus: ServiceStatus`, `serviceId: string`, and `userRole: string`; renders action buttons only for valid next states (using the same `VALID_TRANSITIONS` logic reflected in the frontend); renders nothing for `finance` users or on terminal states
-- [ ] 8.2 Each forward-transition button calls `POST /transition` directly (optimistic or with loading state); the "Cancelar" button opens the `CancelModal` instead of calling the API directly
-- [ ] 8.3 The "Concluir" button (to `completed`) opens the `CompleteConfirmModal` instead of calling the API directly
-- [ ] 8.4 Import and render `TransitionButtons` in the service detail route below the `StatusTimeline`
+- [x] 8.1 Create `frontend/src/components/TransitionButtons.tsx` — a component that receives `currentStatus: ServiceStatus`, `serviceId: string`, and `userRole: string`; renders action buttons only for valid next states (using the same `VALID_TRANSITIONS` logic reflected in the frontend); renders nothing for `finance` users or on terminal states
+- [x] 8.2 Each forward-transition button calls `POST /transition` directly (optimistic or with loading state); the "Cancelar" button opens the `CancelModal` instead of calling the API directly
+- [x] 8.3 The "Concluir" button (to `completed`) opens the `CompleteConfirmModal` instead of calling the API directly
+- [x] 8.4 Import and render `TransitionButtons` in the service detail route below the `StatusTimeline`
 
 ## 9. Frontend Cancellation Modal
 
-- [ ] 9.1 Create `frontend/src/components/CancelModal.tsx` — a modal dialog triggered by the "Cancelar serviço" button; contains a required textarea for the cancellation reason; the confirm button is disabled while the textarea is empty
-- [ ] 9.2 On confirm, call `POST /api/v1/services/{id}/transition` with `{to_status: "cancelled", reason: <text>}` using the generated client; on success, close the modal and invalidate the service detail query; on error, display the API error message inside the modal without closing it
-- [ ] 9.3 The modal must handle the loading state (disable both buttons while the API call is in flight)
+- [x] 9.1 Create `frontend/src/components/CancelModal.tsx` — a modal dialog triggered by the "Cancelar serviço" button; contains a required textarea for the cancellation reason; the confirm button is disabled while the textarea is empty
+- [x] 9.2 On confirm, call `POST /api/v1/services/{id}/transition` with `{to_status: "cancelled", reason: <text>}` using the generated client; on success, close the modal and invalidate the service detail query; on error, display the API error message inside the modal without closing it
+- [x] 9.3 The modal must handle the loading state (disable both buttons while the API call is in flight)
 
 ## 10. Frontend Completion Confirmation Modal
 
-- [ ] 10.1 Create `frontend/src/components/CompleteConfirmModal.tsx` — a modal that receives the service's material `ServiceItem` list; renders each item with its description and a quantity input pre-filled with `ServiceItem.quantity`; allows the user to adjust quantities before confirming
-- [ ] 10.2 Validate inside the modal that all quantity inputs are positive numbers before enabling the confirm button
-- [ ] 10.3 On confirm, build the `deduction_items` array from the current input values and call `POST /api/v1/services/{id}/transition` with `{to_status: "completed", deduction_items: [...]}` using the generated client; on success, close the modal and invalidate the service detail query; on error, display the API error inside the modal
-- [ ] 10.4 The modal must handle the loading state (disable both buttons while the API call is in flight)
+- [x] 10.1 Create `frontend/src/components/CompleteConfirmModal.tsx` — a modal that receives the service's material `ServiceItem` list; renders each item with its description and a quantity input pre-filled with `ServiceItem.quantity`; allows the user to adjust quantities before confirming
+- [x] 10.2 Validate inside the modal that all quantity inputs are positive numbers before enabling the confirm button
+- [x] 10.3 On confirm, build the `deduction_items` array from the current input values and call `POST /api/v1/services/{id}/transition` with `{to_status: "completed", deduction_items: [...]}` using the generated client; on success, close the modal and invalidate the service detail query; on error, display the API error inside the modal
+- [x] 10.4 The modal must handle the loading state (disable both buttons while the API call is in flight)
 
 ## 11. Frontend Stock Warning Badge
 
-- [ ] 11.1 Create `frontend/src/components/StockWarningBadge.tsx` — a small badge/alert component that renders a warning message (e.g., "Materiais insuficientes no estoque") when `hasStockWarning` prop is `true`; renders nothing when `false`
-- [ ] 11.2 Render `StockWarningBadge` in the service detail header when `service.has_stock_warning === true` and `service.status === "scheduled"`
-- [ ] 11.3 Render `StockWarningBadge` (compact variant) in the services list table row for scheduled services with `has_stock_warning === true`
+- [x] 11.1 Create `frontend/src/components/StockWarningBadge.tsx` — a small badge/alert component that renders a warning message (e.g., "Materiais insuficientes no estoque") when `hasStockWarning` prop is `true`; renders nothing when `false`
+- [x] 11.2 Render `StockWarningBadge` in the service detail header when `service.has_stock_warning === true` and `service.status === "scheduled"`
+- [x] 11.3 Render `StockWarningBadge` (compact variant) in the services list table row for scheduled services with `has_stock_warning === true`
 
 ## 12. Frontend "Baixar do Estoque" Button
 
-- [ ] 12.1 Add a "Baixar do estoque" button to the service detail page that is visible only when `service.status === "executing"` and the current user has the `admin` role
-- [ ] 12.2 The button calls `POST /api/v1/services/{id}/deduct-stock` using the generated client; on success, show a success toast and invalidate the service detail query; on error, display the API error in a toast
-- [ ] 12.3 Disable the button while the API call is in flight to prevent double-submission
+- [x] 12.1 Add a "Baixar do estoque" button to the service detail page that is visible only when `service.status === "executing"` and the current user has the `admin` role
+- [x] 12.2 The button calls `POST /api/v1/services/{id}/deduct-stock` using the generated client; on success, show a success toast and invalidate the service detail query; on error, display the API error in a toast
+- [x] 12.3 Disable the button while the API call is in flight to prevent double-submission
 
 ## 13. Backend Tests
 
