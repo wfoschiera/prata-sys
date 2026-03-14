@@ -456,6 +456,11 @@ class ServiceTransitionResponse(SQLModel):
 ServiceTransitionResponse.model_rebuild()
 
 
+class DeductionSummary(SQLModel):
+    product_item_id: uuid.UUID
+    quantity: float
+
+
 # ── Financeiro ────────────────────────────────────────────────────────────────
 
 
