@@ -1,51 +1,51 @@
 ## 1. Database Models
 
-- [ ] 1.1 Add `cancelled` value to `ServiceStatus` enum in `backend/app/models.py`
-- [ ] 1.2 Add `description` optional Text column to the `Service` SQLModel table in `backend/app/models.py`
-- [ ] 1.3 Add `cancelled_reason` optional String column to the `Service` SQLModel table in `backend/app/models.py`
-- [ ] 1.4 Define `ServiceStatusLog` SQLModel table with fields: `id` (UUID PK), `service_id` (FK → `service.id`, not null), `from_status` (ServiceStatus, not null), `to_status` (ServiceStatus, not null), `changed_by` (UUID, FK → `user.id`, not null), `changed_at` (DateTime, default utcnow), `notes` (optional String)
-- [ ] 1.5 Add `status_logs` relationship on `Service` (one-to-many to `ServiceStatusLog`, ordered by `changed_at`, cascade="all, delete-orphan")
-- [ ] 1.6 Add `changed_by_user` relationship on `ServiceStatusLog` (many-to-one to `User`) for eager loading the actor name in responses
+- [x] 1.1 Add `cancelled` value to `ServiceStatus` enum in `backend/app/models.py`
+- [x] 1.2 Add `description` optional Text column to the `Service` SQLModel table in `backend/app/models.py`
+- [x] 1.3 Add `cancelled_reason` optional String column to the `Service` SQLModel table in `backend/app/models.py`
+- [x] 1.4 Define `ServiceStatusLog` SQLModel table with fields: `id` (UUID PK), `service_id` (FK → `service.id`, not null), `from_status` (ServiceStatus, not null), `to_status` (ServiceStatus, not null), `changed_by` (UUID, FK → `user.id`, not null), `changed_at` (DateTime, default utcnow), `notes` (optional String)
+- [x] 1.5 Add `status_logs` relationship on `Service` (one-to-many to `ServiceStatusLog`, ordered by `changed_at`, cascade="all, delete-orphan")
+- [x] 1.6 Add `changed_by_user` relationship on `ServiceStatusLog` (many-to-one to `User`) for eager loading the actor name in responses
 
 ## 2. Alembic Migration
 
-- [ ] 2.1 Run `alembic revision --autogenerate -m "add service lifecycle fields and status log"` and review the generated file
-- [ ] 2.2 Verify the migration adds `description` (Text, nullable) and `cancelled_reason` (String, nullable) to the `service` table
-- [ ] 2.3 Verify the migration creates `service_status_log` with all columns and correct FK constraints (`service_id` → `service.id`, `changed_by` → `user.id`)
-- [ ] 2.4 Manually add `CREATE INDEX ix_service_status_log_service_id_changed_at ON service_status_log (service_id, changed_at)` to the migration if autogenerate does not produce it
-- [ ] 2.5 Run `alembic upgrade head` in the development environment and verify no errors
-- [ ] 2.6 Verify rollback: `alembic downgrade -1` removes the new table and columns without errors
+- [x] 2.1 Run `alembic revision --autogenerate -m "add service lifecycle fields and status log"` and review the generated file
+- [x] 2.2 Verify the migration adds `description` (Text, nullable) and `cancelled_reason` (String, nullable) to the `service` table
+- [x] 2.3 Verify the migration creates `service_status_log` with all columns and correct FK constraints (`service_id` → `service.id`, `changed_by` → `user.id`)
+- [x] 2.4 Manually add `CREATE INDEX ix_service_status_log_service_id_changed_at ON service_status_log (service_id, changed_at)` to the migration if autogenerate does not produce it
+- [x] 2.5 Run `alembic upgrade head` in the development environment and verify no errors
+- [x] 2.6 Verify rollback: `alembic downgrade -1` removes the new table and columns without errors
 
 ## 3. Backend Schemas
 
-- [ ] 3.1 Add `ServiceTransitionRequest` schema with fields: `to_status` (ServiceStatus, required), `reason` (optional String — required when `to_status == cancelled`, validated via `model_validator`), `deduction_items` (optional list of `DeductionItem` — required when `to_status == completed`)
-- [ ] 3.2 Add `DeductionItem` schema with fields: `service_item_id` (UUID), `quantity` (float, > 0)
-- [ ] 3.3 Add `ServiceStatusLogRead` schema with fields: `id`, `from_status`, `to_status`, `changed_by`, `changed_at`, `notes`, and `changed_by_name` (resolved from the user relationship)
-- [ ] 3.4 Add `StockWarning` schema with fields: `service_item_id` (UUID), `description` (String), `required_quantity` (float), `available_quantity` (float), `shortfall` (float)
-- [ ] 3.5 Add `ServiceTransitionResponse` schema with fields: `service` (ServiceRead), `stock_warnings` (list of StockWarning, default empty list)
-- [ ] 3.6 Update `ServiceRead` schema to include `description`, `cancelled_reason`, `status_logs` (list of `ServiceStatusLogRead`), and `has_stock_warning` (bool, default False)
-- [ ] 3.7 Update `ServiceUpdate` schema to explicitly exclude the `status` field (mark it as a disallowed field or remove it from the model) so PATCH cannot accept status changes
+- [x] 3.1 Add `ServiceTransitionRequest` schema with fields: `to_status` (ServiceStatus, required), `reason` (optional String — required when `to_status == cancelled`, validated via `model_validator`), `deduction_items` (optional list of `DeductionItem` — required when `to_status == completed`)
+- [x] 3.2 Add `DeductionItem` schema with fields: `service_item_id` (UUID), `quantity` (float, > 0)
+- [x] 3.3 Add `ServiceStatusLogRead` schema with fields: `id`, `from_status`, `to_status`, `changed_by`, `changed_at`, `notes`, and `changed_by_name` (resolved from the user relationship)
+- [x] 3.4 Add `StockWarning` schema with fields: `service_item_id` (UUID), `description` (String), `required_quantity` (float), `available_quantity` (float), `shortfall` (float)
+- [x] 3.5 Add `ServiceTransitionResponse` schema with fields: `service` (ServiceRead), `stock_warnings` (list of StockWarning, default empty list)
+- [x] 3.6 Update `ServiceRead` schema to include `description`, `cancelled_reason`, `status_logs` (list of `ServiceStatusLogRead`), and `has_stock_warning` (bool, default False)
+- [x] 3.7 Update `ServiceUpdate` schema to explicitly exclude the `status` field (mark it as a disallowed field or remove it from the model) so PATCH cannot accept status changes
 
 ## 4. Backend CRUD
 
-- [ ] 4.1 Add `VALID_TRANSITIONS: dict[ServiceStatus, list[ServiceStatus]]` constant mapping each state to its allowed next states, e.g. `{requested: [scheduled, cancelled], scheduled: [executing, cancelled], executing: [completed, cancelled], completed: [], cancelled: []}`
-- [ ] 4.2 Add `transition_service_status(db, service, to_status, changed_by_id, reason=None, deduction_items=None) -> tuple[Service, list[StockWarning]]` in `backend/app/crud.py` — validates transition, creates `ServiceStatusLog`, handles stock side-effects (reservation on scheduled, deduction on completed), returns updated service and any warnings
-- [ ] 4.3 Inside `transition_service_status`: when transitioning to `scheduled`, query `StockItem` for each material `ServiceItem`, compute shortfalls, increment `StockItem.reservado` for items with sufficient stock (using `SELECT ... FOR UPDATE` to prevent race conditions), and collect `StockWarning` objects for shortfalls
-- [ ] 4.4 Inside `transition_service_status`: when transitioning to `completed`, validate that `deduction_items` is provided, verify each `service_item_id` belongs to the service and is of type `material`, deduct quantities from `StockItem.quantity` and decrement `StockItem.reservado`, reject if a deduction would make `quantity` negative
-- [ ] 4.5 Inside `transition_service_status`: when transitioning to `cancelled`, persist `cancelled_reason` on the `Service` record and record `reason` in the `ServiceStatusLog.notes` column
-- [ ] 4.6 Add `deduct_stock(db, service, changed_by_id) -> list[DeductionSummary]` in `backend/app/crud.py` — validates service is in `executing`, deducts all material item quantities from `StockItem` (using `SELECT ... FOR UPDATE`), returns a summary list; guard: only valid when `service.status == executing`
-- [ ] 4.7 Add `get_service_status_logs(db, service_id) -> list[ServiceStatusLog]` with `selectinload(ServiceStatusLog.changed_by_user)` ordered by `changed_at` ascending
-- [ ] 4.8 Update `get_service` and `get_services` CRUD functions to also `selectinload(Service.status_logs)` so logs are always included in responses without N+1 queries
-- [ ] 4.9 Guard `update_service` in `crud.py`: if the incoming `ServiceUpdate` contains a `status` field (even if excluded from schema, add a belt-and-suspenders check), raise `ValueError("Use the /transition endpoint to change service status")`
+- [x] 4.1 Add `VALID_TRANSITIONS: dict[ServiceStatus, list[ServiceStatus]]` constant mapping each state to its allowed next states, e.g. `{requested: [scheduled, cancelled], scheduled: [executing, cancelled], executing: [completed, cancelled], completed: [], cancelled: []}`
+- [x] 4.2 Add `transition_service_status(db, service, to_status, changed_by_id, reason=None, deduction_items=None) -> tuple[Service, list[StockWarning]]` in `backend/app/crud.py` — validates transition, creates `ServiceStatusLog`, handles stock side-effects (reservation on scheduled, deduction on completed), returns updated service and any warnings
+- [x] 4.3 Inside `transition_service_status`: when transitioning to `scheduled`, query `StockItem` for each material `ServiceItem`, compute shortfalls, increment `StockItem.reservado` for items with sufficient stock (using `SELECT ... FOR UPDATE` to prevent race conditions), and collect `StockWarning` objects for shortfalls
+- [x] 4.4 Inside `transition_service_status`: when transitioning to `completed`, validate that `deduction_items` is provided, verify each `service_item_id` belongs to the service and is of type `material`, deduct quantities from `StockItem.quantity` and decrement `StockItem.reservado`, reject if a deduction would make `quantity` negative
+- [x] 4.5 Inside `transition_service_status`: when transitioning to `cancelled`, persist `cancelled_reason` on the `Service` record and record `reason` in the `ServiceStatusLog.notes` column
+- [x] 4.6 Add `deduct_stock(db, service, changed_by_id) -> list[DeductionSummary]` in `backend/app/crud.py` — validates service is in `executing`, deducts all material item quantities from `StockItem` (using `SELECT ... FOR UPDATE`), returns a summary list; guard: only valid when `service.status == executing`
+- [x] 4.7 Add `get_service_status_logs(db, service_id) -> list[ServiceStatusLog]` with `selectinload(ServiceStatusLog.changed_by_user)` ordered by `changed_at` ascending
+- [x] 4.8 Update `get_service` and `get_services` CRUD functions to also `selectinload(Service.status_logs)` so logs are always included in responses without N+1 queries
+- [x] 4.9 Guard `update_service` in `crud.py`: if the incoming `ServiceUpdate` contains a `status` field (even if excluded from schema, add a belt-and-suspenders check), raise `ValueError("Use the /transition endpoint to change service status")`
 
 ## 5. Backend API Routes
 
-- [ ] 5.1 Add `POST /services/{id}/transition` route to `backend/app/api/routes/services.py`; require `admin` role via `require_role("admin")`; accepts `ServiceTransitionRequest`; calls `transition_service_status`; returns `ServiceTransitionResponse` with HTTP 200; returns 422 on invalid transition or missing required fields
-- [ ] 5.2 Add `POST /services/{id}/deduct-stock` route; require `admin` role; validates service is in `executing` status (return 422 if not); calls `deduct_stock`; returns HTTP 200 with deduction summary
-- [ ] 5.3 Update `PATCH /services/{id}` route: if request body contains a `status` key, return HTTP 422 with message `"Use POST /services/{id}/transition to change service status"`
-- [ ] 5.4 Update `GET /services/{id}` response to include `status_logs` and `has_stock_warning` fields from the updated `ServiceRead` schema
-- [ ] 5.5 Update `GET /services` response to include `has_stock_warning` on each service item in the list
-- [ ] 5.6 Ensure all new routes are covered by OpenAPI docstrings (summary + description) so the generated client has meaningful names
+- [x] 5.1 Add `POST /services/{id}/transition` route to `backend/app/api/routes/services.py`; require `admin` role via `require_role("admin")`; accepts `ServiceTransitionRequest`; calls `transition_service_status`; returns `ServiceTransitionResponse` with HTTP 200; returns 422 on invalid transition or missing required fields
+- [x] 5.2 Add `POST /services/{id}/deduct-stock` route; require `admin` role; validates service is in `executing` status (return 422 if not); calls `deduct_stock`; returns HTTP 200 with deduction summary
+- [x] 5.3 Update `PATCH /services/{id}` route: if request body contains a `status` key, return HTTP 422 with message `"Use POST /services/{id}/transition to change service status"`
+- [x] 5.4 Update `GET /services/{id}` response to include `status_logs` and `has_stock_warning` fields from the updated `ServiceRead` schema
+- [x] 5.5 Update `GET /services` response to include `has_stock_warning` on each service item in the list
+- [x] 5.6 Ensure all new routes are covered by OpenAPI docstrings (summary + description) so the generated client has meaningful names
 
 ## 6. Frontend API Client Regeneration
 
@@ -91,13 +91,13 @@
 
 ## 13. Backend Tests
 
-- [ ] 13.1 Add unit tests for `VALID_TRANSITIONS` in `backend/tests/` verifying that all allowed transitions pass and all disallowed transitions raise `ValueError`
-- [ ] 13.2 Add integration test: `POST /transition` valid forward transition creates a `ServiceStatusLog` entry with correct fields
-- [ ] 13.3 Add integration test: `POST /transition` to `cancelled` without reason returns 422
-- [ ] 13.4 Add integration test: `POST /transition` to `cancelled` with reason persists `cancelled_reason` on service
-- [ ] 13.5 Add integration test: `POST /transition` from a terminal state returns 422
-- [ ] 13.6 Add integration test: `PATCH /services/{id}` with `status` in body returns 422 with redirect message
-- [ ] 13.7 Add integration test: `finance` user calling `POST /transition` returns 403
-- [ ] 13.8 Add integration test: `POST /deduct-stock` on non-executing service returns 422
-- [ ] 13.9 Add integration test: `GET /services/{id}` response includes `status_logs` array in correct chronological order
-- [ ] 13.10 Update any existing service tests that set `status` via `PATCH` to use the new `/transition` endpoint instead
+- [x] 13.1 Add unit tests for `VALID_TRANSITIONS` in `backend/tests/` verifying that all allowed transitions pass and all disallowed transitions raise `ValueError`
+- [x] 13.2 Add integration test: `POST /transition` valid forward transition creates a `ServiceStatusLog` entry with correct fields
+- [x] 13.3 Add integration test: `POST /transition` to `cancelled` without reason returns 422
+- [x] 13.4 Add integration test: `POST /transition` to `cancelled` with reason persists `cancelled_reason` on service
+- [x] 13.5 Add integration test: `POST /transition` from a terminal state returns 422
+- [x] 13.6 Add integration test: `PATCH /services/{id}` with `status` in body returns 422 with redirect message
+- [x] 13.7 Add integration test: `finance` user calling `POST /transition` returns 403
+- [x] 13.8 Add integration test: `POST /deduct-stock` on non-executing service returns 422
+- [x] 13.9 Add integration test: `GET /services/{id}` response includes `status_logs` array in correct chronological order
+- [x] 13.10 Update any existing service tests that set `status` via `PATCH` to use the new `/transition` endpoint instead

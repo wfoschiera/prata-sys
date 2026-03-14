@@ -1,9 +1,10 @@
 import uuid
+from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app import crud
-from app.api.deps import SessionDep, require_permission
+from app.api.deps import CurrentUser, SessionDep, require_permission
 from app.models import (
     Service,
     ServiceCreate,
@@ -12,12 +13,15 @@ from app.models import (
     ServiceItemRead,
     ServiceRead,
     ServicesPublic,
+    ServiceTransitionRequest,
+    ServiceTransitionResponse,
     ServiceUpdate,
 )
 
 router = APIRouter(prefix="/services", tags=["services"])
 
 PermGuard = Depends(require_permission("manage_services"))
+AdminDep = Depends(require_permission("manage_services"))
 
 
 @router.get("/", response_model=ServicesPublic)
@@ -63,14 +67,21 @@ def read_service(
 
 
 @router.patch("/{service_id}", response_model=ServiceRead)
-def update_service(
+async def update_service(
     *,
+    request: Request,
     session: SessionDep,
     service_id: uuid.UUID,
     service_in: ServiceUpdate,
     _: None = PermGuard,
 ) -> Service:
     """Update a service order (status transitions are enforced)."""
+    raw_body = await request.json()
+    if "status" in raw_body:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Use POST /services/{service_id}/transition to change service status",
+        )
     db_service = crud.get_service(session=session, service_id=service_id)
     if not db_service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -80,6 +91,70 @@ def update_service(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.post("/{service_id}/transition", response_model=ServiceTransitionResponse)
+def transition_service(
+    *,
+    session: SessionDep,
+    service_id: uuid.UUID,
+    transition_in: ServiceTransitionRequest,
+    current_user: CurrentUser,
+    _: None = AdminDep,
+) -> ServiceTransitionResponse:
+    """Advance or cancel a service order status.
+
+    Only admin users may trigger status transitions. Valid transitions:
+    requested → scheduled → executing → completed (or cancelled from any non-terminal state).
+    Cancellation requires a reason. Completion requires deduction_items.
+    """
+    db_service = crud.get_service(session=session, service_id=service_id)
+    if not db_service:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Service not found"
+        )
+    try:
+        updated_service, stock_warnings = crud.transition_service_status(
+            session=session,
+            service=db_service,
+            to_status=transition_in.to_status,
+            changed_by_id=current_user.id,
+            reason=transition_in.reason,
+            deduction_items=transition_in.deduction_items,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+    service_read = ServiceRead.model_validate(updated_service)
+    return ServiceTransitionResponse(
+        service=service_read, stock_warnings=stock_warnings
+    )
+
+
+@router.post("/{service_id}/deduct-stock")
+def deduct_stock(
+    *,
+    session: SessionDep,
+    service_id: uuid.UUID,
+    current_user: CurrentUser,
+    _: None = AdminDep,
+) -> list[dict]:  # type: ignore[type-arg]
+    """Manually deduct material quantities from stock for a service in 'executing' status.
+
+    Only valid when the service is in the executing state. Fully implemented in Phase 7.
+    """
+    db_service = crud.get_service(session=session, service_id=service_id)
+    if not db_service:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Service not found"
+        )
+    try:
+        return crud.deduct_stock(session, db_service, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
 
 
 @router.delete("/{service_id}", status_code=204)

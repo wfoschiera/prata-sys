@@ -51,6 +51,11 @@ export type ClientUpdate = {
     address?: (string | null);
 };
 
+export type DeductionItem = {
+    service_item_id: string;
+    quantity: number;
+};
+
 export type DocumentType = 'cpf' | 'cnpj';
 
 export type HTTPValidationError = {
@@ -113,10 +118,14 @@ export type ServiceRead = {
     id: string;
     client_id: string;
     status: ServiceStatus;
+    description?: (string | null);
+    cancelled_reason?: (string | null);
     created_at?: (string | null);
     updated_at?: (string | null);
     client?: (ClientRef | null);
     items?: Array<ServiceItemRead>;
+    status_logs?: Array<ServiceStatusLogRead>;
+    has_stock_warning?: boolean;
 };
 
 export type ServicesPublic = {
@@ -124,7 +133,17 @@ export type ServicesPublic = {
     count: number;
 };
 
-export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed';
+export type ServiceStatus = 'requested' | 'scheduled' | 'executing' | 'completed' | 'cancelled';
+
+export type ServiceStatusLogRead = {
+    id: string;
+    from_status: ServiceStatus;
+    to_status: ServiceStatus;
+    changed_by: (string | null);
+    changed_at: string;
+    notes?: (string | null);
+    changed_by_name?: (string | null);
+};
 
 export type ServiceSummary = {
     id: string;
@@ -132,17 +151,36 @@ export type ServiceSummary = {
     status: ServiceStatus;
 };
 
+export type ServiceTransitionRequest = {
+    to_status: ServiceStatus;
+    reason?: (string | null);
+    deduction_items?: (Array<DeductionItem> | null);
+};
+
+export type ServiceTransitionResponse = {
+    service: ServiceRead;
+    stock_warnings?: Array<StockWarning>;
+};
+
 export type ServiceType = 'perfuração' | 'reparo';
 
 export type ServiceUpdate = {
     type?: (ServiceType | null);
-    status?: (ServiceStatus | null);
     execution_address?: (string | null);
     notes?: (string | null);
+    description?: (string | null);
 };
 
 export type SetPermissionsIn = {
     permissions: Array<(string)>;
+};
+
+export type StockWarning = {
+    service_item_id: string;
+    description: string;
+    required_quantity: number;
+    available_quantity: number;
+    shortfall: number;
 };
 
 export type TipoTransacao = 'receita' | 'despesa';
@@ -383,6 +421,21 @@ export type ServicesDeleteServiceData = {
 };
 
 export type ServicesDeleteServiceResponse = (void);
+
+export type ServicesTransitionServiceData = {
+    requestBody: ServiceTransitionRequest;
+    serviceId: string;
+};
+
+export type ServicesTransitionServiceResponse = (ServiceTransitionResponse);
+
+export type ServicesDeductStockData = {
+    serviceId: string;
+};
+
+export type ServicesDeductStockResponse = (Array<{
+    [key: string]: unknown;
+}>);
 
 export type ServicesCreateServiceItemData = {
     requestBody: ServiceItemCreate;

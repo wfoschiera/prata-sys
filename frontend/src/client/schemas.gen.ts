@@ -322,6 +322,24 @@ export const ClientsPublicSchema = {
     title: 'ClientsPublic'
 } as const;
 
+export const DeductionItemSchema = {
+    properties: {
+        service_item_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Service Item Id'
+        },
+        quantity: {
+            type: 'number',
+            exclusiveMinimum: 0,
+            title: 'Quantity'
+        }
+    },
+    type: 'object',
+    required: ['service_item_id', 'quantity'],
+    title: 'DeductionItem'
+} as const;
+
 export const DocumentTypeSchema = {
     type: 'string',
     enum: ['cpf', 'cnpj'],
@@ -566,6 +584,28 @@ export const ServiceReadSchema = {
         status: {
             '$ref': '#/components/schemas/ServiceStatus'
         },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        cancelled_reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cancelled Reason'
+        },
         created_at: {
             anyOf: [
                 {
@@ -607,6 +647,19 @@ export const ServiceReadSchema = {
             type: 'array',
             title: 'Items',
             default: []
+        },
+        status_logs: {
+            items: {
+                '$ref': '#/components/schemas/ServiceStatusLogRead'
+            },
+            type: 'array',
+            title: 'Status Logs',
+            default: []
+        },
+        has_stock_warning: {
+            type: 'boolean',
+            title: 'Has Stock Warning',
+            default: false
         }
     },
     type: 'object',
@@ -616,8 +669,66 @@ export const ServiceReadSchema = {
 
 export const ServiceStatusSchema = {
     type: 'string',
-    enum: ['requested', 'scheduled', 'executing', 'completed'],
+    enum: ['requested', 'scheduled', 'executing', 'completed', 'cancelled'],
     title: 'ServiceStatus'
+} as const;
+
+export const ServiceStatusLogReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        from_status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        },
+        to_status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        },
+        changed_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Changed By'
+        },
+        changed_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Changed At'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        changed_by_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Changed By Name'
+        }
+    },
+    type: 'object',
+    required: ['id', 'from_status', 'to_status', 'changed_by', 'changed_at'],
+    title: 'ServiceStatusLogRead'
 } as const;
 
 export const ServiceSummarySchema = {
@@ -639,6 +750,61 @@ export const ServiceSummarySchema = {
     title: 'ServiceSummary'
 } as const;
 
+export const ServiceTransitionRequestSchema = {
+    properties: {
+        to_status: {
+            '$ref': '#/components/schemas/ServiceStatus'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        },
+        deduction_items: {
+            anyOf: [
+                {
+                    items: {
+                        '$ref': '#/components/schemas/DeductionItem'
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Deduction Items'
+        }
+    },
+    type: 'object',
+    required: ['to_status'],
+    title: 'ServiceTransitionRequest'
+} as const;
+
+export const ServiceTransitionResponseSchema = {
+    properties: {
+        service: {
+            '$ref': '#/components/schemas/ServiceRead'
+        },
+        stock_warnings: {
+            items: {
+                '$ref': '#/components/schemas/StockWarning'
+            },
+            type: 'array',
+            title: 'Stock Warnings',
+            default: []
+        }
+    },
+    type: 'object',
+    required: ['service'],
+    title: 'ServiceTransitionResponse'
+} as const;
+
 export const ServiceTypeSchema = {
     type: 'string',
     enum: ['perfuração', 'reparo'],
@@ -651,16 +817,6 @@ export const ServiceUpdateSchema = {
             anyOf: [
                 {
                     '$ref': '#/components/schemas/ServiceType'
-                },
-                {
-                    type: 'null'
-                }
-            ]
-        },
-        status: {
-            anyOf: [
-                {
-                    '$ref': '#/components/schemas/ServiceStatus'
                 },
                 {
                     type: 'null'
@@ -690,6 +846,17 @@ export const ServiceUpdateSchema = {
                 }
             ],
             title: 'Notes'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
         }
     },
     type: 'object',
@@ -728,6 +895,35 @@ export const SetPermissionsInSchema = {
     type: 'object',
     required: ['permissions'],
     title: 'SetPermissionsIn'
+} as const;
+
+export const StockWarningSchema = {
+    properties: {
+        service_item_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Service Item Id'
+        },
+        description: {
+            type: 'string',
+            title: 'Description'
+        },
+        required_quantity: {
+            type: 'number',
+            title: 'Required Quantity'
+        },
+        available_quantity: {
+            type: 'number',
+            title: 'Available Quantity'
+        },
+        shortfall: {
+            type: 'number',
+            title: 'Shortfall'
+        }
+    },
+    type: 'object',
+    required: ['service_item_id', 'description', 'required_quantity', 'available_quantity', 'shortfall'],
+    title: 'StockWarning'
 } as const;
 
 export const TipoTransacaoSchema = {

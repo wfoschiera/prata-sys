@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.models import (
     Client,
     ClientCreate,
+    DeductionItem,
     DocumentType,
     ItemType,
     Service,
@@ -272,64 +273,17 @@ def test_update_service_address(
     assert r.json()["updated_at"] is not None
 
 
-def test_update_service_valid_status_transition(
+def test_update_service_status_via_patch_rejected(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
+    # Status transitions are no longer allowed via PATCH /services/{id}.
+    # Use POST /services/{id}/transition instead (added in Phase 5 API routes).
     svc = create_random_service(db)
     assert svc.status == ServiceStatus.requested
     r = client.patch(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
         json={"status": "scheduled"},
-    )
-    assert r.status_code == HTTPStatus.OK
-    assert r.json()["status"] == "scheduled"
-
-
-def test_update_service_full_status_chain(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    transitions = ["scheduled", "executing", "completed"]
-    for new_status in transitions:
-        r = client.patch(
-            f"{settings.API_V1_STR}/services/{svc.id}",
-            headers=superuser_token_headers,
-            json={"status": new_status},
-        )
-        assert r.status_code == HTTPStatus.OK
-        assert r.json()["status"] == new_status
-
-
-def test_update_service_invalid_status_transition(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    # requested → executing is not valid (must go through scheduled)
-    r = client.patch(
-        f"{settings.API_V1_STR}/services/{svc.id}",
-        headers=superuser_token_headers,
-        json={"status": "executing"},
-    )
-    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-
-
-def test_update_service_completed_no_further_transitions(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    # Advance to completed
-    for status in ["scheduled", "executing", "completed"]:
-        client.patch(
-            f"{settings.API_V1_STR}/services/{svc.id}",
-            headers=superuser_token_headers,
-            json={"status": status},
-        )
-    # Try to re-transition from completed
-    r = client.patch(
-        f"{settings.API_V1_STR}/services/{svc.id}",
-        headers=superuser_token_headers,
-        json={"status": "requested"},
     )
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
@@ -577,3 +531,199 @@ def test_delete_service_cascades_items(
     # Item should also be gone (cascade)
     result = db.exec(select(ServiceItem).where(ServiceItem.id == item_id)).first()
     assert result is None
+
+
+# ── Service lifecycle / transition ────────────────────────────────────────────
+
+
+def test_valid_transition_creates_status_log(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /transition valid forward transition creates a ServiceStatusLog entry."""
+    from app.models import ServiceStatusLog
+
+    svc = create_random_service(db)
+    assert svc.status == ServiceStatus.requested
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    data = r.json()
+    assert data["service"]["status"] == "scheduled"
+    assert data["stock_warnings"] == []
+
+    log = db.exec(
+        select(ServiceStatusLog).where(ServiceStatusLog.service_id == svc.id)
+    ).first()
+    assert log is not None
+    assert log.from_status == ServiceStatus.requested
+    assert log.to_status == ServiceStatus.scheduled
+
+
+def test_transition_to_cancelled_without_reason_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /transition to cancelled without reason returns 422."""
+    svc = create_random_service(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "cancelled"},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_transition_to_cancelled_with_reason_persists(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /transition to cancelled with reason persists cancelled_reason."""
+    svc = create_random_service(db)
+    reason = "Obra suspensa pelo cliente"
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "cancelled", "reason": reason},
+    )
+    assert r.status_code == HTTPStatus.OK
+    db.refresh(svc)
+    assert svc.cancelled_reason == reason
+    assert svc.status == ServiceStatus.cancelled
+
+
+def test_transition_from_terminal_state_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /transition from a terminal state (cancelled) returns 422."""
+    svc = create_random_service(db)
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "cancelled", "reason": "test"},
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_patch_with_status_field_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """PATCH /services/{id} with status in body is rejected (status not in ServiceUpdate)."""
+    svc = create_random_service(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/services/{svc.id}",
+        headers=superuser_token_headers,
+        json={"status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_transition_finance_user_forbidden(client: TestClient, db: Session) -> None:
+    """Finance user calling POST /transition returns 403."""
+    svc = create_random_service(db)
+    headers = _finance_headers(client, db)
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_deduct_stock_on_non_executing_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """POST /deduct-stock on a non-executing service returns 422."""
+    svc = create_random_service(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/deduct-stock",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_get_service_includes_status_logs(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """GET /services/{id} response includes status_logs in chronological order."""
+    svc = create_random_service(db)
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    r = client.get(
+        f"{settings.API_V1_STR}/services/{svc.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    data = r.json()
+    assert "status_logs" in data
+    assert len(data["status_logs"]) == 1
+    log = data["status_logs"][0]
+    assert log["from_status"] == "requested"
+    assert log["to_status"] == "scheduled"
+
+
+def test_valid_transitions_logic() -> None:
+    """Unit test: VALID_STATUS_TRANSITIONS maps all states correctly."""
+    from app.models import VALID_STATUS_TRANSITIONS, ServiceStatus
+
+    assert ServiceStatus.scheduled in VALID_STATUS_TRANSITIONS[ServiceStatus.requested]
+    assert ServiceStatus.executing in VALID_STATUS_TRANSITIONS[ServiceStatus.scheduled]
+    assert ServiceStatus.completed in VALID_STATUS_TRANSITIONS[ServiceStatus.executing]
+    assert ServiceStatus.cancelled in VALID_STATUS_TRANSITIONS[ServiceStatus.requested]
+    assert ServiceStatus.cancelled in VALID_STATUS_TRANSITIONS[ServiceStatus.scheduled]
+    assert ServiceStatus.cancelled in VALID_STATUS_TRANSITIONS[ServiceStatus.executing]
+    assert VALID_STATUS_TRANSITIONS[ServiceStatus.completed] == []
+    assert VALID_STATUS_TRANSITIONS[ServiceStatus.cancelled] == []
+
+
+def test_deduct_stock_items_rejects_non_material(db: Session) -> None:
+    """_deduct_stock_items raises ValueError when service_item_id is not a material item."""
+    import pytest
+
+    from app.crud import _deduct_stock_items
+
+    svc = create_random_service(db)
+    item = crud.create_service_item(
+        session=db,
+        service_id=svc.id,
+        item_in=ServiceItemCreate(
+            description="Mão de obra",
+            item_type=ItemType.servico,
+            quantity=1,
+            unit_price=100.0,
+        ),
+    )
+    with pytest.raises(ValueError, match="not a material item"):
+        _deduct_stock_items(
+            db, svc, [DeductionItem(service_item_id=item.id, quantity=1)]
+        )
+
+
+def test_get_service_status_logs_crud(
+    db: Session, superuser_token_headers: dict[str, str], client: TestClient
+) -> None:
+    """get_service_status_logs returns logs ordered by changed_at."""
+    svc = create_random_service(db)
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+    logs = crud.get_service_status_logs(session=db, service_id=svc.id)
+    assert len(logs) == 2
+    assert logs[0].from_status == ServiceStatus.requested
+    assert logs[1].from_status == ServiceStatus.scheduled

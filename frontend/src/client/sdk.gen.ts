@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -415,6 +415,57 @@ export class ServicesService {
     }
     
     /**
+     * Transition Service
+     * Advance or cancel a service order status.
+     *
+     * Only admin users may trigger status transitions. Valid transitions:
+     * requested → scheduled → executing → completed (or cancelled from any non-terminal state).
+     * Cancellation requires a reason. Completion requires deduction_items.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @param data.requestBody
+     * @returns ServiceTransitionResponse Successful Response
+     * @throws ApiError
+     */
+    public static transitionService(data: ServicesTransitionServiceData): CancelablePromise<ServicesTransitionServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/{service_id}/transition',
+            path: {
+                service_id: data.serviceId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Deduct Stock
+     * Manually deduct material quantities from stock for a service in 'executing' status.
+     *
+     * Only valid when the service is in the executing state. Fully implemented in Phase 7.
+     * @param data The data for the request.
+     * @param data.serviceId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static deductStock(data: ServicesDeductStockData): CancelablePromise<ServicesDeductStockResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/services/{service_id}/deduct-stock',
+            path: {
+                service_id: data.serviceId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
      * Create Service Item
      * Add a line item to a service order.
      * @param data The data for the request.
@@ -652,7 +703,7 @@ export class UsersService {
     
     /**
      * Read User Me
-     * Get current user.
+     * Get current user, including effective permissions.
      * @returns UserPublic Successful Response
      * @throws ApiError
      */

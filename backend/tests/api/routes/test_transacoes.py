@@ -44,11 +44,16 @@ def _create_finance_user_headers(client: TestClient, db: Session) -> dict[str, s
     return user_authentication_headers(client=client, email=email, password=password)
 
 
+def _unique_cpf() -> str:
+    digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
+    return (digits + "00000000000")[:11]
+
+
 def _create_client(db: Session) -> Client:
     client_in = ClientCreate(
         name="Test Cliente",
         document_type=DocumentType("cpf"),
-        document_number="12345678901",
+        document_number=_unique_cpf(),
     )
     c = Client.model_validate(client_in)
     db.add(c)
@@ -366,3 +371,90 @@ def test_client_role_cannot_view_transacoes(client: TestClient, db: Session) -> 
     headers = user_authentication_headers(client=client, email=email, password=password)
     r = client.get(f"{API_PREFIX}/transacoes/", headers=headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
+
+
+# ── Coverage: uncovered CRUD branches ─────────────────────────────────────────
+
+
+def _make_transacao_db(db: Session, **kwargs: object) -> Transacao:
+    """Insert a Transacao row directly for filter tests."""
+    defaults: dict[str, object] = {
+        "tipo": TipoTransacao.receita,
+        "categoria": CategoriaTransacao.SERVICO,
+        "valor": Decimal("500"),
+        "data_competencia": date(2024, 6, 15),
+    }
+    defaults.update(kwargs)
+    t = Transacao(**defaults)  # type: ignore[arg-type]
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return t
+
+
+def test_get_transacoes_filter_by_categoria(db: Session) -> None:
+    _make_transacao_db(db, categoria=CategoriaTransacao.COMBUSTIVEL)
+    _make_transacao_db(db, categoria=CategoriaTransacao.SERVICO)
+    results, _ = crud.get_transacoes(
+        session=db, categoria=CategoriaTransacao.COMBUSTIVEL
+    )
+    for t in results:
+        assert t.categoria == CategoriaTransacao.COMBUSTIVEL
+
+
+def test_get_transacoes_filter_by_dates(db: Session) -> None:
+    _make_transacao_db(db, data_competencia=date(2024, 1, 10))
+    _make_transacao_db(db, data_competencia=date(2024, 6, 15))
+    _make_transacao_db(db, data_competencia=date(2024, 12, 20))
+
+    results, _ = crud.get_transacoes(
+        session=db,
+        data_inicio=date(2024, 3, 1),
+        data_fim=date(2024, 9, 30),
+    )
+    for t in results:
+        assert date(2024, 3, 1) <= t.data_competencia <= date(2024, 9, 30)
+
+
+def test_get_transacoes_filter_by_service_id(db: Session) -> None:
+    cl = _create_client(db)
+    svc = _create_service(db, cl.id)
+    _make_transacao_db(db, service_id=svc.id)
+    _make_transacao_db(db)  # no service
+
+    results, _ = crud.get_transacoes(session=db, service_id=svc.id)
+    assert len(results) >= 1
+    for t in results:
+        assert t.service_id == svc.id
+
+
+def test_create_transacao_with_invalid_service_raises(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    payload = {
+        "tipo": "receita",
+        "categoria": "SERVICO",
+        "valor": 100.0,
+        "data_competencia": str(date.today()),
+        "service_id": str(uuid.uuid4()),
+    }
+    r = client.post(
+        f"{API_PREFIX}/transacoes/", headers=superuser_token_headers, json=payload
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_create_transacao_with_invalid_client_raises(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    payload = {
+        "tipo": "receita",
+        "categoria": "SERVICO",
+        "valor": 50.0,
+        "data_competencia": str(date.today()),
+        "client_id": str(uuid.uuid4()),
+    }
+    r = client.post(
+        f"{API_PREFIX}/transacoes/", headers=superuser_token_headers, json=payload
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND

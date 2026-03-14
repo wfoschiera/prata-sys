@@ -300,3 +300,49 @@ def test_require_permission_superuser_bypass(
     """Superuser can access any endpoint regardless of role."""
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=superuser_token_headers)
     assert r.status_code == HTTPStatus.OK
+
+
+# ── Coverage: uncovered CRUD branches ─────────────────────────────────────────
+
+
+def test_set_user_permissions_invalid_user_raises(db: Session) -> None:
+    """set_user_permissions raises ValueError for non-existent user."""
+    import pytest
+
+    with pytest.raises(ValueError, match="not found"):
+        crud.set_user_permissions(session=db, user_id=uuid.uuid4(), permissions=[])
+
+
+def test_set_user_permissions_invalid_permission_raises(db: Session) -> None:
+    """set_user_permissions raises ValueError for unknown permission strings."""
+    import pytest
+
+    email = f"{random_lower_string()}@example.com"
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(
+            email=email, password="password123", role=UserRole.admin
+        ),
+    )
+    with pytest.raises(ValueError, match="Invalid permissions"):
+        crud.set_user_permissions(
+            session=db, user_id=user.id, permissions=["nonexistent_permission"]
+        )
+
+
+def test_clear_user_permissions(db: Session) -> None:
+    """clear_user_permissions removes all overrides for a user."""
+    email = f"{random_lower_string()}@example.com"
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(
+            email=email, password="password123", role=UserRole.client
+        ),
+    )
+    # Grant some overrides first
+    crud.set_user_permissions(
+        session=db, user_id=user.id, permissions=["manage_clients"]
+    )
+    crud.clear_user_permissions(session=db, user_id=user.id)
+    perms = crud.get_user_permissions(session=db, user_id=user.id)
+    assert perms == []
