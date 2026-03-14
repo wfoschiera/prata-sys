@@ -5,6 +5,7 @@ import {
   Home,
   LayoutDashboard,
   Lock,
+  Package,
   Truck,
   UserSquare2,
   Users,
@@ -90,6 +91,15 @@ export function AppSidebar() {
             icon: Truck,
             title: "Fornecedores",
             path: "/fornecedores" as const,
+          },
+        ]
+      : []),
+    ...(hasPerm(perms, su, "view_estoque")
+      ? [
+          {
+            icon: Package,
+            title: "Estoque",
+            path: "/estoque" as const,
           },
         ]
       : []),

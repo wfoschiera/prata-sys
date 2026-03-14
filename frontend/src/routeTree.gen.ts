@@ -22,10 +22,15 @@ import { Route as LayoutClientsRouteImport } from './routes/_layout/clients'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutFornecedoresIndexRouteImport } from './routes/_layout/fornecedores/index'
 import { Route as LayoutFinanceiroIndexRouteImport } from './routes/_layout/financeiro/index'
+import { Route as LayoutEstoqueIndexRouteImport } from './routes/_layout/estoque/index'
 import { Route as LayoutFornecedoresFornecedorIdRouteImport } from './routes/_layout/fornecedores/$fornecedorId'
 import { Route as LayoutFinanceiroTransacoesRouteImport } from './routes/_layout/financeiro/transacoes'
 import { Route as LayoutFinanceiroContasAReceberRouteImport } from './routes/_layout/financeiro/contas-a-receber'
 import { Route as LayoutFinanceiroContasAPagarRouteImport } from './routes/_layout/financeiro/contas-a-pagar'
+import { Route as LayoutEstoqueProdutosIndexRouteImport } from './routes/_layout/estoque/produtos/index'
+import { Route as LayoutEstoqueProdutosNewRouteImport } from './routes/_layout/estoque/produtos/new'
+import { Route as LayoutEstoqueProdutosProductIdIndexRouteImport } from './routes/_layout/estoque/produtos/$productId/index'
+import { Route as LayoutEstoqueProdutosProductIdEditRouteImport } from './routes/_layout/estoque/produtos/$productId/edit'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -91,6 +96,11 @@ const LayoutFinanceiroIndexRoute = LayoutFinanceiroIndexRouteImport.update({
   path: '/financeiro/',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutEstoqueIndexRoute = LayoutEstoqueIndexRouteImport.update({
+  id: '/estoque/',
+  path: '/estoque/',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutFornecedoresFornecedorIdRoute =
   LayoutFornecedoresFornecedorIdRouteImport.update({
     id: '/fornecedores/$fornecedorId',
@@ -115,6 +125,30 @@ const LayoutFinanceiroContasAPagarRoute =
     path: '/financeiro/contas-a-pagar',
     getParentRoute: () => LayoutRoute,
   } as any)
+const LayoutEstoqueProdutosIndexRoute =
+  LayoutEstoqueProdutosIndexRouteImport.update({
+    id: '/estoque/produtos/',
+    path: '/estoque/produtos/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEstoqueProdutosNewRoute =
+  LayoutEstoqueProdutosNewRouteImport.update({
+    id: '/estoque/produtos/new',
+    path: '/estoque/produtos/new',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEstoqueProdutosProductIdIndexRoute =
+  LayoutEstoqueProdutosProductIdIndexRouteImport.update({
+    id: '/estoque/produtos/$productId/',
+    path: '/estoque/produtos/$productId/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEstoqueProdutosProductIdEditRoute =
+  LayoutEstoqueProdutosProductIdEditRouteImport.update({
+    id: '/estoque/produtos/$productId/edit',
+    path: '/estoque/produtos/$productId/edit',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -131,8 +165,13 @@ export interface FileRoutesByFullPath {
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/estoque/': typeof LayoutEstoqueIndexRoute
   '/financeiro/': typeof LayoutFinanceiroIndexRoute
   '/fornecedores/': typeof LayoutFornecedoresIndexRoute
+  '/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
+  '/estoque/produtos/': typeof LayoutEstoqueProdutosIndexRoute
+  '/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
+  '/estoque/produtos/$productId/': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -149,8 +188,13 @@ export interface FileRoutesByTo {
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/estoque': typeof LayoutEstoqueIndexRoute
   '/financeiro': typeof LayoutFinanceiroIndexRoute
   '/fornecedores': typeof LayoutFornecedoresIndexRoute
+  '/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
+  '/estoque/produtos': typeof LayoutEstoqueProdutosIndexRoute
+  '/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
+  '/estoque/produtos/$productId': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,8 +213,13 @@ export interface FileRoutesById {
   '/_layout/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/_layout/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/_layout/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/_layout/estoque/': typeof LayoutEstoqueIndexRoute
   '/_layout/financeiro/': typeof LayoutFinanceiroIndexRoute
   '/_layout/fornecedores/': typeof LayoutFornecedoresIndexRoute
+  '/_layout/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
+  '/_layout/estoque/produtos/': typeof LayoutEstoqueProdutosIndexRoute
+  '/_layout/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
+  '/_layout/estoque/produtos/$productId/': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,8 +238,13 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
     | '/fornecedores/$fornecedorId'
+    | '/estoque/'
     | '/financeiro/'
     | '/fornecedores/'
+    | '/estoque/produtos/new'
+    | '/estoque/produtos/'
+    | '/estoque/produtos/$productId/edit'
+    | '/estoque/produtos/$productId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -207,8 +261,13 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
     | '/fornecedores/$fornecedorId'
+    | '/estoque'
     | '/financeiro'
     | '/fornecedores'
+    | '/estoque/produtos/new'
+    | '/estoque/produtos'
+    | '/estoque/produtos/$productId/edit'
+    | '/estoque/produtos/$productId'
   id:
     | '__root__'
     | '/_layout'
@@ -226,8 +285,13 @@ export interface FileRouteTypes {
     | '/_layout/financeiro/contas-a-receber'
     | '/_layout/financeiro/transacoes'
     | '/_layout/fornecedores/$fornecedorId'
+    | '/_layout/estoque/'
     | '/_layout/financeiro/'
     | '/_layout/fornecedores/'
+    | '/_layout/estoque/produtos/new'
+    | '/_layout/estoque/produtos/'
+    | '/_layout/estoque/produtos/$productId/edit'
+    | '/_layout/estoque/produtos/$productId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -331,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutFinanceiroIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/estoque/': {
+      id: '/_layout/estoque/'
+      path: '/estoque'
+      fullPath: '/estoque/'
+      preLoaderRoute: typeof LayoutEstoqueIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/fornecedores/$fornecedorId': {
       id: '/_layout/fornecedores/$fornecedorId'
       path: '/fornecedores/$fornecedorId'
@@ -359,6 +430,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutFinanceiroContasAPagarRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/estoque/produtos/': {
+      id: '/_layout/estoque/produtos/'
+      path: '/estoque/produtos'
+      fullPath: '/estoque/produtos/'
+      preLoaderRoute: typeof LayoutEstoqueProdutosIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/estoque/produtos/new': {
+      id: '/_layout/estoque/produtos/new'
+      path: '/estoque/produtos/new'
+      fullPath: '/estoque/produtos/new'
+      preLoaderRoute: typeof LayoutEstoqueProdutosNewRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/estoque/produtos/$productId/': {
+      id: '/_layout/estoque/produtos/$productId/'
+      path: '/estoque/produtos/$productId'
+      fullPath: '/estoque/produtos/$productId/'
+      preLoaderRoute: typeof LayoutEstoqueProdutosProductIdIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/estoque/produtos/$productId/edit': {
+      id: '/_layout/estoque/produtos/$productId/edit'
+      path: '/estoque/produtos/$productId/edit'
+      fullPath: '/estoque/produtos/$productId/edit'
+      preLoaderRoute: typeof LayoutEstoqueProdutosProductIdEditRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -373,8 +472,13 @@ interface LayoutRouteChildren {
   LayoutFinanceiroContasAReceberRoute: typeof LayoutFinanceiroContasAReceberRoute
   LayoutFinanceiroTransacoesRoute: typeof LayoutFinanceiroTransacoesRoute
   LayoutFornecedoresFornecedorIdRoute: typeof LayoutFornecedoresFornecedorIdRoute
+  LayoutEstoqueIndexRoute: typeof LayoutEstoqueIndexRoute
   LayoutFinanceiroIndexRoute: typeof LayoutFinanceiroIndexRoute
   LayoutFornecedoresIndexRoute: typeof LayoutFornecedoresIndexRoute
+  LayoutEstoqueProdutosNewRoute: typeof LayoutEstoqueProdutosNewRoute
+  LayoutEstoqueProdutosIndexRoute: typeof LayoutEstoqueProdutosIndexRoute
+  LayoutEstoqueProdutosProductIdEditRoute: typeof LayoutEstoqueProdutosProductIdEditRoute
+  LayoutEstoqueProdutosProductIdIndexRoute: typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -388,8 +492,15 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutFinanceiroContasAReceberRoute: LayoutFinanceiroContasAReceberRoute,
   LayoutFinanceiroTransacoesRoute: LayoutFinanceiroTransacoesRoute,
   LayoutFornecedoresFornecedorIdRoute: LayoutFornecedoresFornecedorIdRoute,
+  LayoutEstoqueIndexRoute: LayoutEstoqueIndexRoute,
   LayoutFinanceiroIndexRoute: LayoutFinanceiroIndexRoute,
   LayoutFornecedoresIndexRoute: LayoutFornecedoresIndexRoute,
+  LayoutEstoqueProdutosNewRoute: LayoutEstoqueProdutosNewRoute,
+  LayoutEstoqueProdutosIndexRoute: LayoutEstoqueProdutosIndexRoute,
+  LayoutEstoqueProdutosProductIdEditRoute:
+    LayoutEstoqueProdutosProductIdEditRoute,
+  LayoutEstoqueProdutosProductIdIndexRoute:
+    LayoutEstoqueProdutosProductIdIndexRoute,
 }
 
 const LayoutRouteWithChildren =
