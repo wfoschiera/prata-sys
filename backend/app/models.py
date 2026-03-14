@@ -352,6 +352,8 @@ class ServiceStatusLogRead(SQLModel):
 
 
 class ServiceRead(ServiceBase):
+    """Full service detail — includes status_logs. Used by GET /services/{id}."""
+
     id: uuid.UUID
     client_id: uuid.UUID
     status: ServiceStatus
@@ -365,8 +367,23 @@ class ServiceRead(ServiceBase):
     has_stock_warning: bool = False
 
 
+class ServiceListRead(ServiceBase):
+    """Lightweight service summary for list responses — omits status_logs."""
+
+    id: uuid.UUID
+    client_id: uuid.UUID
+    status: ServiceStatus
+    description: str | None = None
+    cancelled_reason: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    client: ClientRef | None = None
+    items: list[ServiceItemRead] = []
+    has_stock_warning: bool = False
+
+
 class ServicesPublic(SQLModel):
-    data: list[ServiceRead]
+    data: list[ServiceListRead]
     count: int
 
 
