@@ -921,12 +921,10 @@ export class ServicesService {
     
     /**
      * Deduct Stock
-     * Manually deduct material quantities from stock for a service in 'executing' status.
-     *
-     * Only valid when the service is in the executing state. Fully implemented in Phase 7.
+     * Manually deduct all reserved stock for a service in 'executing' status.
      * @param data The data for the request.
      * @param data.serviceId
-     * @returns unknown Successful Response
+     * @returns DeductionSummary Successful Response
      * @throws ApiError
      */
     public static deductStock(data: ServicesDeductStockData): CancelablePromise<ServicesDeductStockResponse> {

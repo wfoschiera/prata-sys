@@ -3,13 +3,18 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Eye, Plus, Trash2 } from "lucide-react"
 import { Suspense, useState } from "react"
 
-import { type ServiceRead, type ServiceStatus, ServicesService } from "@/client"
+import {
+  type ServiceListRead,
+  type ServiceStatus,
+  ServicesService,
+} from "@/client"
 import DeleteService from "@/components/Services/DeleteService"
 import ServiceDetail from "@/components/Services/ServiceDetail"
 import ServiceForm from "@/components/Services/ServiceForm"
 import StockWarningBadge from "@/components/Services/StockWarningBadge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { PaginationBar } from "@/components/ui/pagination-bar"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -44,10 +49,16 @@ const TYPE_LABELS: Record<string, string> = {
   reparo: "Reparo",
 }
 
-function getServicesQueryOptions() {
+const PAGE_SIZE = 20
+
+function getServicesQueryOptions(page: number) {
   return {
-    queryFn: () => ServicesService.readServices({ skip: 0, limit: 100 }),
-    queryKey: ["services"],
+    queryFn: () =>
+      ServicesService.readServices({
+        skip: (page - 1) * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      }),
+    queryKey: ["services", page],
   }
 }
 
@@ -73,92 +84,112 @@ function ServicesTableSkeleton() {
 }
 
 interface ServicesTableContentProps {
-  onView: (service: ServiceRead) => void
-  onDelete: (service: ServiceRead) => void
+  page: number
+  onView: (service: ServiceListRead) => void
+  onDelete: (service: ServiceListRead) => void
+  onPageChange: (page: number) => void
 }
 
-function ServicesTableContent({ onView, onDelete }: ServicesTableContentProps) {
-  const { data: services } = useSuspenseQuery(getServicesQueryOptions())
+function ServicesTableContent({
+  page,
+  onView,
+  onDelete,
+  onPageChange,
+}: ServicesTableContentProps) {
+  const { data: services } = useSuspenseQuery(getServicesQueryOptions(page))
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Cliente</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Endereço de Execução</TableHead>
-          <TableHead>
-            <span className="sr-only">Ações</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {services.data.length === 0 ? (
+    <>
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell
-              colSpan={5}
-              className="text-center text-muted-foreground py-8"
-            >
-              Nenhum serviço cadastrado.
-            </TableCell>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Endereço de Execução</TableHead>
+            <TableHead>
+              <span className="sr-only">Ações</span>
+            </TableHead>
           </TableRow>
-        ) : (
-          services.data.map((service) => (
-            <TableRow key={service.id}>
-              <TableCell className="font-medium">
-                {service.client?.name ?? "—"}
-              </TableCell>
-              <TableCell>{TYPE_LABELS[service.type] ?? service.type}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={STATUS_VARIANTS[service.status]}>
-                    {STATUS_LABELS[service.status] ?? service.status}
-                  </Badge>
-                  {service.status === "scheduled" && (
-                    <StockWarningBadge
-                      hasStockWarning={service.has_stock_warning ?? false}
-                      compact
-                    />
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground max-w-xs truncate">
-                {service.execution_address}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onView(service)}
-                    aria-label="Ver detalhes"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => onDelete(service)}
-                    aria-label="Excluir serviço"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+        </TableHeader>
+        <TableBody>
+          {services.data.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={5}
+                className="text-center text-muted-foreground py-8"
+              >
+                Nenhum serviço cadastrado.
               </TableCell>
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          ) : (
+            services.data.map((service) => (
+              <TableRow key={service.id}>
+                <TableCell className="font-medium">
+                  {service.client?.name ?? "—"}
+                </TableCell>
+                <TableCell>
+                  {TYPE_LABELS[service.type] ?? service.type}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={STATUS_VARIANTS[service.status]}>
+                      {STATUS_LABELS[service.status] ?? service.status}
+                    </Badge>
+                    {service.status === "scheduled" && (
+                      <StockWarningBadge
+                        hasStockWarning={service.has_stock_warning ?? false}
+                        compact
+                      />
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground max-w-xs truncate">
+                  {service.execution_address}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onView(service)}
+                      aria-label="Ver detalhes"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => onDelete(service)}
+                      aria-label="Excluir serviço"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={services.count}
+        onPageChange={onPageChange}
+      />
+    </>
   )
 }
 
 function Services() {
+  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [detailServiceId, setDetailServiceId] = useState<string | null>(null)
-  const [deleteService, setDeleteService] = useState<ServiceRead | null>(null)
+  const [deleteService, setDeleteService] = useState<ServiceListRead | null>(
+    null,
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -177,8 +208,10 @@ function Services() {
 
       <Suspense fallback={<ServicesTableSkeleton />}>
         <ServicesTableContent
+          page={page}
           onView={(s) => setDetailServiceId(s.id)}
           onDelete={setDeleteService}
+          onPageChange={setPage}
         />
       </Suspense>
 
