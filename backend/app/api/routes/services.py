@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, require_permission
 from app.models import (
+    BaixarEstoqueResponse,
     Service,
     ServiceCreate,
     ServiceItem,
@@ -151,6 +152,25 @@ def deduct_stock(
         )
     try:
         return crud.deduct_stock(session, db_service, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+
+
+@router.post(
+    "/{service_id}/baixar-estoque",
+    response_model=BaixarEstoqueResponse,
+)
+def baixar_estoque(
+    *,
+    session: SessionDep,
+    service_id: uuid.UUID,
+    _: None = AdminDep,
+) -> BaixarEstoqueResponse:
+    """Utilize all reserved stock items for a service in 'executing' status."""
+    try:
+        return crud.baixar_estoque_for_service(session=session, service_id=service_id)
     except ValueError as exc:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
