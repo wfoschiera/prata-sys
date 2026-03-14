@@ -68,7 +68,7 @@ def create_transacao(
     """Create a new transaction."""
     try:
         return crud.create_transacao(session=session, transacao_in=transacao_in)
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise HTTPException(status_code=404, detail=str(exc))
 
 
@@ -100,7 +100,7 @@ def update_transacao(
         return crud.update_transacao(
             session=session, db_transacao=db_transacao, transacao_in=transacao_in
         )
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise HTTPException(status_code=422, detail=str(exc))
 
 

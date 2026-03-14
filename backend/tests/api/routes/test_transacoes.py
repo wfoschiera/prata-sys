@@ -458,3 +458,32 @@ def test_create_transacao_with_invalid_client_raises(
         f"{API_PREFIX}/transacoes/", headers=superuser_token_headers, json=payload
     )
     assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_update_transacao_with_invalid_service_raises(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,  # noqa: ARG001
+) -> None:
+    """PATCH /transacoes/{id} with a non-existent service_id returns 422."""
+    from tests.utils.utils import random_lower_string
+
+    payload = {
+        "tipo": "receita",
+        "categoria": "SERVICO",
+        "valor": 100.0,
+        "data_competencia": str(date.today()),
+        "descricao": random_lower_string(),
+    }
+    r = client.post(
+        f"{API_PREFIX}/transacoes/", headers=superuser_token_headers, json=payload
+    )
+    assert r.status_code == HTTPStatus.CREATED
+    tid = r.json()["id"]
+
+    r2 = client.patch(
+        f"{API_PREFIX}/transacoes/{tid}",
+        headers=superuser_token_headers,
+        json={"service_id": str(uuid.uuid4())},
+    )
+    assert r2.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

@@ -758,3 +758,19 @@ def test_baixar_estoque_non_executing_service(client: TestClient, db: Session) -
 
     resp = client.post(f"{SERVICES_PREFIX}/{svc.id}/baixar-estoque", headers=headers)
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_update_product_invalid_product_type_id(
+    client: TestClient,
+    db: Session,  # noqa: ARG001
+) -> None:
+    """PATCH /products/{id} with invalid product_type_id returns 404."""
+    headers = _superuser_headers(client)
+    pt = _create_product_type(client, headers)
+    product = _create_product(client, headers, product_type_id=pt["id"])
+    resp = client.patch(
+        f"{P_PREFIX}/{product['id']}",
+        json={"product_type_id": str(uuid.uuid4())},
+        headers=headers,
+    )
+    assert resp.status_code == HTTPStatus.NOT_FOUND
