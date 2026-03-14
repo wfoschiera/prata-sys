@@ -357,6 +357,7 @@ def _check_stock_for_service(session: Session, service: Service) -> list[StockWa
             select(ProductItem)
             .where(ProductItem.status == ProductItemStatus.em_estoque)
             .order_by(ProductItem.created_at)  # type: ignore[arg-type]
+            .with_for_update()
         ).all()
 
         reserved = Decimal("0")
@@ -1056,6 +1057,7 @@ def reserve_stock_for_service(
                     ProductItem.status == ProductItemStatus.em_estoque,
                 )
                 .order_by(ProductItem.created_at)  # type: ignore[arg-type]
+                .with_for_update()
             ).all()
         )
         available_qty = sum((i.quantity for i in items), Decimal("0"))
