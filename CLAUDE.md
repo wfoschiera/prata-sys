@@ -26,7 +26,7 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
 
 | Layer       | Technology                                      |
 |-------------|------------------------------------------------|
-| Backend     | Python 3.13+, FastAPI, SQLModel, PostgreSQL    |
+| Backend     | Python 3.14+, FastAPI, SQLModel, PostgreSQL    |
 | Migrations  | Alembic                                         |
 | Auth        | JWT (PyJWT), Argon2/Bcrypt (pwdlib)            |
 | Frontend    | React 19, TypeScript, Vite, TanStack Router/Query |
@@ -153,7 +153,7 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 
 **pre-commit mypy hook**
 - The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)
-- The hook must also pass `--python-version=3.13` to match the project's Python version
+- The hook must also pass `--python-version=3.14` to match the project's Python version
 
 **Docker: tests not found**
 - The `backend/tests/` directory must be explicitly `COPY`-ed in `backend/Dockerfile` — it is not included by default and pytest will fail with "file or directory not found: tests/"
