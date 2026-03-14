@@ -263,7 +263,7 @@ def create_service(*, session: Session, service_in: ServiceCreate) -> Service:
     result = get_service(session=session, service_id=db_service.id)
     if result is None:
         msg = f"Service {db_service.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -284,7 +284,7 @@ def update_service(
     result = get_service(session=session, service_id=db_service.id)
     if result is None:
         msg = f"Service {db_service.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -564,7 +564,7 @@ def create_transacao(
     result = _get_transacao_with_relations(session, db_transacao.id)
     if result is None:
         msg = f"Transacao {db_transacao.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return _build_transacao_public(result)
 
 
@@ -661,7 +661,7 @@ def update_transacao(
     result = _get_transacao_with_relations(session, db_transacao.id)
     if result is None:
         msg = f"Transacao {db_transacao.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return _build_transacao_public(result)
 
 
@@ -914,7 +914,7 @@ def create_product(*, session: Session, product_in: ProductCreate) -> Product:
     result = get_product(session=session, product_id=product.id)
     if result is None:
         msg = f"Product {product.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
@@ -958,7 +958,7 @@ def update_product(
     result = get_product(session=session, product_id=product.id)
     if result is None:
         msg = f"Product {product.id} not found after commit"
-        raise RuntimeError(msg)
+        raise RuntimeError(msg)  # pragma: no cover
     return result
 
 
