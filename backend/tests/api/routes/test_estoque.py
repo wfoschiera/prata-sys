@@ -19,6 +19,16 @@ from app.models import (
 from tests.utils.utils import random_lower_string
 
 PT_PREFIX = f"{settings.API_V1_STR}/product-types"
+
+
+def _random_cpf() -> str:
+    """Generate a random 11-digit CPF string from a UUID (avoids DB conflicts)."""
+    import uuid as _uuid
+
+    uid_digits = "".join(c for c in _uuid.uuid4().hex if c.isdigit())
+    return (uid_digits + "00000000000")[:11]
+
+
 P_PREFIX = f"{settings.API_V1_STR}/products"
 PI_PREFIX = f"{settings.API_V1_STR}/product-items"
 ESTOQUE_PREFIX = f"{settings.API_V1_STR}/estoque"
@@ -453,7 +463,7 @@ def test_reserve_stock_sufficient(client: TestClient, db: Session) -> None:
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": "12345678901",
+            "document_number": _random_cpf(),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -505,7 +515,7 @@ def test_reserve_stock_insufficient(client: TestClient, db: Session) -> None:
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": "98765432100",
+            "document_number": _random_cpf(),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -544,7 +554,7 @@ def test_utilize_reserved_items(client: TestClient, db: Session) -> None:
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": "11122233344",
+            "document_number": _random_cpf(),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -683,7 +693,7 @@ def test_baixar_estoque_on_executing_service(client: TestClient, db: Session) ->
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": "55566677788",
+            "document_number": _random_cpf(),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -740,7 +750,7 @@ def test_baixar_estoque_non_executing_service(client: TestClient, db: Session) -
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": "99988877766",
+            "document_number": _random_cpf(),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,

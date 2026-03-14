@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Annotated, Any
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -57,16 +57,33 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
     return current_user
 
 
+_PERMISSIONS_CACHE_KEY = "_cached_permissions"
+
+
 def require_permission(*permissions: str) -> Any:
     """Dependency factory. Checks that the current user has ALL listed
-    permissions (from role defaults + DB overrides). Superusers bypass."""
+    permissions (from role defaults + DB overrides). Superusers bypass.
+
+    Permissions are cached on request.state for the lifetime of the request
+    so multiple guards on the same endpoint only hit the DB once.
+    """
 
     from app.core.permissions import get_effective_permissions
 
-    def permission_checker(current_user: CurrentUser, session: SessionDep) -> User:
+    def permission_checker(
+        request: Request, current_user: CurrentUser, session: SessionDep
+    ) -> User:
         if current_user.is_superuser:
             return current_user
-        effective = get_effective_permissions(session, current_user)
+
+        # Cache effective permissions per-request to avoid redundant DB queries
+        # when multiple require_permission guards fire on the same endpoint.
+        if not hasattr(request.state, _PERMISSIONS_CACHE_KEY):
+            request.state._cached_permissions = get_effective_permissions(
+                session, current_user
+            )
+        effective: set[str] = request.state._cached_permissions
+
         if not all(p in effective for p in permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
