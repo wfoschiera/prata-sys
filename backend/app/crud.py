@@ -308,21 +308,69 @@ def delete_service_item(*, session: Session, db_item: ServiceItem) -> None:
     session.commit()
 
 
-def _check_stock_for_service(
-    _session: Session, _service: Service
-) -> list[StockWarning]:
-    # Stock reservation check — fully implemented in Phase 7 (Estoque).
-    # Returns empty list until StockItem model exists.
-    return []
+def _release_stock_items(session: Session, service: Service) -> None:
+    """Release all reserved ProductItems back to em_estoque when a service is cancelled."""
+    items = session.exec(
+        select(ProductItem).where(
+            ProductItem.service_id == service.id,
+            ProductItem.status == ProductItemStatus.reservado,
+        )
+    ).all()
+    for item in items:
+        item.status = ProductItemStatus.em_estoque
+        item.service_id = None
+        item.updated_at = get_datetime_utc()
+        session.add(item)
+
+
+def _check_stock_for_service(session: Session, service: Service) -> list[StockWarning]:
+    """Reserve ProductItems for each material ServiceItem. Returns warnings for shortfalls.
+
+    Items are reserved FIFO (oldest created_at first). Reservation is best-effort:
+    partial reservation is allowed — a StockWarning is emitted for any shortfall
+    but the transition is not blocked.
+    """
+    warnings: list[StockWarning] = []
+    material_items = [i for i in service.items if i.item_type == ItemType.material]
+
+    for service_item in material_items:
+        needed = Decimal(str(service_item.quantity))
+        candidates = session.exec(
+            select(ProductItem)
+            .where(ProductItem.status == ProductItemStatus.em_estoque)
+            .order_by(ProductItem.created_at)  # type: ignore[arg-type]
+        ).all()
+
+        reserved = Decimal("0")
+        for item in candidates:
+            if reserved >= needed:
+                break
+            item.status = ProductItemStatus.reservado
+            item.service_id = service.id
+            item.updated_at = get_datetime_utc()
+            session.add(item)
+            reserved += item.quantity
+
+        if reserved < needed:
+            warnings.append(
+                StockWarning(
+                    service_item_id=service_item.id,
+                    description=service_item.description,
+                    required_quantity=float(needed),
+                    available_quantity=float(reserved),
+                    shortfall=float(needed - reserved),
+                )
+            )
+
+    return warnings
 
 
 def _deduct_stock_items(
-    _session: Session,
+    session: Session,
     service: Service,
     deduction_items: list[DeductionItem],
 ) -> None:
-    # Stock deduction — fully implemented in Phase 7 (Estoque).
-    # Validates that each service_item_id belongs to this service and is of type material.
+    """Mark reserved ProductItems as utilizado when a service is completed."""
     material_ids = {
         item.id for item in service.items if item.item_type == ItemType.material
     }
@@ -330,7 +378,17 @@ def _deduct_stock_items(
         if d.service_item_id not in material_ids:
             msg = f"service_item_id {d.service_item_id} is not a material item of this service"
             raise ValueError(msg)
-    # Actual StockItem deduction added in Phase 7
+
+    reserved_items = session.exec(
+        select(ProductItem).where(
+            ProductItem.service_id == service.id,
+            ProductItem.status == ProductItemStatus.reservado,
+        )
+    ).all()
+    for item in reserved_items:
+        item.status = ProductItemStatus.utilizado
+        item.updated_at = get_datetime_utc()
+        session.add(item)
 
 
 def transition_service_status(
@@ -356,9 +414,10 @@ def transition_service_status(
     if to_status == ServiceStatus.completed:
         _deduct_stock_items(session, service, deduction_items or [])
 
-    # Handle cancellation
+    # Handle cancellation — release any reserved stock
     if to_status == ServiceStatus.cancelled:
         service.cancelled_reason = reason
+        _release_stock_items(session, service)
 
     log = ServiceStatusLog(
         service_id=service.id,
@@ -391,15 +450,33 @@ def get_service_status_logs(
 
 
 def deduct_stock(
-    _session: Session,
+    session: Session,
     service: Service,
     _changed_by_id: uuid.UUID,
 ) -> list[dict]:  # type: ignore[type-arg]
+    """Manually deduct all reserved ProductItems for a service in executing status."""
     if service.status != ServiceStatus.executing:
         msg = "Stock can only be deducted from a service in 'executing' status"
         raise ValueError(msg)
-    # Full deduction implemented in Phase 7 (Estoque)
-    return []
+
+    reserved_items = session.exec(
+        select(ProductItem).where(
+            ProductItem.service_id == service.id,
+            ProductItem.status == ProductItemStatus.reservado,
+        )
+    ).all()
+
+    result = []
+    for item in reserved_items:
+        item.status = ProductItemStatus.utilizado
+        item.updated_at = get_datetime_utc()
+        session.add(item)
+        result.append(
+            {"product_item_id": str(item.id), "quantity": float(item.quantity)}
+        )
+
+    session.commit()
+    return result
 
 
 # ── Transacao CRUD ─────────────────────────────────────────────────────────────
