@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -47,7 +48,7 @@ def test_read_clients_superuser(
 ) -> None:
     create_random_client(db)
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=superuser_token_headers)
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert "data" in data
     assert "count" in data
@@ -69,7 +70,7 @@ def test_read_clients_finance_user_forbidden(client: TestClient, db: Session) ->
     headers = user_authentication_headers(client=client, email=email, password=password)
 
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_read_clients_no_permission_forbidden(client: TestClient, db: Session) -> None:
@@ -84,13 +85,13 @@ def test_read_clients_no_permission_forbidden(client: TestClient, db: Session) -
     headers = user_authentication_headers(client=client, email=email, password=password)
 
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
 
 
 def test_read_clients_unauthenticated(client: TestClient) -> None:
     r = client.get(f"{settings.API_V1_STR}/clients/")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_read_clients_pagination(
@@ -102,7 +103,7 @@ def test_read_clients_pagination(
         f"{settings.API_V1_STR}/clients/?skip=0&limit=1",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert len(data["data"]) == 1
 
@@ -127,7 +128,7 @@ def test_create_client_cpf(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     created = r.json()
     assert created["document_number"] == doc
     assert created["name"] == "João da Silva"
@@ -153,7 +154,7 @@ def test_create_client_cnpj(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     created = r.json()
     assert created["document_number"] == doc
 
@@ -172,7 +173,7 @@ def test_create_client_duplicate_document(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 409
+    assert r.status_code == HTTPStatus.CONFLICT
     assert r.json()["detail"] == "Document number already registered"
 
 
@@ -189,7 +190,7 @@ def test_create_client_invalid_cpf_length(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_create_client_document_with_letters(
@@ -205,7 +206,7 @@ def test_create_client_document_with_letters(
         headers=superuser_token_headers,
         json=payload,
     )
-    assert r.status_code == 422
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_create_client_unauthenticated(client: TestClient) -> None:
@@ -215,7 +216,7 @@ def test_create_client_unauthenticated(client: TestClient) -> None:
         "document_number": _cpf(),
     }
     r = client.post(f"{settings.API_V1_STR}/clients/", json=payload)
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_create_client_wrong_role_forbidden(client: TestClient, db: Session) -> None:
@@ -234,7 +235,7 @@ def test_create_client_wrong_role_forbidden(client: TestClient, db: Session) -> 
         "document_number": _cpf(),
     }
     r = client.post(f"{settings.API_V1_STR}/clients/", headers=headers, json=payload)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
 
 
 # ── Read single client ────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ def test_read_client(
         f"{settings.API_V1_STR}/clients/{db_client.id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert data["id"] == str(db_client.id)
     assert data["document_number"] == db_client.document_number
@@ -261,14 +262,14 @@ def test_read_client_not_found(
         f"{settings.API_V1_STR}/clients/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Client not found"
 
 
 def test_read_client_unauthenticated(client: TestClient, db: Session) -> None:
     db_client = create_random_client(db)
     r = client.get(f"{settings.API_V1_STR}/clients/{db_client.id}")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Update client ─────────────────────────────────────────────────────────────
@@ -283,7 +284,7 @@ def test_update_client_name(
         headers=superuser_token_headers,
         json={"name": "Updated Name"},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     data = r.json()
     assert data["name"] == "Updated Name"
     assert data["updated_at"] is not None
@@ -299,7 +300,7 @@ def test_update_client_document_number(
         headers=superuser_token_headers,
         json={"document_number": new_doc, "document_type": "cpf"},
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json()["document_number"] == new_doc
 
 
@@ -316,7 +317,7 @@ def test_update_client_duplicate_document(
             "document_type": client2.document_type.value,
         },
     )
-    assert r.status_code == 409
+    assert r.status_code == HTTPStatus.CONFLICT
     assert r.json()["detail"] == "Document number already registered"
 
 
@@ -328,7 +329,7 @@ def test_update_client_not_found(
         headers=superuser_token_headers,
         json={"name": "Ghost"},
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Client not found"
 
 
@@ -346,7 +347,7 @@ def test_update_client_same_document_no_conflict(
             "name": "Same Doc Updated",
         },
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json()["name"] == "Same Doc Updated"
 
 
@@ -355,7 +356,7 @@ def test_update_client_unauthenticated(client: TestClient, db: Session) -> None:
     r = client.patch(
         f"{settings.API_V1_STR}/clients/{db_client.id}", json={"name": "No Auth"}
     )
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # ── Delete client ─────────────────────────────────────────────────────────────
@@ -370,7 +371,7 @@ def test_delete_client(
         f"{settings.API_V1_STR}/clients/{client_id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json()["message"] == "Client deleted successfully"
 
     # Confirm removed from DB
@@ -385,14 +386,14 @@ def test_delete_client_not_found(
         f"{settings.API_V1_STR}/clients/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 404
+    assert r.status_code == HTTPStatus.NOT_FOUND
     assert r.json()["detail"] == "Client not found"
 
 
 def test_delete_client_unauthenticated(client: TestClient, db: Session) -> None:
     db_client = create_random_client(db)
     r = client.delete(f"{settings.API_V1_STR}/clients/{db_client.id}")
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_delete_client_wrong_role_forbidden(client: TestClient, db: Session) -> None:
@@ -407,4 +408,4 @@ def test_delete_client_wrong_role_forbidden(client: TestClient, db: Session) -> 
     headers = user_authentication_headers(client=client, email=email, password=password)
 
     r = client.delete(f"{settings.API_V1_STR}/clients/{db_client.id}", headers=headers)
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN

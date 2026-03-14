@@ -123,12 +123,12 @@ class DocumentType(str, enum.Enum):
 def _validate_document_number(document_type: str, document_number: str) -> str:
     digits = document_number.strip()
     if not digits.isdigit():
-        raise ValueError("document_number must contain only digits")
+        msg = "document_number must contain only digits"
+        raise ValueError(msg)
     expected = 11 if document_type == DocumentType.cpf else 14
     if len(digits) != expected:
-        raise ValueError(
-            f"document_number must have {expected} digits for {document_type.upper()}"
-        )
+        msg = f"document_number must have {expected} digits for {document_type.upper()}"
+        raise ValueError(msg)
     return digits
 
 
