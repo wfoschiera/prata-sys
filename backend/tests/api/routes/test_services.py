@@ -272,9 +272,11 @@ def test_update_service_address(
     assert r.json()["updated_at"] is not None
 
 
-def test_update_service_valid_status_transition(
+def test_update_service_status_via_patch_rejected(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
+    # Status transitions are no longer allowed via PATCH /services/{id}.
+    # Use POST /services/{id}/transition instead (added in Phase 5 API routes).
     svc = create_random_service(db)
     assert svc.status == ServiceStatus.requested
     r = client.patch(
@@ -282,56 +284,10 @@ def test_update_service_valid_status_transition(
         headers=superuser_token_headers,
         json={"status": "scheduled"},
     )
+    # status is not a field in ServiceUpdate, so it is silently ignored and the
+    # service status remains unchanged.
     assert r.status_code == HTTPStatus.OK
-    assert r.json()["status"] == "scheduled"
-
-
-def test_update_service_full_status_chain(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    transitions = ["scheduled", "executing", "completed"]
-    for new_status in transitions:
-        r = client.patch(
-            f"{settings.API_V1_STR}/services/{svc.id}",
-            headers=superuser_token_headers,
-            json={"status": new_status},
-        )
-        assert r.status_code == HTTPStatus.OK
-        assert r.json()["status"] == new_status
-
-
-def test_update_service_invalid_status_transition(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    # requested → executing is not valid (must go through scheduled)
-    r = client.patch(
-        f"{settings.API_V1_STR}/services/{svc.id}",
-        headers=superuser_token_headers,
-        json={"status": "executing"},
-    )
-    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-
-
-def test_update_service_completed_no_further_transitions(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
-) -> None:
-    svc = create_random_service(db)
-    # Advance to completed
-    for status in ["scheduled", "executing", "completed"]:
-        client.patch(
-            f"{settings.API_V1_STR}/services/{svc.id}",
-            headers=superuser_token_headers,
-            json={"status": status},
-        )
-    # Try to re-transition from completed
-    r = client.patch(
-        f"{settings.API_V1_STR}/services/{svc.id}",
-        headers=superuser_token_headers,
-        json={"status": "requested"},
-    )
-    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert r.json()["status"] == ServiceStatus.requested
 
 
 def test_update_service_not_found(

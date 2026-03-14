@@ -8,18 +8,24 @@ from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import (
+    VALID_STATUS_TRANSITIONS,
     CategoriaTransacao,
     Client,
     ClientCreate,
     ClientRef,
     ClientUpdate,
+    DeductionItem,
+    ItemType,
     ResumoMensal,
     Service,
     ServiceCreate,
     ServiceItem,
     ServiceItemCreate,
+    ServiceStatus,
+    ServiceStatusLog,
     ServiceSummary,
     ServiceUpdate,
+    StockWarning,
     TipoTransacao,
     Transacao,
     TransacaoCreate,
@@ -29,6 +35,7 @@ from app.models import (
     UserCreate,
     UserPermission,
     UserUpdate,
+    get_datetime_utc,
 )
 
 
@@ -195,7 +202,13 @@ def get_service(*, session: Session, service_id: uuid.UUID) -> Service | None:
     statement = (
         select(Service)
         .where(Service.id == service_id)
-        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore[arg-type]
+        .options(
+            selectinload(Service.client),  # type: ignore[arg-type]
+            selectinload(Service.items),  # type: ignore[arg-type]
+            selectinload(Service.status_logs).selectinload(  # type: ignore[arg-type]
+                ServiceStatusLog.changed_by_user  # type: ignore[arg-type]
+            ),
+        )
     )
     return session.exec(statement).first()
 
@@ -206,7 +219,13 @@ def get_services(
     count = session.exec(select(func.count()).select_from(Service)).one()
     statement = (
         select(Service)
-        .options(selectinload(Service.client), selectinload(Service.items))  # type: ignore[arg-type]
+        .options(
+            selectinload(Service.client),  # type: ignore[arg-type]
+            selectinload(Service.items),  # type: ignore[arg-type]
+            selectinload(Service.status_logs).selectinload(  # type: ignore[arg-type]
+                ServiceStatusLog.changed_by_user  # type: ignore[arg-type]
+            ),
+        )
         .offset(skip)
         .limit(limit)
     )
@@ -229,15 +248,11 @@ def update_service(
 ) -> Service:
     from datetime import datetime, timezone
 
-    from app.models import VALID_STATUS_TRANSITIONS
+    if getattr(service_in, "status", None) is not None:
+        msg = "Use the /transition endpoint to change service status"
+        raise ValueError(msg)
 
     service_data = service_in.model_dump(exclude_unset=True)
-    if "status" in service_data:
-        new_status = service_data["status"]
-        allowed = VALID_STATUS_TRANSITIONS.get(db_service.status, [])
-        if new_status not in allowed:
-            msg = f"Invalid status transition from '{db_service.status}' to '{new_status}'"
-            raise ValueError(msg)
     db_service.sqlmodel_update(service_data)
     db_service.updated_at = datetime.now(timezone.utc)
     session.add(db_service)
@@ -269,6 +284,100 @@ def get_service_item(*, session: Session, item_id: uuid.UUID) -> ServiceItem | N
 def delete_service_item(*, session: Session, db_item: ServiceItem) -> None:
     session.delete(db_item)
     session.commit()
+
+
+def _check_stock_for_service(
+    _session: Session, _service: Service
+) -> list[StockWarning]:
+    # Stock reservation check — fully implemented in Phase 7 (Estoque).
+    # Returns empty list until StockItem model exists.
+    return []
+
+
+def _deduct_stock_items(
+    _session: Session,
+    service: Service,
+    deduction_items: list[DeductionItem],
+) -> None:
+    # Stock deduction — fully implemented in Phase 7 (Estoque).
+    # Validates that each service_item_id belongs to this service and is of type material.
+    material_ids = {
+        item.id for item in service.items if item.item_type == ItemType.material
+    }
+    for d in deduction_items:
+        if d.service_item_id not in material_ids:
+            msg = f"service_item_id {d.service_item_id} is not a material item of this service"
+            raise ValueError(msg)
+    # Actual StockItem deduction added in Phase 7
+
+
+def transition_service_status(
+    session: Session,
+    service: Service,
+    to_status: ServiceStatus,
+    changed_by_id: uuid.UUID,
+    reason: str | None = None,
+    deduction_items: list[DeductionItem] | None = None,
+) -> tuple[Service, list[StockWarning]]:
+    allowed = VALID_STATUS_TRANSITIONS.get(service.status, [])
+    if to_status not in allowed:
+        msg = f"Cannot transition from '{service.status}' to '{to_status}'"
+        raise ValueError(msg)
+
+    stock_warnings: list[StockWarning] = []
+
+    # Handle stock reservation when moving to scheduled
+    if to_status == ServiceStatus.scheduled:
+        stock_warnings = _check_stock_for_service(session, service)
+
+    # Handle stock deduction when moving to completed
+    if to_status == ServiceStatus.completed:
+        _deduct_stock_items(session, service, deduction_items or [])
+
+    # Handle cancellation
+    if to_status == ServiceStatus.cancelled:
+        service.cancelled_reason = reason
+
+    log = ServiceStatusLog(
+        service_id=service.id,
+        from_status=service.status,
+        to_status=to_status,
+        changed_by=changed_by_id,
+        notes=reason,
+    )
+    session.add(log)
+
+    service.status = to_status
+    service.updated_at = get_datetime_utc()
+    session.add(service)
+    session.commit()
+    session.refresh(service)
+
+    return service, stock_warnings
+
+
+def get_service_status_logs(
+    session: Session, service_id: uuid.UUID
+) -> list[ServiceStatusLog]:
+    statement = (
+        select(ServiceStatusLog)
+        .where(ServiceStatusLog.service_id == service_id)
+        .options(selectinload(ServiceStatusLog.changed_by_user))  # type: ignore[arg-type]
+        .order_by(ServiceStatusLog.changed_at)  # type: ignore[arg-type]
+    )
+    return list(session.exec(statement).all())
+
+
+def deduct_stock(
+    _session: Session,
+    service: Service,
+    _changed_by_id: uuid.UUID,
+) -> list[dict]:  # type: ignore[type-arg]
+    if service.status != ServiceStatus.executing:
+        msg = "Stock can only be deducted from a service in 'executing' status"
+        raise ValueError(msg)
+    # Full deduction implemented in Phase 7 (Estoque)
+    return []
 
 
 # ── Transacao CRUD ─────────────────────────────────────────────────────────────

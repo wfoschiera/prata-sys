@@ -210,6 +210,7 @@ class ServiceStatus(str, enum.Enum):
     scheduled = "scheduled"
     executing = "executing"
     completed = "completed"
+    cancelled = "cancelled"
 
 
 class ItemType(str, enum.Enum):
@@ -219,10 +220,11 @@ class ItemType(str, enum.Enum):
 
 # Valid status transitions
 VALID_STATUS_TRANSITIONS: dict[ServiceStatus, list[ServiceStatus]] = {
-    ServiceStatus.requested: [ServiceStatus.scheduled],
-    ServiceStatus.scheduled: [ServiceStatus.executing],
-    ServiceStatus.executing: [ServiceStatus.completed],
+    ServiceStatus.requested: [ServiceStatus.scheduled, ServiceStatus.cancelled],
+    ServiceStatus.scheduled: [ServiceStatus.executing, ServiceStatus.cancelled],
+    ServiceStatus.executing: [ServiceStatus.completed, ServiceStatus.cancelled],
     ServiceStatus.completed: [],
+    ServiceStatus.cancelled: [],
 }
 
 
@@ -265,19 +267,33 @@ class ServiceCreate(ServiceBase):
 
 class ServiceUpdate(SQLModel):
     type: ServiceType | None = None
-    status: ServiceStatus | None = None
     execution_address: str | None = Field(default=None, min_length=1, max_length=500)
     notes: str | None = None
+    description: str | None = None
+
+
+class ServiceStatusLogRead(SQLModel):
+    id: uuid.UUID
+    from_status: ServiceStatus
+    to_status: ServiceStatus
+    changed_by: uuid.UUID
+    changed_at: datetime
+    notes: str | None = None
+    changed_by_name: str | None = None
 
 
 class ServiceRead(ServiceBase):
     id: uuid.UUID
     client_id: uuid.UUID
     status: ServiceStatus
+    description: str | None = None
+    cancelled_reason: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     client: ClientRef | None = None
     items: list[ServiceItemRead] = []
+    status_logs: list[ServiceStatusLogRead] = []
+    has_stock_warning: bool = False
 
 
 class ServicesPublic(SQLModel):
@@ -289,6 +305,8 @@ class Service(ServiceBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False)
     status: ServiceStatus = Field(default=ServiceStatus.requested)
+    description: str | None = Field(default=None, sa_type=Text)
+    cancelled_reason: str | None = Field(default=None, max_length=500)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -302,6 +320,68 @@ class Service(ServiceBase, table=True):
         back_populates="service",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    status_logs: list["ServiceStatusLog"] = Relationship(
+        back_populates="service",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "order_by": "ServiceStatusLog.changed_at",
+        },
+    )
+
+
+class ServiceStatusLog(SQLModel, table=True):
+    __tablename__ = "service_status_log"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    service_id: uuid.UUID = Field(
+        foreign_key="service.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    from_status: ServiceStatus
+    to_status: ServiceStatus
+    changed_by: uuid.UUID = Field(foreign_key="user.id", nullable=False)
+    changed_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    notes: str | None = Field(default=None, max_length=500)
+    changed_by_user: User | None = Relationship()
+    service: "Service" = Relationship(back_populates="status_logs")
+
+
+class DeductionItem(SQLModel):
+    service_item_id: uuid.UUID
+    quantity: float = Field(gt=0)
+
+
+class ServiceTransitionRequest(SQLModel):
+    to_status: ServiceStatus
+    reason: str | None = None
+    deduction_items: list[DeductionItem] | None = None
+
+    @model_validator(mode="after")
+    def validate_transition_fields(self) -> "ServiceTransitionRequest":
+        if self.to_status == ServiceStatus.cancelled and not self.reason:
+            msg = "reason is required when transitioning to cancelled"
+            raise ValueError(msg)
+        if self.to_status == ServiceStatus.completed and not self.deduction_items:
+            msg = "deduction_items is required when transitioning to completed"
+            raise ValueError(msg)
+        return self
+
+
+class StockWarning(SQLModel):
+    service_item_id: uuid.UUID
+    description: str
+    required_quantity: float
+    available_quantity: float
+    shortfall: float
+
+
+class ServiceTransitionResponse(SQLModel):
+    service: "ServiceRead"
+    stock_warnings: list[StockWarning] = []
+
+
+ServiceTransitionResponse.model_rebuild()
 
 
 # ── Financeiro ────────────────────────────────────────────────────────────────
