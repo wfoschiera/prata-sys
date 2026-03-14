@@ -124,30 +124,12 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 ## Conventions & Rules
 
 ### Git
-- **Always use conventional commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`
-- **Before every commit**: run linter, typecheck, AND tests — on both backend and frontend if either was changed
-  - Backend: `ruff check . && mypy . && bash ../scripts/test.sh`
-  - Frontend: `bun run lint && bun run build && bun run test`
-- **Never commit `htmlcov/` or any coverage HTML report files** — generated artifacts, already in `.gitignore`
+- **Always use conventional commits** — use `/git-commit` skill
+- **Before every commit**: run linter, typecheck, and tests (see `/git-commit` skill for commands)
+- **Never commit `htmlcov/`** — generated artifacts, already in `.gitignore`
 
 ### PR Labels (required by CI)
-Every PR must have exactly one label from the list below — the `check-labels` CI job will fail otherwise.
-Use the label that matches the conventional commit prefix of the primary change:
-
-| Label | Use for |
-|-------|---------|
-| `feat` | New features (`feat:` commits) |
-| `fix` | Bug fixes (`fix:` commits) |
-| `chore` | Maintenance, tooling, config (`chore:` commits) |
-| `refact` | Refactoring (`refactor:` commits) |
-| `docs` | Documentation only (`docs:` commits) |
-| `upgrade` | Dependency upgrades |
-| `breaking` | Breaking changes |
-| `security` | Security fixes |
-| `bug` | Bug reports / confirmed bugs |
-| `feature` | Feature requests |
-| `internal` | Internal / CI / infra changes |
-| `lang-all` | Translations / i18n |
+Every PR must have exactly one label (`feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`). Use `/create-pr` skill which handles this automatically.
 
 ### Backend
 - Models go in `backend/app/models.py` (SQLModel)
@@ -188,3 +170,11 @@ Use the label that matches the conventional commit prefix of the primary change:
 - Python 3.14 tightened RFC 5322 validation in `email.message` — header field names with trailing colons (e.g. `"subject:"`) now raise `ValueError`
 - This surfaces as a crash in `httpx` when processing HTTP responses containing such headers
 - Always use valid header names without trailing colons: `{"subject": value}` not `{"subject:": value}`
+
+---
+
+## gstack (Browser Automation)
+
+Use `/browse` for all web browsing — **never use `mcp__claude-in-chrome__*` tools**.
+Available skills: `/browse`, `/qa`, `/review`, `/ship`, `/plan-ceo-review`, `/plan-eng-review`, `/setup-browser-cookies`, `/retro`.
+If skills aren't working: `cd .claude/skills/gstack && ./setup`
