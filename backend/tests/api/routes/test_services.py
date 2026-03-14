@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.models import (
     Client,
     ClientCreate,
+    DeductionItem,
     DocumentType,
     ItemType,
     Service,
@@ -682,3 +683,47 @@ def test_valid_transitions_logic() -> None:
     assert ServiceStatus.cancelled in VALID_STATUS_TRANSITIONS[ServiceStatus.executing]
     assert VALID_STATUS_TRANSITIONS[ServiceStatus.completed] == []
     assert VALID_STATUS_TRANSITIONS[ServiceStatus.cancelled] == []
+
+
+def test_deduct_stock_items_rejects_non_material(db: Session) -> None:
+    """_deduct_stock_items raises ValueError when service_item_id is not a material item."""
+    import pytest
+
+    from app.crud import _deduct_stock_items
+
+    svc = create_random_service(db)
+    item = crud.create_service_item(
+        session=db,
+        service_id=svc.id,
+        item_in=ServiceItemCreate(
+            description="Mão de obra",
+            item_type=ItemType.servico,
+            quantity=1,
+            unit_price=100.0,
+        ),
+    )
+    with pytest.raises(ValueError, match="not a material item"):
+        _deduct_stock_items(
+            db, svc, [DeductionItem(service_item_id=item.id, quantity=1)]
+        )
+
+
+def test_get_service_status_logs_crud(
+    db: Session, superuser_token_headers: dict[str, str], client: TestClient
+) -> None:
+    """get_service_status_logs returns logs ordered by changed_at."""
+    svc = create_random_service(db)
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+    logs = crud.get_service_status_logs(session=db, service_id=svc.id)
+    assert len(logs) == 2
+    assert logs[0].from_status == ServiceStatus.requested
+    assert logs[1].from_status == ServiceStatus.scheduled
