@@ -64,7 +64,7 @@ async function createTestService(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
-      type: "perfuracao",
+      type: "perfuração",
       execution_address: "Rua dos Testes, 123",
       client_id: clientId,
     }),
