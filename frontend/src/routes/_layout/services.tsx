@@ -7,6 +7,7 @@ import { type ServiceRead, type ServiceStatus, ServicesService } from "@/client"
 import DeleteService from "@/components/Services/DeleteService"
 import ServiceDetail from "@/components/Services/ServiceDetail"
 import ServiceForm from "@/components/Services/ServiceForm"
+import StockWarningBadge from "@/components/Services/StockWarningBadge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -110,9 +111,17 @@ function ServicesTableContent({ onView, onDelete }: ServicesTableContentProps) {
               </TableCell>
               <TableCell>{TYPE_LABELS[service.type] ?? service.type}</TableCell>
               <TableCell>
-                <Badge variant={STATUS_VARIANTS[service.status]}>
-                  {STATUS_LABELS[service.status] ?? service.status}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant={STATUS_VARIANTS[service.status]}>
+                    {STATUS_LABELS[service.status] ?? service.status}
+                  </Badge>
+                  {service.status === "scheduled" && (
+                    <StockWarningBadge
+                      hasStockWarning={service.has_stock_warning ?? false}
+                      compact
+                    />
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-muted-foreground max-w-xs truncate">
                 {service.execution_address}
