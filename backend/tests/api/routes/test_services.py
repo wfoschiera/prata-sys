@@ -739,3 +739,145 @@ def test_get_service_status_logs_crud(
     assert len(logs) == 2
     assert logs[0].from_status == ServiceStatus.requested
     assert logs[1].from_status == ServiceStatus.scheduled
+
+
+# ── T-08 / T-10: Service mutation guard tests ─────────────────────────────────
+
+
+def _advance_service_to(
+    client: TestClient,
+    headers: dict,
+    service_id: object,
+    target: str,
+) -> None:
+    """Advance a service through the state machine up to the target status."""
+    path = {
+        "scheduled": ["scheduled"],
+        "executing": ["scheduled", "executing"],
+        "completed": ["scheduled", "executing"],
+    }
+    for status in path.get(target, []):
+        payload: dict = {"to_status": status}
+        if status == "completed":
+            payload["deduction_items"] = []
+        client.post(
+            f"{settings.API_V1_STR}/services/{service_id}/transition",
+            headers=headers,
+            json=payload,
+        )
+
+
+def test_delete_scheduled_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cannot delete a service in scheduled status."""
+    svc = create_random_service(db)
+    _advance_service_to(client, superuser_token_headers, svc.id, "scheduled")
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/services/{svc.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_delete_executing_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cannot delete a service in executing status."""
+    svc = create_random_service(db)
+    _advance_service_to(client, superuser_token_headers, svc.id, "executing")
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/services/{svc.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_delete_requested_service_succeeds(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Can delete a service in requested status (no state lock)."""
+    svc = create_random_service(db)
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/services/{svc.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NO_CONTENT
+
+
+def test_add_item_to_executing_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cannot add line items to an executing service."""
+    svc = create_random_service(db)
+    _advance_service_to(client, superuser_token_headers, svc.id, "executing")
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/items",
+        headers=superuser_token_headers,
+        json={
+            "item_type": "material",
+            "description": "Tubo extra",
+            "quantity": 1,
+            "unit_price": 10,
+        },
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_add_item_to_completed_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cannot add line items to a completed service."""
+    svc = create_random_service(db)
+    svc_item = create_service_item(db, svc)
+
+    # Complete the service
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={
+            "to_status": "completed",
+            "deduction_items": [{"service_item_id": str(svc_item.id), "quantity": 1.0}],
+        },
+    )
+
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/items",
+        headers=superuser_token_headers,
+        json={
+            "item_type": "material",
+            "description": "Novo item",
+            "quantity": 1,
+            "unit_price": 10,
+        },
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_delete_item_from_executing_service_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cannot remove line items from an executing service."""
+    svc = create_random_service(db)
+    svc_item = create_service_item(db, svc)
+    _advance_service_to(client, superuser_token_headers, svc.id, "executing")
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/services/{svc.id}/items/{svc_item.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

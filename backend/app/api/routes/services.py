@@ -188,7 +188,12 @@ def delete_service(
     db_service = crud.get_service(session=session, service_id=service_id)
     if not db_service:
         raise HTTPException(status_code=404, detail="Service not found")
-    crud.delete_service(session=session, db_service=db_service)
+    try:
+        crud.delete_service(session=session, db_service=db_service)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
 
 
 @router.post("/{service_id}/items", response_model=ServiceItemRead, status_code=201)
@@ -203,9 +208,14 @@ def create_service_item(
     db_service = crud.get_service(session=session, service_id=service_id)
     if not db_service:
         raise HTTPException(status_code=404, detail="Service not found")
-    return crud.create_service_item(
-        session=session, service_id=service_id, item_in=item_in
-    )
+    try:
+        return crud.create_service_item(
+            session=session, service_id=service_id, item_in=item_in
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
 
 
 @router.delete("/{service_id}/items/{item_id}", status_code=204)
@@ -220,4 +230,9 @@ def delete_service_item(
     db_item = crud.get_service_item(session=session, item_id=item_id)
     if not db_item or db_item.service_id != service_id:
         raise HTTPException(status_code=404, detail="Item not found")
-    crud.delete_service_item(session=session, db_item=db_item)
+    try:
+        crud.delete_service_item(session=session, db_item=db_item)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
