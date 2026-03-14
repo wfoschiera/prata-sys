@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -8,7 +9,7 @@ from tests.utils.utils import random_email
 
 def test_health_check(client: TestClient) -> None:
     r = client.get(f"{settings.API_V1_STR}/utils/health-check/")
-    assert r.status_code == 200
+    assert r.status_code == HTTPStatus.OK
     assert r.json() is True
 
 
@@ -25,7 +26,7 @@ def test_test_email(
             params={"email_to": email},
             headers=superuser_token_headers,
         )
-    assert r.status_code == 201
+    assert r.status_code == HTTPStatus.CREATED
     assert r.json() == {"message": "Test email sent"}
 
 
@@ -34,7 +35,7 @@ def test_test_email_requires_superuser(client: TestClient) -> None:
         f"{settings.API_V1_STR}/utils/test-email/",
         params={"email_to": "x@example.com"},
     )
-    assert r.status_code == 401
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_invalid_token_returns_403(client: TestClient) -> None:
@@ -42,4 +43,4 @@ def test_invalid_token_returns_403(client: TestClient) -> None:
         f"{settings.API_V1_STR}/login/test-token",
         headers={"Authorization": "Bearer invalidtoken"},
     )
-    assert r.status_code == 403
+    assert r.status_code == HTTPStatus.FORBIDDEN
