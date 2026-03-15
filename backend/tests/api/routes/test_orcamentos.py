@@ -531,3 +531,62 @@ def test_backward_transition_aprovado_to_em_analise(
     )
     assert r.status_code == HTTPStatus.OK
     assert r.json()["orcamento"]["status"] == "em_analise"
+
+
+def test_list_filter_by_date_range(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    _create_orcamento(client, superuser_token_headers, db)
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/?data_inicio=2020-01-01&data_fim=2030-12-31",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["count"] >= 1
+
+
+def test_delete_item_from_approved_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    item = _add_item(client, superuser_token_headers, orc["id"], str(prod.id))
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "aprovado"},
+    )
+    r = client.delete(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/items/{item['id']}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_update_item_on_approved_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    item = _add_item(client, superuser_token_headers, orc["id"], str(prod.id))
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "aprovado"},
+    )
+    r = client.patch(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/items/{item['id']}",
+        headers=superuser_token_headers,
+        json={"quantity": 999.0},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
