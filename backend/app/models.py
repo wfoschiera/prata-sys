@@ -341,6 +341,7 @@ class ServiceStatus(str, enum.Enum):
 class ItemType(str, enum.Enum):
     material = "material"
     servico = "serviço"
+    perfuracao = "perfuração"
 
 
 # Valid status transitions
@@ -454,6 +455,7 @@ class ServicesPublic(SQLModel):
 
 class Service(ServiceBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    type: ServiceType = Field(index=True)
     client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False, index=True)
     status: ServiceStatus = Field(default=ServiceStatus.requested, index=True)
     description: str | None = Field(default=None, sa_type=Text)
@@ -1288,3 +1290,20 @@ class OrcamentoStatusLog(SQLModel, table=True):
     changed_by_user: User | None = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[OrcamentoStatusLog.changed_by]"}
     )
+
+
+# ── Dashboard ──────────────────────────────────────────────────────────────────
+
+
+class WeeklyOperationalSummary(SQLModel):
+    week_number: int
+    week_start: date
+    repairs_count: int
+    drillings_count: int
+    drilling_meters: Decimal
+    profit: Decimal
+
+
+class YearlyOperationalDashboard(SQLModel):
+    ano: int
+    weeks: list[WeeklyOperationalSummary]

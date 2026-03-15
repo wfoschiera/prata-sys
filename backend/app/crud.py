@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import extract
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, func, select
 
@@ -56,6 +57,7 @@ from app.models import (
     ServiceStatus,
     ServiceStatusLog,
     ServiceSummary,
+    ServiceType,
     ServiceUpdate,
     StockPredictionRead,
     StockWarning,
@@ -68,6 +70,8 @@ from app.models import (
     UserCreate,
     UserPermission,
     UserUpdate,
+    WeeklyOperationalSummary,
+    YearlyOperationalDashboard,
     get_datetime_utc,
 )
 
@@ -1590,3 +1594,103 @@ def duplicate_orcamento(
         msg = f"Orcamento {new_orc.id} not found after commit"
         raise RuntimeError(msg)  # pragma: no cover
     return result
+
+
+# ── Dashboard CRUD ─────────────────────────────────────────────────────────────
+
+
+def get_yearly_operational_summary(
+    *, session: Session, ano: int
+) -> YearlyOperationalDashboard:
+    """Return weekly operational KPIs for the given year (ISO weeks).
+
+    Three aggregation queries:
+      1. Completed service counts by type (repairs vs drillings), grouped by ISO week
+      2. Drilling meters (SUM of service_item.quantity where item_type=perfuração), grouped by ISO week
+      3. Weekly profit (receitas - despesas from transacao), grouped by ISO week
+
+    Weeks with no activity get zeros. Only weeks up to the current ISO week are returned.
+    """
+    today = date.today()
+    max_week = today.isocalendar()[1] if today.year == ano else 52
+
+    # ── Query 1: completed service counts by type and ISO week ─────────────────
+    service_rows = session.exec(
+        select(
+            extract("week", Service.updated_at).label("week_num"),  # type: ignore[arg-type]
+            Service.type,
+            func.count(Service.id),  # type: ignore[arg-type]
+        )
+        .where(Service.status == ServiceStatus.completed)
+        .where(extract("year", Service.updated_at) == ano)  # type: ignore[arg-type]
+        .group_by(extract("week", Service.updated_at), Service.type)  # type: ignore[arg-type]
+    ).all()
+
+    # ── Query 2: drilling meters (perfuração items) by ISO week ────────────────
+    meters_rows = session.exec(
+        select(
+            extract("week", Service.updated_at).label("week_num"),  # type: ignore[arg-type]
+            func.sum(ServiceItem.quantity),
+        )
+        .join(Service, ServiceItem.service_id == Service.id)  # type: ignore[arg-type]
+        .where(ServiceItem.item_type == ItemType.perfuracao)
+        .where(Service.status == ServiceStatus.completed)
+        .where(extract("year", Service.updated_at) == ano)  # type: ignore[arg-type]
+        .group_by(extract("week", Service.updated_at))  # type: ignore[arg-type]
+    ).all()
+
+    # ── Query 3: weekly profit (receitas - despesas) ───────────────────────────
+    profit_rows = session.exec(
+        select(
+            extract("week", Transacao.data_competencia).label("week_num"),  # type: ignore[arg-type]
+            Transacao.tipo,
+            func.sum(Transacao.valor),
+        )
+        .where(extract("year", Transacao.data_competencia) == ano)  # type: ignore[arg-type]
+        .group_by(
+            extract("week", Transacao.data_competencia),  # type: ignore[arg-type]
+            Transacao.tipo,
+        )
+    ).all()
+
+    # ── Merge results into per-week dicts ──────────────────────────────────────
+    repairs: dict[int, int] = {}
+    drillings: dict[int, int] = {}
+    for week_num_raw, svc_type, count in service_rows:
+        week_num = int(week_num_raw)
+        if svc_type == ServiceType.reparo:  # noqa: SIM114
+            repairs[week_num] = repairs.get(week_num, 0) + count
+        elif svc_type == ServiceType.perfuracao:
+            drillings[week_num] = drillings.get(week_num, 0) + count
+
+    meters: dict[int, Decimal] = {}
+    for week_num_raw, total in meters_rows:
+        meters[int(week_num_raw)] = Decimal(str(total or 0))
+
+    receitas: dict[int, Decimal] = {}
+    despesas: dict[int, Decimal] = {}
+    for week_num_raw, tipo, total in profit_rows:  # type: ignore[assignment]
+        week_num = int(week_num_raw)
+        val: Decimal = Decimal(str(total or 0))
+        if tipo == TipoTransacao.receita:
+            receitas[week_num] = val
+        else:
+            despesas[week_num] = val
+
+    # ── Build list of WeeklyOperationalSummary ─────────────────────────────────
+    weeks: list[WeeklyOperationalSummary] = []
+    for week_num in range(1, max_week + 1):
+        week_start = date.fromisocalendar(ano, week_num, 1)  # Monday
+        profit = receitas.get(week_num, Decimal(0)) - despesas.get(week_num, Decimal(0))
+        weeks.append(
+            WeeklyOperationalSummary(
+                week_number=week_num,
+                week_start=week_start,
+                repairs_count=repairs.get(week_num, 0),
+                drillings_count=drillings.get(week_num, 0),
+                drilling_meters=meters.get(week_num, Decimal(0)),
+                profit=profit,
+            )
+        )
+
+    return YearlyOperationalDashboard(ano=ano, weeks=weeks)
