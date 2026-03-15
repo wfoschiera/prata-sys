@@ -167,7 +167,7 @@ export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
-export type ItemType = 'material' | 'serviço';
+export type ItemType = 'material' | 'serviço' | 'perfuração';
 
 export type Message = {
     message: string;
@@ -635,6 +635,20 @@ export type ValidationError = {
     };
 };
 
+export type WeeklyOperationalSummary = {
+    week_number: number;
+    week_start: string;
+    repairs_count: number;
+    drillings_count: number;
+    drilling_meters: string;
+    profit: string;
+};
+
+export type YearlyOperationalDashboard = {
+    ano: number;
+    weeks: Array<WeeklyOperationalSummary>;
+};
+
 export type ClientsReadClientsData = {
     limit?: number;
     skip?: number;
@@ -666,6 +680,12 @@ export type ClientsDeleteClientData = {
 };
 
 export type ClientsDeleteClientResponse = (Message);
+
+export type DashboardGetOperationalDashboardData = {
+    ano?: number;
+};
+
+export type DashboardGetOperationalDashboardResponse = (YearlyOperationalDashboard);
 
 export type EstoqueGetDashboardResponse = (Array<CategoryDashboardItem>);
 

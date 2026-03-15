@@ -1096,7 +1096,7 @@ export const HTTPValidationErrorSchema = {
 
 export const ItemTypeSchema = {
     type: 'string',
-    enum: ['material', 'serviço'],
+    enum: ['material', 'serviço', 'perfuração'],
     title: 'ItemType'
 } as const;
 
@@ -3802,4 +3802,58 @@ export const ValidationErrorSchema = {
     type: 'object',
     required: ['loc', 'msg', 'type'],
     title: 'ValidationError'
+} as const;
+
+export const WeeklyOperationalSummarySchema = {
+    properties: {
+        week_number: {
+            type: 'integer',
+            title: 'Week Number'
+        },
+        week_start: {
+            type: 'string',
+            format: 'date',
+            title: 'Week Start'
+        },
+        repairs_count: {
+            type: 'integer',
+            title: 'Repairs Count'
+        },
+        drillings_count: {
+            type: 'integer',
+            title: 'Drillings Count'
+        },
+        drilling_meters: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Drilling Meters'
+        },
+        profit: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Profit'
+        }
+    },
+    type: 'object',
+    required: ['week_number', 'week_start', 'repairs_count', 'drillings_count', 'drilling_meters', 'profit'],
+    title: 'WeeklyOperationalSummary'
+} as const;
+
+export const YearlyOperationalDashboardSchema = {
+    properties: {
+        ano: {
+            type: 'integer',
+            title: 'Ano'
+        },
+        weeks: {
+            items: {
+                '$ref': '#/components/schemas/WeeklyOperationalSummary'
+            },
+            type: 'array',
+            title: 'Weeks'
+        }
+    },
+    type: 'object',
+    required: ['ano', 'weeks'],
+    title: 'YearlyOperationalDashboard'
 } as const;
