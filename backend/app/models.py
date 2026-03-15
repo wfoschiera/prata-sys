@@ -1226,7 +1226,7 @@ class Orcamento(OrcamentoBase, table=True):
     created_by_user: User | None = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Orcamento.created_by]"}
     )
-    service: "Service | None" = Relationship(
+    service: Optional["Service"] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Orcamento.service_id]"}
     )
 
