@@ -20,13 +20,16 @@ import { Route as LayoutServicesRouteImport } from './routes/_layout/services'
 import { Route as LayoutPermissionsRouteImport } from './routes/_layout/permissions'
 import { Route as LayoutClientsRouteImport } from './routes/_layout/clients'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutOrcamentosIndexRouteImport } from './routes/_layout/orcamentos/index'
 import { Route as LayoutFornecedoresIndexRouteImport } from './routes/_layout/fornecedores/index'
 import { Route as LayoutFinanceiroIndexRouteImport } from './routes/_layout/financeiro/index'
 import { Route as LayoutEstoqueIndexRouteImport } from './routes/_layout/estoque/index'
+import { Route as LayoutOrcamentosNewRouteImport } from './routes/_layout/orcamentos/new'
 import { Route as LayoutFornecedoresFornecedorIdRouteImport } from './routes/_layout/fornecedores/$fornecedorId'
 import { Route as LayoutFinanceiroTransacoesRouteImport } from './routes/_layout/financeiro/transacoes'
 import { Route as LayoutFinanceiroContasAReceberRouteImport } from './routes/_layout/financeiro/contas-a-receber'
 import { Route as LayoutFinanceiroContasAPagarRouteImport } from './routes/_layout/financeiro/contas-a-pagar'
+import { Route as LayoutOrcamentosOrcamentoIdIndexRouteImport } from './routes/_layout/orcamentos/$orcamentoId/index'
 import { Route as LayoutEstoqueProdutosIndexRouteImport } from './routes/_layout/estoque/produtos/index'
 import { Route as LayoutEstoqueProdutosNewRouteImport } from './routes/_layout/estoque/produtos/new'
 import { Route as LayoutEstoqueProdutosProductIdIndexRouteImport } from './routes/_layout/estoque/produtos/$productId/index'
@@ -86,6 +89,11 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutOrcamentosIndexRoute = LayoutOrcamentosIndexRouteImport.update({
+  id: '/orcamentos/',
+  path: '/orcamentos/',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutFornecedoresIndexRoute = LayoutFornecedoresIndexRouteImport.update({
   id: '/fornecedores/',
   path: '/fornecedores/',
@@ -99,6 +107,11 @@ const LayoutFinanceiroIndexRoute = LayoutFinanceiroIndexRouteImport.update({
 const LayoutEstoqueIndexRoute = LayoutEstoqueIndexRouteImport.update({
   id: '/estoque/',
   path: '/estoque/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutOrcamentosNewRoute = LayoutOrcamentosNewRouteImport.update({
+  id: '/orcamentos/new',
+  path: '/orcamentos/new',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutFornecedoresFornecedorIdRoute =
@@ -123,6 +136,12 @@ const LayoutFinanceiroContasAPagarRoute =
   LayoutFinanceiroContasAPagarRouteImport.update({
     id: '/financeiro/contas-a-pagar',
     path: '/financeiro/contas-a-pagar',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutOrcamentosOrcamentoIdIndexRoute =
+  LayoutOrcamentosOrcamentoIdIndexRouteImport.update({
+    id: '/orcamentos/$orcamentoId/',
+    path: '/orcamentos/$orcamentoId/',
     getParentRoute: () => LayoutRoute,
   } as any)
 const LayoutEstoqueProdutosIndexRoute =
@@ -165,11 +184,14 @@ export interface FileRoutesByFullPath {
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/orcamentos/new': typeof LayoutOrcamentosNewRoute
   '/estoque/': typeof LayoutEstoqueIndexRoute
   '/financeiro/': typeof LayoutFinanceiroIndexRoute
   '/fornecedores/': typeof LayoutFornecedoresIndexRoute
+  '/orcamentos/': typeof LayoutOrcamentosIndexRoute
   '/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
   '/estoque/produtos/': typeof LayoutEstoqueProdutosIndexRoute
+  '/orcamentos/$orcamentoId/': typeof LayoutOrcamentosOrcamentoIdIndexRoute
   '/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
   '/estoque/produtos/$productId/': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
@@ -188,11 +210,14 @@ export interface FileRoutesByTo {
   '/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/orcamentos/new': typeof LayoutOrcamentosNewRoute
   '/estoque': typeof LayoutEstoqueIndexRoute
   '/financeiro': typeof LayoutFinanceiroIndexRoute
   '/fornecedores': typeof LayoutFornecedoresIndexRoute
+  '/orcamentos': typeof LayoutOrcamentosIndexRoute
   '/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
   '/estoque/produtos': typeof LayoutEstoqueProdutosIndexRoute
+  '/orcamentos/$orcamentoId': typeof LayoutOrcamentosOrcamentoIdIndexRoute
   '/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
   '/estoque/produtos/$productId': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
@@ -213,11 +238,14 @@ export interface FileRoutesById {
   '/_layout/financeiro/contas-a-receber': typeof LayoutFinanceiroContasAReceberRoute
   '/_layout/financeiro/transacoes': typeof LayoutFinanceiroTransacoesRoute
   '/_layout/fornecedores/$fornecedorId': typeof LayoutFornecedoresFornecedorIdRoute
+  '/_layout/orcamentos/new': typeof LayoutOrcamentosNewRoute
   '/_layout/estoque/': typeof LayoutEstoqueIndexRoute
   '/_layout/financeiro/': typeof LayoutFinanceiroIndexRoute
   '/_layout/fornecedores/': typeof LayoutFornecedoresIndexRoute
+  '/_layout/orcamentos/': typeof LayoutOrcamentosIndexRoute
   '/_layout/estoque/produtos/new': typeof LayoutEstoqueProdutosNewRoute
   '/_layout/estoque/produtos/': typeof LayoutEstoqueProdutosIndexRoute
+  '/_layout/orcamentos/$orcamentoId/': typeof LayoutOrcamentosOrcamentoIdIndexRoute
   '/_layout/estoque/produtos/$productId/edit': typeof LayoutEstoqueProdutosProductIdEditRoute
   '/_layout/estoque/produtos/$productId/': typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
@@ -238,11 +266,14 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
     | '/fornecedores/$fornecedorId'
+    | '/orcamentos/new'
     | '/estoque/'
     | '/financeiro/'
     | '/fornecedores/'
+    | '/orcamentos/'
     | '/estoque/produtos/new'
     | '/estoque/produtos/'
+    | '/orcamentos/$orcamentoId/'
     | '/estoque/produtos/$productId/edit'
     | '/estoque/produtos/$productId/'
   fileRoutesByTo: FileRoutesByTo
@@ -261,11 +292,14 @@ export interface FileRouteTypes {
     | '/financeiro/contas-a-receber'
     | '/financeiro/transacoes'
     | '/fornecedores/$fornecedorId'
+    | '/orcamentos/new'
     | '/estoque'
     | '/financeiro'
     | '/fornecedores'
+    | '/orcamentos'
     | '/estoque/produtos/new'
     | '/estoque/produtos'
+    | '/orcamentos/$orcamentoId'
     | '/estoque/produtos/$productId/edit'
     | '/estoque/produtos/$productId'
   id:
@@ -285,11 +319,14 @@ export interface FileRouteTypes {
     | '/_layout/financeiro/contas-a-receber'
     | '/_layout/financeiro/transacoes'
     | '/_layout/fornecedores/$fornecedorId'
+    | '/_layout/orcamentos/new'
     | '/_layout/estoque/'
     | '/_layout/financeiro/'
     | '/_layout/fornecedores/'
+    | '/_layout/orcamentos/'
     | '/_layout/estoque/produtos/new'
     | '/_layout/estoque/produtos/'
+    | '/_layout/orcamentos/$orcamentoId/'
     | '/_layout/estoque/produtos/$productId/edit'
     | '/_layout/estoque/produtos/$productId/'
   fileRoutesById: FileRoutesById
@@ -381,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/orcamentos/': {
+      id: '/_layout/orcamentos/'
+      path: '/orcamentos'
+      fullPath: '/orcamentos/'
+      preLoaderRoute: typeof LayoutOrcamentosIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/fornecedores/': {
       id: '/_layout/fornecedores/'
       path: '/fornecedores'
@@ -400,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/estoque'
       fullPath: '/estoque/'
       preLoaderRoute: typeof LayoutEstoqueIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/orcamentos/new': {
+      id: '/_layout/orcamentos/new'
+      path: '/orcamentos/new'
+      fullPath: '/orcamentos/new'
+      preLoaderRoute: typeof LayoutOrcamentosNewRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/fornecedores/$fornecedorId': {
@@ -428,6 +479,13 @@ declare module '@tanstack/react-router' {
       path: '/financeiro/contas-a-pagar'
       fullPath: '/financeiro/contas-a-pagar'
       preLoaderRoute: typeof LayoutFinanceiroContasAPagarRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/orcamentos/$orcamentoId/': {
+      id: '/_layout/orcamentos/$orcamentoId/'
+      path: '/orcamentos/$orcamentoId'
+      fullPath: '/orcamentos/$orcamentoId/'
+      preLoaderRoute: typeof LayoutOrcamentosOrcamentoIdIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/estoque/produtos/': {
@@ -472,11 +530,14 @@ interface LayoutRouteChildren {
   LayoutFinanceiroContasAReceberRoute: typeof LayoutFinanceiroContasAReceberRoute
   LayoutFinanceiroTransacoesRoute: typeof LayoutFinanceiroTransacoesRoute
   LayoutFornecedoresFornecedorIdRoute: typeof LayoutFornecedoresFornecedorIdRoute
+  LayoutOrcamentosNewRoute: typeof LayoutOrcamentosNewRoute
   LayoutEstoqueIndexRoute: typeof LayoutEstoqueIndexRoute
   LayoutFinanceiroIndexRoute: typeof LayoutFinanceiroIndexRoute
   LayoutFornecedoresIndexRoute: typeof LayoutFornecedoresIndexRoute
+  LayoutOrcamentosIndexRoute: typeof LayoutOrcamentosIndexRoute
   LayoutEstoqueProdutosNewRoute: typeof LayoutEstoqueProdutosNewRoute
   LayoutEstoqueProdutosIndexRoute: typeof LayoutEstoqueProdutosIndexRoute
+  LayoutOrcamentosOrcamentoIdIndexRoute: typeof LayoutOrcamentosOrcamentoIdIndexRoute
   LayoutEstoqueProdutosProductIdEditRoute: typeof LayoutEstoqueProdutosProductIdEditRoute
   LayoutEstoqueProdutosProductIdIndexRoute: typeof LayoutEstoqueProdutosProductIdIndexRoute
 }
@@ -492,11 +553,14 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutFinanceiroContasAReceberRoute: LayoutFinanceiroContasAReceberRoute,
   LayoutFinanceiroTransacoesRoute: LayoutFinanceiroTransacoesRoute,
   LayoutFornecedoresFornecedorIdRoute: LayoutFornecedoresFornecedorIdRoute,
+  LayoutOrcamentosNewRoute: LayoutOrcamentosNewRoute,
   LayoutEstoqueIndexRoute: LayoutEstoqueIndexRoute,
   LayoutFinanceiroIndexRoute: LayoutFinanceiroIndexRoute,
   LayoutFornecedoresIndexRoute: LayoutFornecedoresIndexRoute,
+  LayoutOrcamentosIndexRoute: LayoutOrcamentosIndexRoute,
   LayoutEstoqueProdutosNewRoute: LayoutEstoqueProdutosNewRoute,
   LayoutEstoqueProdutosIndexRoute: LayoutEstoqueProdutosIndexRoute,
+  LayoutOrcamentosOrcamentoIdIndexRoute: LayoutOrcamentosOrcamentoIdIndexRoute,
   LayoutEstoqueProdutosProductIdEditRoute:
     LayoutEstoqueProdutosProductIdEditRoute,
   LayoutEstoqueProdutosProductIdIndexRoute:

@@ -79,7 +79,7 @@ function NewOrcamento() {
       })
     },
     onError: (err: unknown) => {
-      handleError.call(showErrorToast, err)
+      handleError.call(showErrorToast, err as any)
     },
   })
 
@@ -226,7 +226,7 @@ function NewOrcamento() {
           </Button>
           <LoadingButton
             type="submit"
-            isLoading={createMutation.isPending}
+            loading={createMutation.isPending}
             disabled={!clientId || !executionAddress}
           >
             Criar Orçamento

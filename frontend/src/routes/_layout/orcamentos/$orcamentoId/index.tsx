@@ -58,7 +58,7 @@ function OrcamentoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["orcamentos"] })
     },
     onError: (err: unknown) => {
-      handleError.call(showErrorToast, err)
+      handleError.call(showErrorToast, err as any)
     },
   })
 
@@ -70,7 +70,7 @@ function OrcamentoDetailPage() {
       void navigate({ to: "/services" })
     },
     onError: (err: unknown) => {
-      handleError.call(showErrorToast, err)
+      handleError.call(showErrorToast, err as any)
     },
   })
 
@@ -85,7 +85,7 @@ function OrcamentoDetailPage() {
       })
     },
     onError: (err: unknown) => {
-      handleError.call(showErrorToast, err)
+      handleError.call(showErrorToast, err as any)
     },
   })
 
