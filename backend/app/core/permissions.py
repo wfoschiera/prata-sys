@@ -39,6 +39,8 @@ ALL_PERMISSIONS: dict[str, str] = {
     "view_contas_receber": "Visualizar Contas a Receber",
     "view_well_status": "Visualizar Status do Poço",
     "view_reports": "Visualizar Relatórios",
+    "manage_orcamentos": "Gerenciar Orçamentos",
+    "view_orcamentos": "Visualizar Orçamentos",
 }
 
 # ── Role defaults ─────────────────────────────────────────────────────────────
@@ -51,19 +53,23 @@ ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
         "manage_services",
         "manage_fornecedores",
         "manage_estoque",
+        "manage_orcamentos",
         "view_dashboard",
         "view_financeiro",
         "view_fornecedores",
         "view_estoque",
+        "view_orcamentos",
     },
     UserRole.finance: {
         "manage_financeiro",
+        "manage_orcamentos",
         "view_dashboard",
         "view_financeiro",
         "view_fornecedores",
         "view_estoque",
         "view_contas_pagar",
         "view_contas_receber",
+        "view_orcamentos",
     },
     UserRole.client: set(),
 }
