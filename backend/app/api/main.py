@@ -15,6 +15,9 @@ from app.api.routes import (
     users,
     utils,
 )
+from app.api.routes import (
+    settings as settings_routes,
+)
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -30,6 +33,7 @@ api_router.include_router(product_types.router)
 api_router.include_router(products.router)
 api_router.include_router(product_items.router)
 api_router.include_router(estoque.router)
+api_router.include_router(settings_routes.router)
 
 
 if settings.ENVIRONMENT == "local":

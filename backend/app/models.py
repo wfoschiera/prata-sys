@@ -114,6 +114,41 @@ class NewPassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class CompanySettings(SQLModel, table=True):
+    """Singleton table — stores company info for document headers (orçamentos, etc.)."""
+
+    __tablename__ = "company_settings"
+
+    id: int = Field(default=1, primary_key=True)
+    company_name: str = Field(max_length=255)
+    cnpj: str | None = Field(default=None, max_length=18)
+    inscricao_municipal: str | None = Field(default=None, max_length=50)
+    address: str | None = Field(default=None, max_length=500)
+    phone: str | None = Field(default=None, max_length=50)
+    email: str | None = Field(default=None, max_length=255)
+    logo_url: str | None = Field(default=None, max_length=500)
+
+
+class CompanySettingsRead(SQLModel):
+    company_name: str
+    cnpj: str | None = None
+    inscricao_municipal: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    logo_url: str | None = None
+
+
+class CompanySettingsUpdate(SQLModel):
+    company_name: str | None = Field(default=None, max_length=255)
+    cnpj: str | None = Field(default=None, max_length=18)
+    inscricao_municipal: str | None = Field(default=None, max_length=50)
+    address: str | None = Field(default=None, max_length=500)
+    phone: str | None = Field(default=None, max_length=50)
+    email: str | None = Field(default=None, max_length=255)
+    logo_url: str | None = Field(default=None, max_length=500)
+
+
 class UsedPasswordResetToken(SQLModel, table=True):
     """Tracks consumed password reset tokens to prevent reuse within expiry window."""
 
