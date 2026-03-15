@@ -368,3 +368,166 @@ def test_add_item_to_approved_returns_422(
         },
     )
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ── Filter tests ──────────────────────────────────────────────────────────────
+
+
+def test_list_filter_by_status(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    _create_orcamento(client, superuser_token_headers, db)
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/?status=rascunho",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    for orc in r.json()["data"]:
+        assert orc["status"] == "rascunho"
+
+
+def test_list_filter_by_search(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    cl_name = orc["client"]["name"]
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/?search={cl_name[:5]}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["count"] >= 1
+
+
+# ── Guard tests ───────────────────────────────────────────────────────────────
+
+
+def test_delete_non_rascunho_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    r = client.delete(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_update_approved_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    _add_item(client, superuser_token_headers, orc["id"], str(prod.id))
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "aprovado"},
+    )
+    r = client.patch(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}",
+        headers=superuser_token_headers,
+        json={"description": "Should fail"},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_invalid_transition_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "aprovado"},
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_convert_non_approved_returns_422(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/convert-to-service",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_read_nonexistent_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_update_item(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    item = _add_item(client, superuser_token_headers, orc["id"], str(prod.id))
+    r = client.patch(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/items/{item['id']}",
+        headers=superuser_token_headers,
+        json={"quantity": 99.0, "show_unit_price": False},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["show_unit_price"] is False
+
+
+def test_backward_transition_em_analise_to_rascunho(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "rascunho"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["orcamento"]["status"] == "rascunho"
+
+
+def test_backward_transition_aprovado_to_em_analise(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    _add_item(client, superuser_token_headers, orc["id"], str(prod.id))
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "aprovado"},
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{orc['id']}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["orcamento"]["status"] == "em_analise"
