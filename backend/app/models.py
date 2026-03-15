@@ -222,6 +222,10 @@ class ClientBase(SQLModel):
     email: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=500)
+    bairro: str | None = Field(default=None, max_length=100)
+    city: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(default=None, max_length=2)
+    cep: str | None = Field(default=None, max_length=9)
 
     @field_validator("document_number", mode="before")
     @classmethod
@@ -243,6 +247,10 @@ class ClientUpdate(SQLModel):
     email: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=500)
+    bairro: str | None = Field(default=None, max_length=100)
+    city: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(default=None, max_length=2)
+    cep: str | None = Field(default=None, max_length=9)
 
     @field_validator("document_number", mode="before")
     @classmethod
