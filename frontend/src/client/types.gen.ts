@@ -30,6 +30,10 @@ export type ClientCreate = {
     email?: (string | null);
     phone?: (string | null);
     address?: (string | null);
+    bairro?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    cep?: (string | null);
 };
 
 export type ClientPublic = {
@@ -39,6 +43,10 @@ export type ClientPublic = {
     email?: (string | null);
     phone?: (string | null);
     address?: (string | null);
+    bairro?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    cep?: (string | null);
     id: string;
     created_at?: (string | null);
     updated_at?: (string | null);
@@ -61,6 +69,30 @@ export type ClientUpdate = {
     email?: (string | null);
     phone?: (string | null);
     address?: (string | null);
+    bairro?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    cep?: (string | null);
+};
+
+export type CompanySettingsRead = {
+    company_name: string;
+    cnpj?: (string | null);
+    inscricao_municipal?: (string | null);
+    address?: (string | null);
+    phone?: (string | null);
+    email?: (string | null);
+    logo_url?: (string | null);
+};
+
+export type CompanySettingsUpdate = {
+    company_name?: (string | null);
+    cnpj?: (string | null);
+    inscricao_municipal?: (string | null);
+    address?: (string | null);
+    phone?: (string | null);
+    email?: (string | null);
+    logo_url?: (string | null);
 };
 
 export type DeductionItem = {
@@ -144,6 +176,130 @@ export type Message = {
 export type NewPassword = {
     token: string;
     new_password: string;
+};
+
+export type OrcamentoCreate = {
+    service_type: ServiceType;
+    execution_address: string;
+    city?: (string | null);
+    cep?: (string | null);
+    description?: (string | null);
+    notes?: (string | null);
+    forma_pagamento?: (string | null);
+    vendedor?: (string | null);
+    client_id: string;
+    validade_proposta?: (string | null);
+};
+
+export type OrcamentoItemCreate = {
+    description: string;
+    quantity: (number | string);
+    unit_price: (number | string);
+    show_unit_price?: boolean;
+    product_id: string;
+};
+
+export type OrcamentoItemRead = {
+    description: string;
+    quantity: string;
+    unit_price: string;
+    show_unit_price?: boolean;
+    id: string;
+    orcamento_id: string;
+    product_id: string;
+    created_at?: (string | null);
+};
+
+export type OrcamentoItemUpdate = {
+    description?: (string | null);
+    quantity?: (number | string | null);
+    unit_price?: (number | string | null);
+    show_unit_price?: (boolean | null);
+};
+
+/**
+ * Lightweight orçamento for list responses — no items or logs.
+ */
+export type OrcamentoListRead = {
+    service_type: ServiceType;
+    execution_address: string;
+    city?: (string | null);
+    cep?: (string | null);
+    description?: (string | null);
+    notes?: (string | null);
+    forma_pagamento?: (string | null);
+    vendedor?: (string | null);
+    id: string;
+    ref_code: string;
+    client_id: string;
+    status: OrcamentoStatus;
+    validade_proposta?: (string | null);
+    service_id?: (string | null);
+    created_at?: (string | null);
+    client?: (ClientRef | null);
+};
+
+/**
+ * Full orçamento detail — includes items and status_logs.
+ */
+export type OrcamentoRead = {
+    service_type: ServiceType;
+    execution_address: string;
+    city?: (string | null);
+    cep?: (string | null);
+    description?: (string | null);
+    notes?: (string | null);
+    forma_pagamento?: (string | null);
+    vendedor?: (string | null);
+    id: string;
+    ref_code: string;
+    client_id: string;
+    status: OrcamentoStatus;
+    validade_proposta?: (string | null);
+    service_id?: (string | null);
+    created_by?: (string | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+    client?: (ClientRef | null);
+    items?: Array<OrcamentoItemRead>;
+    status_logs?: Array<OrcamentoStatusLogRead>;
+};
+
+export type OrcamentosPublic = {
+    data: Array<OrcamentoListRead>;
+    count: number;
+};
+
+export type OrcamentoStatus = 'rascunho' | 'em_analise' | 'aprovado' | 'cancelado';
+
+export type OrcamentoStatusLogRead = {
+    id: string;
+    from_status: OrcamentoStatus;
+    to_status: OrcamentoStatus;
+    changed_by?: (string | null);
+    changed_at?: (string | null);
+    notes?: (string | null);
+};
+
+export type OrcamentoTransitionRequest = {
+    to_status: OrcamentoStatus;
+    reason?: (string | null);
+};
+
+export type OrcamentoTransitionResponse = {
+    orcamento: OrcamentoRead;
+};
+
+export type OrcamentoUpdate = {
+    service_type?: (ServiceType | null);
+    execution_address?: (string | null);
+    city?: (string | null);
+    cep?: (string | null);
+    description?: (string | null);
+    notes?: (string | null);
+    forma_pagamento?: (string | null);
+    validade_proposta?: (string | null);
+    vendedor?: (string | null);
 };
 
 export type PrivateUserCreate = {
@@ -239,6 +395,7 @@ export type ServiceItemCreate = {
     description: string;
     quantity: number;
     unit_price: number;
+    product_id?: (string | null);
 };
 
 export type ServiceItemRead = {
@@ -246,6 +403,7 @@ export type ServiceItemRead = {
     description: string;
     quantity: number;
     unit_price: number;
+    product_id?: (string | null);
     id: string;
     service_id: string;
 };
@@ -591,6 +749,83 @@ export type LoginRecoverPasswordHtmlContentData = {
 
 export type LoginRecoverPasswordHtmlContentResponse = (string);
 
+export type OrcamentosListOrcamentosData = {
+    dataFim?: (string | null);
+    dataInicio?: (string | null);
+    limit?: number;
+    search?: (string | null);
+    skip?: number;
+    status?: (OrcamentoStatus | null);
+};
+
+export type OrcamentosListOrcamentosResponse = (OrcamentosPublic);
+
+export type OrcamentosCreateOrcamentoData = {
+    requestBody: OrcamentoCreate;
+};
+
+export type OrcamentosCreateOrcamentoResponse = (OrcamentoRead);
+
+export type OrcamentosReadOrcamentoData = {
+    orcamentoId: string;
+};
+
+export type OrcamentosReadOrcamentoResponse = (OrcamentoRead);
+
+export type OrcamentosUpdateOrcamentoData = {
+    orcamentoId: string;
+    requestBody: OrcamentoUpdate;
+};
+
+export type OrcamentosUpdateOrcamentoResponse = (OrcamentoRead);
+
+export type OrcamentosDeleteOrcamentoData = {
+    orcamentoId: string;
+};
+
+export type OrcamentosDeleteOrcamentoResponse = (void);
+
+export type OrcamentosTransitionOrcamentoData = {
+    orcamentoId: string;
+    requestBody: OrcamentoTransitionRequest;
+};
+
+export type OrcamentosTransitionOrcamentoResponse = (OrcamentoTransitionResponse);
+
+export type OrcamentosConvertToServiceData = {
+    orcamentoId: string;
+};
+
+export type OrcamentosConvertToServiceResponse = (ServiceRead);
+
+export type OrcamentosDuplicateOrcamentoData = {
+    orcamentoId: string;
+};
+
+export type OrcamentosDuplicateOrcamentoResponse = (OrcamentoRead);
+
+export type OrcamentosCreateOrcamentoItemData = {
+    orcamentoId: string;
+    requestBody: OrcamentoItemCreate;
+};
+
+export type OrcamentosCreateOrcamentoItemResponse = (OrcamentoItemRead);
+
+export type OrcamentosUpdateOrcamentoItemData = {
+    itemId: string;
+    orcamentoId: string;
+    requestBody: OrcamentoItemUpdate;
+};
+
+export type OrcamentosUpdateOrcamentoItemResponse = (OrcamentoItemRead);
+
+export type OrcamentosDeleteOrcamentoItemData = {
+    itemId: string;
+    orcamentoId: string;
+};
+
+export type OrcamentosDeleteOrcamentoItemResponse = (void);
+
 export type PermissionsGetAvailablePermissionsResponse = ({
     [key: string]: (string);
 });
@@ -765,6 +1000,14 @@ export type ServicesDeleteServiceItemData = {
 };
 
 export type ServicesDeleteServiceItemResponse = (void);
+
+export type SettingsGetCompanySettingsResponse = (CompanySettingsRead);
+
+export type SettingsUpdateCompanySettingsData = {
+    requestBody: CompanySettingsUpdate;
+};
+
+export type SettingsUpdateCompanySettingsResponse = (CompanySettingsRead);
 
 export type TransacoesGetResumoMensalData = {
     ano?: number;

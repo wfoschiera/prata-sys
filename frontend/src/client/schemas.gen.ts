@@ -157,6 +157,54 @@ export const ClientCreateSchema = {
                 }
             ],
             title: 'Address'
+        },
+        bairro: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bairro'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        state: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'State'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
         }
     },
     type: 'object',
@@ -215,6 +263,54 @@ export const ClientPublicSchema = {
                 }
             ],
             title: 'Address'
+        },
+        bairro: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bairro'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        state: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'State'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
         },
         id: {
             type: 'string',
@@ -340,6 +436,54 @@ export const ClientUpdateSchema = {
                 }
             ],
             title: 'Address'
+        },
+        bairro: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bairro'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        state: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'State'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
         }
     },
     type: 'object',
@@ -363,6 +507,175 @@ export const ClientsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'ClientsPublic'
+} as const;
+
+export const CompanySettingsReadSchema = {
+    properties: {
+        company_name: {
+            type: 'string',
+            title: 'Company Name'
+        },
+        cnpj: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cnpj'
+        },
+        inscricao_municipal: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Inscricao Municipal'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        phone: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Phone'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        logo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Logo Url'
+        }
+    },
+    type: 'object',
+    required: ['company_name'],
+    title: 'CompanySettingsRead'
+} as const;
+
+export const CompanySettingsUpdateSchema = {
+    properties: {
+        company_name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Company Name'
+        },
+        cnpj: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 18
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cnpj'
+        },
+        inscricao_municipal: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 50
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Inscricao Municipal'
+        },
+        address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Address'
+        },
+        phone: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 50
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Phone'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        logo_url: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Logo Url'
+        }
+    },
+    type: 'object',
+    title: 'CompanySettingsUpdate'
 } as const;
 
 export const DeductionItemSchema = {
@@ -815,6 +1128,849 @@ export const NewPasswordSchema = {
     type: 'object',
     required: ['token', 'new_password'],
     title: 'NewPassword'
+} as const;
+
+export const OrcamentoCreateSchema = {
+    properties: {
+        service_type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        forma_pagamento: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Forma Pagamento'
+        },
+        vendedor: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Vendedor'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        },
+        validade_proposta: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Validade Proposta'
+        }
+    },
+    type: 'object',
+    required: ['service_type', 'execution_address', 'client_id'],
+    title: 'OrcamentoCreate'
+} as const;
+
+export const OrcamentoItemCreateSchema = {
+    properties: {
+        description: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Description'
+        },
+        quantity: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Quantity'
+        },
+        unit_price: {
+            anyOf: [
+                {
+                    type: 'number',
+                    minimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Unit Price'
+        },
+        show_unit_price: {
+            type: 'boolean',
+            title: 'Show Unit Price',
+            default: true
+        },
+        product_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Product Id'
+        }
+    },
+    type: 'object',
+    required: ['description', 'quantity', 'unit_price', 'product_id'],
+    title: 'OrcamentoItemCreate'
+} as const;
+
+export const OrcamentoItemReadSchema = {
+    properties: {
+        description: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Description'
+        },
+        quantity: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Quantity'
+        },
+        unit_price: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Unit Price'
+        },
+        show_unit_price: {
+            type: 'boolean',
+            title: 'Show Unit Price',
+            default: true
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        orcamento_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Orcamento Id'
+        },
+        product_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Product Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['description', 'quantity', 'unit_price', 'id', 'orcamento_id', 'product_id'],
+    title: 'OrcamentoItemRead'
+} as const;
+
+export const OrcamentoItemUpdateSchema = {
+    properties: {
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        quantity: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Quantity'
+        },
+        unit_price: {
+            anyOf: [
+                {
+                    type: 'number',
+                    minimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit Price'
+        },
+        show_unit_price: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Show Unit Price'
+        }
+    },
+    type: 'object',
+    title: 'OrcamentoItemUpdate'
+} as const;
+
+export const OrcamentoListReadSchema = {
+    properties: {
+        service_type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        forma_pagamento: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Forma Pagamento'
+        },
+        vendedor: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Vendedor'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        ref_code: {
+            type: 'string',
+            title: 'Ref Code'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/OrcamentoStatus'
+        },
+        validade_proposta: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Validade Proposta'
+        },
+        service_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Service Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        client: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ClientRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['service_type', 'execution_address', 'id', 'ref_code', 'client_id', 'status'],
+    title: 'OrcamentoListRead',
+    description: 'Lightweight orçamento for list responses — no items or logs.'
+} as const;
+
+export const OrcamentoReadSchema = {
+    properties: {
+        service_type: {
+            '$ref': '#/components/schemas/ServiceType'
+        },
+        execution_address: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Execution Address'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        forma_pagamento: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Forma Pagamento'
+        },
+        vendedor: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Vendedor'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        ref_code: {
+            type: 'string',
+            title: 'Ref Code'
+        },
+        client_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Client Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/OrcamentoStatus'
+        },
+        validade_proposta: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Validade Proposta'
+        },
+        service_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Service Id'
+        },
+        created_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created By'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        },
+        client: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ClientRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/OrcamentoItemRead'
+            },
+            type: 'array',
+            title: 'Items',
+            default: []
+        },
+        status_logs: {
+            items: {
+                '$ref': '#/components/schemas/OrcamentoStatusLogRead'
+            },
+            type: 'array',
+            title: 'Status Logs',
+            default: []
+        }
+    },
+    type: 'object',
+    required: ['service_type', 'execution_address', 'id', 'ref_code', 'client_id', 'status'],
+    title: 'OrcamentoRead',
+    description: 'Full orçamento detail — includes items and status_logs.'
+} as const;
+
+export const OrcamentoStatusSchema = {
+    type: 'string',
+    enum: ['rascunho', 'em_analise', 'aprovado', 'cancelado'],
+    title: 'OrcamentoStatus'
+} as const;
+
+export const OrcamentoStatusLogReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        from_status: {
+            '$ref': '#/components/schemas/OrcamentoStatus'
+        },
+        to_status: {
+            '$ref': '#/components/schemas/OrcamentoStatus'
+        },
+        changed_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Changed By'
+        },
+        changed_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Changed At'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        }
+    },
+    type: 'object',
+    required: ['id', 'from_status', 'to_status'],
+    title: 'OrcamentoStatusLogRead'
+} as const;
+
+export const OrcamentoTransitionRequestSchema = {
+    properties: {
+        to_status: {
+            '$ref': '#/components/schemas/OrcamentoStatus'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        }
+    },
+    type: 'object',
+    required: ['to_status'],
+    title: 'OrcamentoTransitionRequest'
+} as const;
+
+export const OrcamentoTransitionResponseSchema = {
+    properties: {
+        orcamento: {
+            '$ref': '#/components/schemas/OrcamentoRead'
+        }
+    },
+    type: 'object',
+    required: ['orcamento'],
+    title: 'OrcamentoTransitionResponse'
+} as const;
+
+export const OrcamentoUpdateSchema = {
+    properties: {
+        service_type: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ServiceType'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        execution_address: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Execution Address'
+        },
+        city: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City'
+        },
+        cep: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cep'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        forma_pagamento: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Forma Pagamento'
+        },
+        validade_proposta: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Validade Proposta'
+        },
+        vendedor: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Vendedor'
+        }
+    },
+    type: 'object',
+    title: 'OrcamentoUpdate'
+} as const;
+
+export const OrcamentosPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/OrcamentoListRead'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'OrcamentosPublic'
 } as const;
 
 export const PrivateUserCreateSchema = {
@@ -1314,6 +2470,18 @@ export const ServiceItemCreateSchema = {
             type: 'number',
             minimum: 0,
             title: 'Unit Price'
+        },
+        product_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Product Id'
         }
     },
     type: 'object',
@@ -1341,6 +2509,18 @@ export const ServiceItemReadSchema = {
             type: 'number',
             minimum: 0,
             title: 'Unit Price'
+        },
+        product_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Product Id'
         },
         id: {
             type: 'string',

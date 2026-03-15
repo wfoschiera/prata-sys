@@ -2,6 +2,7 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Drill,
+  FileText,
   Home,
   LayoutDashboard,
   Lock,
@@ -45,6 +46,15 @@ export function AppSidebar() {
       : []),
     ...(hasPerm(perms, su, "manage_clients")
       ? [{ icon: UserSquare2, title: "Clientes", path: "/clients" as const }]
+      : []),
+    ...(hasPerm(perms, su, "manage_orcamentos")
+      ? [
+          {
+            icon: FileText,
+            title: "Orçamentos",
+            path: "/orcamentos" as const,
+          },
+        ]
       : []),
     ...(hasPerm(perms, su, "manage_services")
       ? [{ icon: Drill, title: "Serviços", path: "/services" as const }]

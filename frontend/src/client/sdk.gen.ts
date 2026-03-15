@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, EstoqueGetDashboardResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProductItemsCreateProductItemData, ProductItemsCreateProductItemResponse, ProductItemsListProductItemsData, ProductItemsListProductItemsResponse, ProductsCreateProductData, ProductsCreateProductResponse, ProductsListProductsData, ProductsListProductsResponse, ProductsGetProductData, ProductsGetProductResponse, ProductsUpdateProductData, ProductsUpdateProductResponse, ProductsDeleteProductData, ProductsDeleteProductResponse, ProductsGetProductItemsData, ProductsGetProductItemsResponse, ProductsGetProductPredictionData, ProductsGetProductPredictionResponse, ProductTypesListProductTypesResponse, ProductTypesCreateProductTypeData, ProductTypesCreateProductTypeResponse, ProductTypesGetProductTypeData, ProductTypesGetProductTypeResponse, ProductTypesUpdateProductTypeData, ProductTypesUpdateProductTypeResponse, ProductTypesDeleteProductTypeData, ProductTypesDeleteProductTypeResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesBaixarEstoqueData, ServicesBaixarEstoqueResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, EstoqueGetDashboardResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, OrcamentosListOrcamentosData, OrcamentosListOrcamentosResponse, OrcamentosCreateOrcamentoData, OrcamentosCreateOrcamentoResponse, OrcamentosReadOrcamentoData, OrcamentosReadOrcamentoResponse, OrcamentosUpdateOrcamentoData, OrcamentosUpdateOrcamentoResponse, OrcamentosDeleteOrcamentoData, OrcamentosDeleteOrcamentoResponse, OrcamentosTransitionOrcamentoData, OrcamentosTransitionOrcamentoResponse, OrcamentosConvertToServiceData, OrcamentosConvertToServiceResponse, OrcamentosDuplicateOrcamentoData, OrcamentosDuplicateOrcamentoResponse, OrcamentosCreateOrcamentoItemData, OrcamentosCreateOrcamentoItemResponse, OrcamentosUpdateOrcamentoItemData, OrcamentosUpdateOrcamentoItemResponse, OrcamentosDeleteOrcamentoItemData, OrcamentosDeleteOrcamentoItemResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProductItemsCreateProductItemData, ProductItemsCreateProductItemResponse, ProductItemsListProductItemsData, ProductItemsListProductItemsResponse, ProductsCreateProductData, ProductsCreateProductResponse, ProductsListProductsData, ProductsListProductsResponse, ProductsGetProductData, ProductsGetProductResponse, ProductsUpdateProductData, ProductsUpdateProductResponse, ProductsDeleteProductData, ProductsDeleteProductResponse, ProductsGetProductItemsData, ProductsGetProductItemsResponse, ProductsGetProductPredictionData, ProductsGetProductPredictionResponse, ProductTypesListProductTypesResponse, ProductTypesCreateProductTypeData, ProductTypesCreateProductTypeResponse, ProductTypesGetProductTypeData, ProductTypesGetProductTypeResponse, ProductTypesUpdateProductTypeData, ProductTypesUpdateProductTypeResponse, ProductTypesDeleteProductTypeData, ProductTypesDeleteProductTypeResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesBaixarEstoqueData, ServicesBaixarEstoqueResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, SettingsGetCompanySettingsResponse, SettingsUpdateCompanySettingsData, SettingsUpdateCompanySettingsResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -395,6 +395,264 @@ export class LoginService {
             url: '/api/v1/password-recovery-html-content/{email}',
             path: {
                 email: data.email
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class OrcamentosService {
+    /**
+     * List Orcamentos
+     * List orçamentos with filters and pagination.
+     * @param data The data for the request.
+     * @param data.search
+     * @param data.status
+     * @param data.dataInicio
+     * @param data.dataFim
+     * @param data.skip
+     * @param data.limit
+     * @returns OrcamentosPublic Successful Response
+     * @throws ApiError
+     */
+    public static listOrcamentos(data: OrcamentosListOrcamentosData = {}): CancelablePromise<OrcamentosListOrcamentosResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/orcamentos/',
+            query: {
+                search: data.search,
+                status: data.status,
+                data_inicio: data.dataInicio,
+                data_fim: data.dataFim,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Orcamento
+     * Create a new orçamento.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns OrcamentoRead Successful Response
+     * @throws ApiError
+     */
+    public static createOrcamento(data: OrcamentosCreateOrcamentoData): CancelablePromise<OrcamentosCreateOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/orcamentos/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Orcamento
+     * Get a single orçamento with full detail.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @returns OrcamentoRead Successful Response
+     * @throws ApiError
+     */
+    public static readOrcamento(data: OrcamentosReadOrcamentoData): CancelablePromise<OrcamentosReadOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/orcamentos/{orcamento_id}',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Orcamento
+     * Update an orçamento (only when rascunho or em_análise).
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @param data.requestBody
+     * @returns OrcamentoRead Successful Response
+     * @throws ApiError
+     */
+    public static updateOrcamento(data: OrcamentosUpdateOrcamentoData): CancelablePromise<OrcamentosUpdateOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/orcamentos/{orcamento_id}',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Orcamento
+     * Delete an orçamento (only when rascunho).
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteOrcamento(data: OrcamentosDeleteOrcamentoData): CancelablePromise<OrcamentosDeleteOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/orcamentos/{orcamento_id}',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Transition Orcamento
+     * Change orçamento status.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @param data.requestBody
+     * @returns OrcamentoTransitionResponse Successful Response
+     * @throws ApiError
+     */
+    public static transitionOrcamento(data: OrcamentosTransitionOrcamentoData): CancelablePromise<OrcamentosTransitionOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/orcamentos/{orcamento_id}/transition',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Convert To Service
+     * Create a Service from an approved orçamento (one-time only).
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @returns ServiceRead Successful Response
+     * @throws ApiError
+     */
+    public static convertToService(data: OrcamentosConvertToServiceData): CancelablePromise<OrcamentosConvertToServiceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/orcamentos/{orcamento_id}/convert-to-service',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Duplicate Orcamento
+     * Create a copy of an orçamento as a new rascunho.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @returns OrcamentoRead Successful Response
+     * @throws ApiError
+     */
+    public static duplicateOrcamento(data: OrcamentosDuplicateOrcamentoData): CancelablePromise<OrcamentosDuplicateOrcamentoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/orcamentos/{orcamento_id}/duplicate',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Orcamento Item
+     * Add an item to an orçamento.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @param data.requestBody
+     * @returns OrcamentoItemRead Successful Response
+     * @throws ApiError
+     */
+    public static createOrcamentoItem(data: OrcamentosCreateOrcamentoItemData): CancelablePromise<OrcamentosCreateOrcamentoItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/orcamentos/{orcamento_id}/items',
+            path: {
+                orcamento_id: data.orcamentoId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Orcamento Item
+     * Update an orçamento item.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @param data.itemId
+     * @param data.requestBody
+     * @returns OrcamentoItemRead Successful Response
+     * @throws ApiError
+     */
+    public static updateOrcamentoItem(data: OrcamentosUpdateOrcamentoItemData): CancelablePromise<OrcamentosUpdateOrcamentoItemResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/orcamentos/{orcamento_id}/items/{item_id}',
+            path: {
+                orcamento_id: data.orcamentoId,
+                item_id: data.itemId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Orcamento Item
+     * Remove an item from an orçamento.
+     * @param data The data for the request.
+     * @param data.orcamentoId
+     * @param data.itemId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteOrcamentoItem(data: OrcamentosDeleteOrcamentoItemData): CancelablePromise<OrcamentosDeleteOrcamentoItemResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/orcamentos/{orcamento_id}/items/{item_id}',
+            path: {
+                orcamento_id: data.orcamentoId,
+                item_id: data.itemId
             },
             errors: {
                 422: 'Validation Error'
@@ -1002,6 +1260,41 @@ export class ServicesService {
                 service_id: data.serviceId,
                 item_id: data.itemId
             },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class SettingsService {
+    /**
+     * Get Company Settings
+     * Get company settings for document headers.
+     * @returns CompanySettingsRead Successful Response
+     * @throws ApiError
+     */
+    public static getCompanySettings(): CancelablePromise<SettingsGetCompanySettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/settings/empresa'
+        });
+    }
+    
+    /**
+     * Update Company Settings
+     * Update company settings. Admin only.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CompanySettingsRead Successful Response
+     * @throws ApiError
+     */
+    public static updateCompanySettings(data: SettingsUpdateCompanySettingsData): CancelablePromise<SettingsUpdateCompanySettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/settings/empresa',
+            body: data.requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: 'Validation Error'
             }

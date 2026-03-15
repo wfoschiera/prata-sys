@@ -1,0 +1,74 @@
+/**
+ * Orçamento print styles.
+ * Import this in the orçamento detail route to enable clean printing.
+ *
+ * Usage: import "@/components/Orcamentos/orcamento-print.css"
+ *        Then click window.print() or Ctrl+P
+ */
+
+@media print {
+  /* Hide everything outside the document */
+  body > * {
+    visibility: hidden;
+  }
+
+  /* Hide navigation, sidebar, action bars */
+  .no-print,
+  nav,
+  aside,
+  header,
+  [data-slot="sidebar"],
+  [data-sidebar] {
+    display: none;
+  }
+
+  /* Show only the document */
+  .orcamento-doc,
+  .orcamento-doc * {
+    visibility: visible;
+  }
+
+  .orcamento-doc {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20mm 15mm;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: white;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* Table styling for print */
+  .orcamento-doc table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .orcamento-doc th,
+  .orcamento-doc td {
+    border: 0.5pt solid #999;
+    padding: 4pt 6pt;
+  }
+
+  .orcamento-doc th {
+    background: #f0f0f0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .orcamento-doc tfoot td {
+    border-top: 1.5pt solid #333;
+    font-weight: bold;
+  }
+
+  /* Page settings */
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}
