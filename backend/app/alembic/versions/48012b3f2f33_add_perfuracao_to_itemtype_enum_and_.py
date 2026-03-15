@@ -16,14 +16,12 @@ depends_on = None
 
 
 def upgrade():
-    # Add 'perfuração' value to the itemtype enum
-    op.execute("ALTER TYPE itemtype ADD VALUE IF NOT EXISTS 'perfuração'")
+    # item_type is stored as VARCHAR — no ALTER TYPE needed, the Python enum
+    # already accepts the new 'perfuração' value as a valid string.
 
     # Add index on service.type for dashboard GROUP BY queries
     op.create_index('ix_service_type', 'service', ['type'], unique=False)
 
 
 def downgrade():
-    # Note: PostgreSQL does not support removing enum values.
-    # Downgrade only removes the index.
     op.drop_index('ix_service_type', table_name='service')
