@@ -1039,3 +1039,217 @@ class InventoryStockWarning(SQLModel):
 class BaixarEstoqueResponse(SQLModel):
     service_id: uuid.UUID
     items_updated: int
+
+
+# ── Orçamento ──────────────────────────────────────────────────────────────────
+
+
+class OrcamentoStatus(str, enum.Enum):
+    rascunho = "rascunho"
+    em_analise = "em_analise"
+    aprovado = "aprovado"
+    cancelado = "cancelado"
+
+
+VALID_ORCAMENTO_TRANSITIONS: dict[OrcamentoStatus, list[OrcamentoStatus]] = {
+    OrcamentoStatus.rascunho: [OrcamentoStatus.em_analise, OrcamentoStatus.cancelado],
+    OrcamentoStatus.em_analise: [
+        OrcamentoStatus.rascunho,
+        OrcamentoStatus.aprovado,
+        OrcamentoStatus.cancelado,
+    ],
+    OrcamentoStatus.aprovado: [OrcamentoStatus.em_analise, OrcamentoStatus.cancelado],
+    OrcamentoStatus.cancelado: [],
+}
+
+
+class OrcamentoItemBase(SQLModel):
+    description: str = Field(min_length=1, max_length=500)
+    quantity: Decimal = Field(sa_type=Numeric(12, 4), gt=0)  # type: ignore
+    unit_price: Decimal = Field(sa_type=Numeric(10, 2), ge=0)  # type: ignore
+    show_unit_price: bool = Field(default=True)
+
+
+class OrcamentoItemCreate(OrcamentoItemBase):
+    product_id: uuid.UUID
+
+
+class OrcamentoItemUpdate(SQLModel):
+    description: str | None = Field(default=None, min_length=1, max_length=500)
+    quantity: Decimal | None = Field(default=None, gt=0)
+    unit_price: Decimal | None = Field(default=None, ge=0)
+    show_unit_price: bool | None = None
+
+
+class OrcamentoItemRead(OrcamentoItemBase):
+    id: uuid.UUID
+    orcamento_id: uuid.UUID
+    product_id: uuid.UUID
+    created_at: datetime | None = None
+
+
+class OrcamentoItem(OrcamentoItemBase, table=True):
+    __tablename__ = "orcamento_item"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    orcamento_id: uuid.UUID = Field(
+        foreign_key="orcamento.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    product_id: uuid.UUID = Field(
+        foreign_key="product.id", nullable=False, ondelete="RESTRICT"
+    )
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    orcamento: "Orcamento" = Relationship(back_populates="items")
+    product: "Product" = Relationship()
+
+
+class OrcamentoBase(SQLModel):
+    service_type: ServiceType
+    execution_address: str = Field(min_length=1, max_length=500)
+    city: str | None = Field(default=None, max_length=100)
+    cep: str | None = Field(default=None, max_length=9)
+    description: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, sa_type=Text)
+    forma_pagamento: str | None = Field(default=None, max_length=500)
+    vendedor: str | None = Field(default=None, max_length=255)
+
+
+class OrcamentoCreate(OrcamentoBase):
+    client_id: uuid.UUID
+    validade_proposta: date | None = None
+
+
+class OrcamentoUpdate(SQLModel):
+    service_type: ServiceType | None = None
+    execution_address: str | None = Field(default=None, min_length=1, max_length=500)
+    city: str | None = Field(default=None, max_length=100)
+    cep: str | None = Field(default=None, max_length=9)
+    description: str | None = Field(default=None, max_length=500)
+    notes: str | None = None
+    forma_pagamento: str | None = Field(default=None, max_length=500)
+    validade_proposta: date | None = None
+    vendedor: str | None = Field(default=None, max_length=255)
+
+
+class OrcamentoStatusLogRead(SQLModel):
+    id: uuid.UUID
+    from_status: OrcamentoStatus
+    to_status: OrcamentoStatus
+    changed_by: uuid.UUID | None = None
+    changed_at: datetime | None = None
+    notes: str | None = None
+
+
+class OrcamentoRead(OrcamentoBase):
+    """Full orçamento detail — includes items and status_logs."""
+
+    id: uuid.UUID
+    ref_code: str
+    client_id: uuid.UUID
+    status: OrcamentoStatus
+    validade_proposta: date | None = None
+    service_id: uuid.UUID | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    client: ClientRef | None = None
+    items: list[OrcamentoItemRead] = []
+    status_logs: list[OrcamentoStatusLogRead] = []
+
+
+class OrcamentoListRead(OrcamentoBase):
+    """Lightweight orçamento for list responses — no items or logs."""
+
+    id: uuid.UUID
+    ref_code: str
+    client_id: uuid.UUID
+    status: OrcamentoStatus
+    validade_proposta: date | None = None
+    service_id: uuid.UUID | None = None
+    created_at: datetime | None = None
+    client: ClientRef | None = None
+
+
+class OrcamentosPublic(SQLModel):
+    data: list[OrcamentoListRead]
+    count: int
+
+
+class OrcamentoTransitionRequest(SQLModel):
+    to_status: OrcamentoStatus
+    reason: str | None = None
+
+
+class OrcamentoTransitionResponse(SQLModel):
+    orcamento: OrcamentoRead
+
+
+class Orcamento(OrcamentoBase, table=True):
+    __tablename__ = "orcamento"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    ref_code: str = Field(max_length=6, unique=True, index=True)
+    client_id: uuid.UUID = Field(foreign_key="client.id", nullable=False, index=True)
+    status: OrcamentoStatus = Field(default=OrcamentoStatus.rascunho, index=True)
+    validade_proposta: date | None = Field(default=None)
+    service_id: uuid.UUID | None = Field(
+        default=None, foreign_key="service.id", nullable=True, ondelete="SET NULL"
+    )
+    created_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", nullable=True, ondelete="SET NULL"
+    )
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    client: Client | None = Relationship()
+    items: list[OrcamentoItem] = Relationship(
+        back_populates="orcamento",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    status_logs: list["OrcamentoStatusLog"] = Relationship(
+        back_populates="orcamento",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "order_by": "OrcamentoStatusLog.changed_at",
+        },
+    )
+    created_by_user: User | None = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Orcamento.created_by]"}
+    )
+    service: Optional["Service"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Orcamento.service_id]"}
+    )
+
+
+class OrcamentoStatusLog(SQLModel, table=True):
+    __tablename__ = "orcamento_status_log"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    orcamento_id: uuid.UUID = Field(
+        foreign_key="orcamento.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    from_status: OrcamentoStatus = Field(nullable=False)
+    to_status: OrcamentoStatus = Field(nullable=False)
+    changed_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", nullable=True, ondelete="SET NULL"
+    )
+    changed_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    notes: str | None = Field(default=None, max_length=500)
+
+    orcamento: Orcamento = Relationship(back_populates="status_logs")
+    changed_by_user: User | None = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[OrcamentoStatusLog.changed_by]"}
+    )
