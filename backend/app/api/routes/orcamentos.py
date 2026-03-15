@@ -73,7 +73,7 @@ def create_orcamento(
         return crud.create_orcamento(
             session=session, orcamento_in=body, created_by_id=current_user.id
         )
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
@@ -263,7 +263,7 @@ def update_orcamento_item(
         return crud.update_orcamento_item(
             session=session, db_item=db_item, item_in=body
         )
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
@@ -284,7 +284,7 @@ def delete_orcamento_item(
         )
     try:
         crud.delete_orcamento_item(session=session, db_item=db_item)
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )

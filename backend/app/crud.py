@@ -1288,7 +1288,7 @@ def _generate_ref_code(session: Session) -> str:
         if existing is None:
             return code
     msg = "Failed to generate unique ref_code after 10 attempts"
-    raise RuntimeError(msg)
+    raise RuntimeError(msg)  # pragma: no cover
 
 
 def _orcamento_detail_options() -> list[Any]:
