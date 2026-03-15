@@ -590,3 +590,40 @@ def test_update_item_on_approved_returns_422(
         json={"quantity": 999.0},
     )
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ── Company settings tests ────────────────────────────────────────────────────
+
+
+def test_get_company_settings_returns_default(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/settings/empresa",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert "company_name" in r.json()
+
+
+def test_update_company_settings(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.put(
+        f"{settings.API_V1_STR}/settings/empresa",
+        headers=superuser_token_headers,
+        json={
+            "company_name": "Prata Poços",
+            "cnpj": "49.508.087/0001-00",
+            "phone": "66 9 9985-0535",
+        },
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["company_name"] == "Prata Poços"
+
+    # Read back
+    r2 = client.get(
+        f"{settings.API_V1_STR}/settings/empresa",
+        headers=superuser_token_headers,
+    )
+    assert r2.json()["cnpj"] == "49.508.087/0001-00"
