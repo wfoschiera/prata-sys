@@ -5,6 +5,7 @@ from app.api.routes import (
     estoque,
     fornecedores,
     login,
+    orcamentos,
     permissions,
     private,
     product_items,
@@ -33,6 +34,7 @@ api_router.include_router(product_types.router)
 api_router.include_router(products.router)
 api_router.include_router(product_items.router)
 api_router.include_router(estoque.router)
+api_router.include_router(orcamentos.router)
 api_router.include_router(settings_routes.router)
 
 

@@ -9,6 +9,7 @@ from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import (
+    VALID_ORCAMENTO_TRANSITIONS,
     VALID_STATUS_TRANSITIONS,
     BaixarEstoqueResponse,
     CategoriaTransacao,
@@ -29,6 +30,14 @@ from app.models import (
     FornecedorUpdate,
     InventoryStockWarning,
     ItemType,
+    Orcamento,
+    OrcamentoCreate,
+    OrcamentoItem,
+    OrcamentoItemCreate,
+    OrcamentoItemUpdate,
+    OrcamentoStatus,
+    OrcamentoStatusLog,
+    OrcamentoUpdate,
     Product,
     ProductCategory,
     ProductCreate,
@@ -1262,3 +1271,322 @@ def baixar_estoque_for_service(
         raise ValueError(msg)
     count = utilize_reserved_items_for_service(session=session, service_id=service_id)
     return BaixarEstoqueResponse(service_id=service_id, items_updated=count)
+
+
+# ── Orçamento CRUD ─────────────────────────────────────────────────────────────
+
+
+def _generate_ref_code(session: Session) -> str:
+    """Generate a unique 6-char uppercase hex code. Retry on collision."""
+    import secrets
+
+    for _ in range(10):
+        code = secrets.token_hex(3).upper()
+        existing = session.exec(
+            select(Orcamento).where(Orcamento.ref_code == code)
+        ).first()
+        if existing is None:
+            return code
+    msg = "Failed to generate unique ref_code after 10 attempts"
+    raise RuntimeError(msg)  # pragma: no cover
+
+
+def _orcamento_detail_options() -> list[Any]:
+    return [
+        selectinload(Orcamento.client),  # type: ignore[arg-type]
+        selectinload(Orcamento.items).selectinload(OrcamentoItem.product),  # type: ignore[arg-type]
+        selectinload(Orcamento.status_logs).selectinload(  # type: ignore[arg-type]
+            OrcamentoStatusLog.changed_by_user  # type: ignore[arg-type]
+        ),
+    ]
+
+
+def get_orcamento(*, session: Session, orcamento_id: uuid.UUID) -> Orcamento | None:
+    statement = (
+        select(Orcamento)
+        .where(Orcamento.id == orcamento_id)
+        .options(*_orcamento_detail_options())
+    )
+    return session.exec(statement).first()
+
+
+def get_orcamentos(
+    *,
+    session: Session,
+    search: str | None = None,
+    status: OrcamentoStatus | None = None,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> tuple[list[Orcamento], int]:
+    base = select(Orcamento)
+    count_base = select(func.count()).select_from(Orcamento)
+
+    if search is not None:
+        pattern = f"%{search}%"
+        search_filter = Orcamento.client_id.in_(  # type: ignore[attr-defined]
+            select(Client.id).where(
+                (Client.name.ilike(pattern))  # type: ignore[attr-defined]
+                | (Client.document_number.ilike(pattern))  # type: ignore[attr-defined]
+            )
+        )
+        base = base.where(search_filter)
+        count_base = count_base.where(search_filter)
+
+    if status is not None:
+        base = base.where(Orcamento.status == status)
+        count_base = count_base.where(Orcamento.status == status)
+
+    if data_inicio is not None:
+        base = base.where(Orcamento.created_at >= data_inicio)  # type: ignore[operator]
+        count_base = count_base.where(Orcamento.created_at >= data_inicio)  # type: ignore[operator]
+
+    if data_fim is not None:
+        base = base.where(Orcamento.created_at <= data_fim)  # type: ignore[operator]
+        count_base = count_base.where(Orcamento.created_at <= data_fim)  # type: ignore[operator]
+
+    count = session.exec(count_base).one()
+    statement = (
+        base.options(selectinload(Orcamento.client))  # type: ignore[arg-type]
+        .order_by(Orcamento.created_at.desc())  # type: ignore[union-attr]
+        .offset(skip)
+        .limit(limit)
+    )
+    orcamentos = session.exec(statement).all()
+    return list(orcamentos), count
+
+
+def create_orcamento(
+    *, session: Session, orcamento_in: OrcamentoCreate, created_by_id: uuid.UUID
+) -> Orcamento:
+    ref_code = _generate_ref_code(session)
+    db_orcamento = Orcamento.model_validate(
+        orcamento_in, update={"ref_code": ref_code, "created_by": created_by_id}
+    )
+    session.add(db_orcamento)
+    session.commit()
+    result = get_orcamento(session=session, orcamento_id=db_orcamento.id)
+    if result is None:
+        msg = f"Orcamento {db_orcamento.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
+    return result
+
+
+def update_orcamento(
+    *, session: Session, db_orcamento: Orcamento, orcamento_in: OrcamentoUpdate
+) -> Orcamento:
+    locked = {OrcamentoStatus.aprovado, OrcamentoStatus.cancelado}
+    if db_orcamento.status in locked:
+        msg = f"Não é possível editar um orçamento com status '{db_orcamento.status}'"
+        raise ValueError(msg)
+    update_data = orcamento_in.model_dump(exclude_unset=True)
+    db_orcamento.sqlmodel_update(update_data)
+    db_orcamento.updated_at = get_datetime_utc()
+    session.add(db_orcamento)
+    session.commit()
+    result = get_orcamento(session=session, orcamento_id=db_orcamento.id)
+    if result is None:
+        msg = f"Orcamento {db_orcamento.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
+    return result
+
+
+def delete_orcamento(*, session: Session, db_orcamento: Orcamento) -> None:
+    if db_orcamento.status != OrcamentoStatus.rascunho:
+        msg = f"Apenas orçamentos em rascunho podem ser excluídos (status atual: '{db_orcamento.status}')"
+        raise ValueError(msg)
+    session.delete(db_orcamento)
+    session.commit()
+
+
+def transition_orcamento_status(
+    session: Session,
+    orcamento: Orcamento,
+    to_status: OrcamentoStatus,
+    changed_by_id: uuid.UUID,
+    reason: str | None = None,
+) -> Orcamento:
+    allowed = VALID_ORCAMENTO_TRANSITIONS.get(orcamento.status, [])
+    if to_status not in allowed:
+        msg = f"Transição inválida: '{orcamento.status}' → '{to_status}'"
+        raise ValueError(msg)
+
+    # Guard: can't approve without items
+    if to_status == OrcamentoStatus.aprovado and len(orcamento.items) == 0:
+        msg = "Não é possível aprovar um orçamento sem itens"
+        raise ValueError(msg)
+
+    # Guard: can't cancel or un-approve a converted orçamento
+    if orcamento.service_id is not None and to_status in {
+        OrcamentoStatus.cancelado,
+        OrcamentoStatus.em_analise,
+    }:
+        msg = "Não é possível alterar o status de um orçamento já convertido em serviço"
+        raise ValueError(msg)
+
+    log = OrcamentoStatusLog(
+        orcamento_id=orcamento.id,
+        from_status=orcamento.status,
+        to_status=to_status,
+        changed_by=changed_by_id,
+        notes=reason,
+    )
+    session.add(log)
+
+    orcamento.status = to_status
+    orcamento.updated_at = get_datetime_utc()
+    session.add(orcamento)
+    session.commit()
+    session.refresh(orcamento)
+
+    result = get_orcamento(session=session, orcamento_id=orcamento.id)
+    if result is None:
+        msg = f"Orcamento {orcamento.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
+    return result
+
+
+# ── Orçamento Items ────────────────────────────────────────────────────────────
+
+
+def create_orcamento_item(
+    *, session: Session, orcamento_id: uuid.UUID, item_in: OrcamentoItemCreate
+) -> OrcamentoItem:
+    orcamento = session.get(Orcamento, orcamento_id)
+    if orcamento is None:
+        msg = "Orçamento não encontrado"
+        raise ValueError(msg)
+    locked = {OrcamentoStatus.aprovado, OrcamentoStatus.cancelado}
+    if orcamento.status in locked:
+        msg = f"Não é possível adicionar itens a um orçamento com status '{orcamento.status}'"
+        raise ValueError(msg)
+    product = session.get(Product, item_in.product_id)
+    if product is None:
+        msg = "Produto não encontrado"
+        raise ValueError(msg)
+    db_item = OrcamentoItem.model_validate(
+        item_in, update={"orcamento_id": orcamento_id}
+    )
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item
+
+
+def update_orcamento_item(
+    *, session: Session, db_item: OrcamentoItem, item_in: OrcamentoItemUpdate
+) -> OrcamentoItem:
+    orcamento = session.get(Orcamento, db_item.orcamento_id)
+    locked = {OrcamentoStatus.aprovado, OrcamentoStatus.cancelado}
+    if orcamento is not None and orcamento.status in locked:
+        msg = f"Não é possível editar itens de um orçamento com status '{orcamento.status}'"
+        raise ValueError(msg)
+    update_data = item_in.model_dump(exclude_unset=True)
+    db_item.sqlmodel_update(update_data)
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item
+
+
+def delete_orcamento_item(*, session: Session, db_item: OrcamentoItem) -> None:
+    orcamento = session.get(Orcamento, db_item.orcamento_id)
+    locked = {OrcamentoStatus.aprovado, OrcamentoStatus.cancelado}
+    if orcamento is not None and orcamento.status in locked:
+        msg = f"Não é possível remover itens de um orçamento com status '{orcamento.status}'"
+        raise ValueError(msg)
+    session.delete(db_item)
+    session.commit()
+
+
+# ── Orçamento Conversions ──────────────────────────────────────────────────────
+
+
+def convert_orcamento_to_service(
+    session: Session,
+    orcamento: Orcamento,
+    created_by_id: uuid.UUID,  # noqa: ARG001 — kept for audit trail in future
+) -> Service:
+    """Create a Service from an approved Orçamento. One-time only."""
+    if orcamento.status != OrcamentoStatus.aprovado:
+        msg = "Apenas orçamentos aprovados podem ser convertidos em serviço"
+        raise ValueError(msg)
+    if orcamento.service_id is not None:
+        msg = "Este orçamento já foi convertido em serviço"
+        raise ValueError(msg)
+
+    service_in = ServiceCreate(
+        type=orcamento.service_type,
+        client_id=orcamento.client_id,
+        execution_address=orcamento.execution_address,
+    )
+    db_service = Service.model_validate(service_in)
+    if orcamento.description:
+        db_service.description = orcamento.description
+    session.add(db_service)
+    session.flush()
+
+    # Copy items as ServiceItems
+    for orc_item in orcamento.items:
+        svc_item = ServiceItem(
+            service_id=db_service.id,
+            item_type=ItemType.material,
+            product_id=orc_item.product_id,
+            description=orc_item.description,
+            quantity=float(orc_item.quantity),
+            unit_price=float(orc_item.unit_price),
+        )
+        session.add(svc_item)
+
+    orcamento.service_id = db_service.id
+    orcamento.updated_at = get_datetime_utc()
+    session.add(orcamento)
+    session.commit()
+
+    result = get_service(session=session, service_id=db_service.id)
+    if result is None:
+        msg = f"Service {db_service.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
+    return result
+
+
+def duplicate_orcamento(
+    session: Session, orcamento: Orcamento, created_by_id: uuid.UUID
+) -> Orcamento:
+    """Create a deep copy of an orçamento as a new rascunho."""
+    ref_code = _generate_ref_code(session)
+    new_orc = Orcamento(
+        ref_code=ref_code,
+        client_id=orcamento.client_id,
+        service_type=orcamento.service_type,
+        status=OrcamentoStatus.rascunho,
+        execution_address=orcamento.execution_address,
+        city=orcamento.city,
+        cep=orcamento.cep,
+        description=orcamento.description,
+        notes=orcamento.notes,
+        forma_pagamento=orcamento.forma_pagamento,
+        vendedor=orcamento.vendedor,
+        created_by=created_by_id,
+    )
+    session.add(new_orc)
+    session.flush()
+
+    for item in orcamento.items:
+        new_item = OrcamentoItem(
+            orcamento_id=new_orc.id,
+            product_id=item.product_id,
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            show_unit_price=item.show_unit_price,
+        )
+        session.add(new_item)
+
+    session.commit()
+    result = get_orcamento(session=session, orcamento_id=new_orc.id)
+    if result is None:
+        msg = f"Orcamento {new_orc.id} not found after commit"
+        raise RuntimeError(msg)  # pragma: no cover
+    return result
