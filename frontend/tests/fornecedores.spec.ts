@@ -64,6 +64,8 @@ async function switchUser(
 // ---------------------------------------------------------------------------
 
 test("F1 superuser creates fornecedor — appears in list", async ({ page }) => {
+  const uniqueName = `Empresa Teste ${Date.now()}`
+
   await switchUser(page, firstSuperuser, firstSuperuserPassword)
 
   await page.goto("/fornecedores")
@@ -74,12 +76,12 @@ test("F1 superuser creates fornecedor — appears in list", async ({ page }) => 
   await page.getByRole("button", { name: "Novo Fornecedor" }).click()
   await expect(page).toHaveURL(/\/fornecedores\/new/)
 
-  await page.getByLabel(/Nome da Empresa/i).fill("Empresa Teste Ltda")
+  await page.getByLabel(/Nome da Empresa/i).fill(uniqueName)
   await page.getByRole("button", { name: "Criar Fornecedor" }).click()
 
   await expect(page.getByText("Fornecedor criado")).toBeVisible()
   await page.goto("/fornecedores")
-  await expect(page.getByText("Empresa Teste Ltda")).toBeVisible()
+  await expect(page.getByText(uniqueName)).toBeVisible()
 })
 
 // ---------------------------------------------------------------------------
