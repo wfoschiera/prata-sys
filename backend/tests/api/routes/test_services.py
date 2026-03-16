@@ -745,24 +745,6 @@ def test_get_service_status_logs_crud(
 # ── Phase 8: Stock integration tests ─────────────────────────────────────────
 
 
-def _drain_em_estoque(db: Session) -> None:
-    """Mark all em_estoque items as utilizado to avoid cross-test contamination.
-
-    The db fixture is session-scoped, so stock state accumulates across tests.
-    Call this at the start of any test that relies on specific stock reservation
-    behavior.
-    """
-    from app.models import ProductItem, ProductItemStatus
-
-    items = db.exec(
-        select(ProductItem).where(ProductItem.status == ProductItemStatus.em_estoque)
-    ).all()
-    for item in items:
-        item.status = ProductItemStatus.utilizado
-        db.add(item)
-    db.commit()
-
-
 def _create_product_item(db: Session, quantity: float = 5.0) -> object:
     """Create a ProductType, Product, and ProductItem with em_estoque status."""
     from app.models import (
@@ -832,8 +814,6 @@ def test_transition_to_scheduled_reserves_stock(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Transitioning to scheduled reserves em_estoque ProductItems for the service."""
-    _drain_em_estoque(db)
-
     svc = create_random_service(db)
     create_service_item(db, svc)
     _create_product_item(db, quantity=20.0)
@@ -855,8 +835,6 @@ def test_transition_to_scheduled_with_insufficient_stock_returns_warning(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Insufficient stock produces a warning but does not block transition."""
-    _drain_em_estoque(db)
-
     svc = create_random_service(db)
     # Service item needs 10 units, only 2 available
     item_in = ServiceItemCreate(
@@ -886,8 +864,6 @@ def test_transition_to_cancelled_releases_reserved_stock(
 ) -> None:
     """Cancelling a service releases all reserved ProductItems back to em_estoque."""
     from app.models import ProductItemStatus
-
-    _drain_em_estoque(db)
 
     svc = create_random_service(db)
     create_service_item(db, svc)
@@ -928,8 +904,6 @@ def test_transition_to_completed_marks_stock_utilizado(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Completing a service marks reserved ProductItems as utilizado."""
-    _drain_em_estoque(db)
-
     svc = create_random_service(db)
     svc_item = create_service_item(db, svc)
     _create_product_item(db, quantity=20.0)
@@ -968,8 +942,6 @@ def test_deduct_stock_marks_reserved_items_utilizado(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /deduct-stock on an executing service marks reserved items utilizado."""
-    _drain_em_estoque(db)
-
     svc = create_random_service(db)
     create_service_item(db, svc)
     _create_product_item(db, quantity=20.0)
