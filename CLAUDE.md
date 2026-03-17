@@ -144,7 +144,7 @@ Use [Worktrunk](https://worktrunk.dev) (`wt`) for creating and managing git work
 - Project hooks auto-run setup on new worktrees (no manual steps needed)
 
 ### PR Labels (required by CI)
-Every PR must have exactly one label (`feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`). Use `/create-pr` skill which handles this automatically.
+Every PR must have at least one label matching `<type>` or `<type>(<scope>)`. Base types: `feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`. Scope is optional, lowercase alphanumeric with dashes (e.g. `fix(backend)`, `chore(crud-api)`, `feat(frontend)`). Use `/create-pr` skill which handles this automatically.
 
 ### Backend
 - Models go in `backend/app/models.py` (SQLModel)
