@@ -32,6 +32,7 @@ dev = [
     "coverage<8.0.0,>=7.4.3",
     "pytest-xdist>=3.8.0",
     "pytest-randomly>=4.0.1",
+    "pytest-cov>=7.0.0",
 ]
 
 [build-system]
@@ -73,7 +74,6 @@ keep-runtime-typing = true
 
 [tool.coverage.run]
 source = ["app"]
-dynamic_context = "test_function"
 omit = [
     "app/initial_data.py",
     "app/tests_pre_start.py",
