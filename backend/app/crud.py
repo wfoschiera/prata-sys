@@ -267,6 +267,7 @@ def get_services(
             selectinload(Service.client),  # type: ignore[arg-type]
             selectinload(Service.items),  # type: ignore[arg-type]
         )
+        .order_by(Service.created_at.desc())  # type: ignore[union-attr]
         .offset(skip)
         .limit(limit)
     )
