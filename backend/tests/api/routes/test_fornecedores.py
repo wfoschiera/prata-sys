@@ -7,7 +7,6 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.models import (
     FornecedorCategoryEnum,
-    UserRole,
 )
 from tests.utils.utils import random_lower_string
 
@@ -34,43 +33,6 @@ def _valid_cnpj() -> str:
         return "".join(str(d) for d in base + [dv1, dv2])
 
 
-def _superuser_headers(client: TestClient) -> dict[str, str]:
-    login = client.post(
-        f"{settings.API_V1_STR}/login/access-token",
-        data={
-            "username": settings.FIRST_SUPERUSER,
-            "password": settings.FIRST_SUPERUSER_PASSWORD,
-        },
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-def _create_user_with_role(
-    client: TestClient,
-    db: Session,
-    role: UserRole,
-    _superuser_headers: dict[str, str],
-) -> dict[str, str]:
-    """Create a user with the given role and return its auth headers."""
-    from app import crud
-    from app.models import UserCreate
-
-    email = f"{random_lower_string()}@example.com"
-    user_in = UserCreate(
-        email=email,
-        password="testpassword123",
-        role=role,
-    )
-    crud.create_user(session=db, user_create=user_in)
-    login = client.post(
-        f"{settings.API_V1_STR}/login/access-token",
-        data={"username": email, "password": "testpassword123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 def _create_fornecedor(
     client: TestClient,
     headers: dict[str, str],
@@ -91,45 +53,49 @@ def _create_fornecedor(
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 
-def test_create_fornecedor(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers)
+def test_create_fornecedor(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers)
     assert "id" in data
     assert data["contatos"] == []
     assert data["categories"] == []
 
 
-def test_create_fornecedor_with_categories(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
+def test_create_fornecedor_with_categories(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     cats = [FornecedorCategoryEnum.tubos.value, FornecedorCategoryEnum.bombas.value]
-    data = _create_fornecedor(client, headers, categories=cats)
+    data = _create_fornecedor(client, superuser_token_headers, categories=cats)
     assert set(data["categories"]) == set(cats)  # type: ignore[call-overload]
 
     # GET returns them too
-    resp = client.get(f"{PREFIX}/{data['id']}", headers=headers)
+    resp = client.get(f"{PREFIX}/{data['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     assert set(resp.json()["categories"]) == set(cats)
 
 
-def test_create_fornecedor_duplicate_cnpj(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
+def test_create_fornecedor_duplicate_cnpj(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     cnpj = _valid_cnpj()
-    _create_fornecedor(client, headers, cnpj=cnpj)
+    _create_fornecedor(client, superuser_token_headers, cnpj=cnpj)
     resp = client.post(
         PREFIX,
         json={"company_name": random_lower_string(), "cnpj": cnpj},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.CONFLICT
 
 
-def test_create_fornecedor_invalid_cnpj(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
+def test_create_fornecedor_invalid_cnpj(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     # 13 digits — too short
     resp = client.post(
         PREFIX,
         json={"company_name": random_lower_string(), "cnpj": "1234567890123"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
@@ -137,157 +103,185 @@ def test_create_fornecedor_invalid_cnpj(client: TestClient, db: Session) -> None
     resp = client.post(
         PREFIX,
         json={"company_name": random_lower_string(), "cnpj": "11222333000199"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_create_fornecedor_no_cnpj(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers)
+def test_create_fornecedor_no_cnpj(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers)
     assert data["cnpj"] is None
 
 
-def test_get_fornecedores_search(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
+def test_get_fornecedores_search(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     unique = f"ZZ{uuid.uuid4().hex[:6]}"
-    _create_fornecedor(client, headers, company_name=f"{unique} Empresa A")
-    _create_fornecedor(client, headers, company_name="Unrelated Corp")
+    _create_fornecedor(
+        client, superuser_token_headers, company_name=f"{unique} Empresa A"
+    )
+    _create_fornecedor(client, superuser_token_headers, company_name="Unrelated Corp")
 
-    resp = client.get(f"{PREFIX}?search={unique}", headers=headers)
+    resp = client.get(f"{PREFIX}?search={unique}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     names = [f["company_name"] for f in resp.json()]
     assert all(unique in n for n in names)
     assert len(names) >= 1
 
 
-def test_get_fornecedores_category_filter(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
+def test_get_fornecedores_category_filter(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     unique = f"CAT{uuid.uuid4().hex[:6]}"
     _create_fornecedor(
-        client, headers, company_name=f"{unique} Tubos", categories=["tubos"]
+        client,
+        superuser_token_headers,
+        company_name=f"{unique} Tubos",
+        categories=["tubos"],
     )
     _create_fornecedor(
-        client, headers, company_name=f"{unique} Other", categories=["cabos"]
+        client,
+        superuser_token_headers,
+        company_name=f"{unique} Other",
+        categories=["cabos"],
     )
 
-    resp = client.get(f"{PREFIX}?category=tubos&search={unique}", headers=headers)
+    resp = client.get(
+        f"{PREFIX}?category=tubos&search={unique}", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.OK
     results = resp.json()
     assert len(results) == 1
     assert "tubos" in results[0]["categories"]
 
 
-def test_update_fornecedor_replaces_categories(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers, categories=["tubos", "bombas"])
+def test_update_fornecedor_replaces_categories(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(
+        client, superuser_token_headers, categories=["tubos", "bombas"]
+    )
     fid = data["id"]
 
     resp = client.patch(
-        f"{PREFIX}/{fid}", json={"categories": ["cabos"]}, headers=headers
+        f"{PREFIX}/{fid}",
+        json={"categories": ["cabos"]},
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["categories"] == ["cabos"]
 
 
-def test_update_fornecedor_no_categories_field(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers, categories=["tubos"])
+def test_update_fornecedor_no_categories_field(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers, categories=["tubos"])
     fid = data["id"]
 
     resp = client.patch(
-        f"{PREFIX}/{fid}", json={"address": "Rua A, 123"}, headers=headers
+        f"{PREFIX}/{fid}",
+        json={"address": "Rua A, 123"},
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
     # categories unchanged
     assert resp.json()["categories"] == ["tubos"]
 
 
-def test_delete_fornecedor_cascades(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers, categories=["outros"])
+def test_delete_fornecedor_cascades(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers, categories=["outros"])
     fid = data["id"]
     # add contato
     client.post(
         f"{PREFIX}/{fid}/contatos",
         json={"name": "João", "telefone": "11999999999", "description": "Vendas"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
 
-    resp = client.delete(f"{PREFIX}/{fid}", headers=headers)
+    resp = client.delete(f"{PREFIX}/{fid}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
-    resp = client.get(f"{PREFIX}/{fid}", headers=headers)
+    resp = client.get(f"{PREFIX}/{fid}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_create_contato(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers)
+def test_create_contato(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers)
     fid = data["id"]
 
     resp = client.post(
         f"{PREFIX}/{fid}/contatos",
         json={"name": "Maria", "telefone": "11988887777", "description": "Compras"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.CREATED
     assert resp.json()["name"] == "Maria"
 
-    detail = client.get(f"{PREFIX}/{fid}", headers=headers).json()
+    detail = client.get(f"{PREFIX}/{fid}", headers=superuser_token_headers).json()
     assert len(detail["contatos"]) == 1
 
 
-def test_update_contato(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers)
+def test_update_contato(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers)
     fid = data["id"]
 
     contato = client.post(
         f"{PREFIX}/{fid}/contatos",
         json={"name": "Pedro", "telefone": "11977776666", "description": "TI"},
-        headers=headers,
+        headers=superuser_token_headers,
     ).json()
     cid = contato["id"]
 
     resp = client.patch(
         f"{PREFIX}/{fid}/contatos/{cid}",
         json={"telefone": "11900001111"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["telefone"] == "11900001111"
     assert resp.json()["name"] == "Pedro"
 
 
-def test_delete_contato(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_fornecedor(client, headers)
+def test_delete_contato(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_fornecedor(client, superuser_token_headers)
     fid = data["id"]
 
     contato = client.post(
         f"{PREFIX}/{fid}/contatos",
         json={"name": "Ana", "telefone": "11966665555", "description": "RH"},
-        headers=headers,
+        headers=superuser_token_headers,
     ).json()
     cid = contato["id"]
 
-    resp = client.delete(f"{PREFIX}/{fid}/contatos/{cid}", headers=headers)
+    resp = client.delete(
+        f"{PREFIX}/{fid}/contatos/{cid}", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
-    detail = client.get(f"{PREFIX}/{fid}", headers=headers).json()
+    detail = client.get(f"{PREFIX}/{fid}", headers=superuser_token_headers).json()
     assert len(detail["contatos"]) == 0
 
 
-def test_contato_wrong_fornecedor(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    f1 = _create_fornecedor(client, headers)
-    f2 = _create_fornecedor(client, headers)
+def test_contato_wrong_fornecedor(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    f1 = _create_fornecedor(client, superuser_token_headers)
+    f2 = _create_fornecedor(client, superuser_token_headers)
 
     contato = client.post(
         f"{PREFIX}/{f1['id']}/contatos",
         json={"name": "X", "telefone": "11955554444", "description": "Test"},
-        headers=headers,
+        headers=superuser_token_headers,
     ).json()
     cid = contato["id"]
 
@@ -295,89 +289,97 @@ def test_contato_wrong_fornecedor(client: TestClient, db: Session) -> None:  # n
     resp = client.patch(
         f"{PREFIX}/{f2['id']}/contatos/{cid}",
         json={"name": "Y"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
-    resp = client.delete(f"{PREFIX}/{f2['id']}/contatos/{cid}", headers=headers)
+    resp = client.delete(
+        f"{PREFIX}/{f2['id']}/contatos/{cid}", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_finance_can_read(client: TestClient, db: Session) -> None:
-    su = _superuser_headers(client)
-    finance = _create_user_with_role(client, db, UserRole.finance, su)
-
-    resp = client.get(PREFIX, headers=finance)
+def test_finance_can_read(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    finance_token_headers: dict[str, str],
+) -> None:
+    resp = client.get(PREFIX, headers=finance_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
-    data = _create_fornecedor(client, su)
-    resp = client.get(f"{PREFIX}/{data['id']}", headers=finance)
+    data = _create_fornecedor(client, superuser_token_headers)
+    resp = client.get(f"{PREFIX}/{data['id']}", headers=finance_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
 
-def test_finance_cannot_write(client: TestClient, db: Session) -> None:
-    su = _superuser_headers(client)
-    finance = _create_user_with_role(client, db, UserRole.finance, su)
-
+def test_finance_cannot_write(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
     resp = client.post(
         PREFIX,
         json={"company_name": random_lower_string()},
-        headers=finance,
+        headers=finance_token_headers,
     )
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_client_cannot_read(client: TestClient, db: Session) -> None:
-    su = _superuser_headers(client)
-    client_user = _create_user_with_role(client, db, UserRole.client, su)
-
-    resp = client.get(PREFIX, headers=client_user)
+def test_client_cannot_read(
+    client: TestClient, client_token_headers: dict[str, str]
+) -> None:
+    resp = client.get(PREFIX, headers=client_token_headers)
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_admin_full_access(client: TestClient, db: Session) -> None:
-    su = _superuser_headers(client)
-    admin = _create_user_with_role(client, db, UserRole.admin, su)
-
+def test_admin_full_access(
+    client: TestClient, admin_token_headers: dict[str, str]
+) -> None:
     # list
-    resp = client.get(PREFIX, headers=admin)
+    resp = client.get(PREFIX, headers=admin_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
     # create
-    data = _create_fornecedor(client, admin)
+    data = _create_fornecedor(client, admin_token_headers)
     fid = data["id"]
 
     # update
     resp = client.patch(
-        f"{PREFIX}/{fid}", json={"address": "Av. Brasil, 100"}, headers=admin
+        f"{PREFIX}/{fid}",
+        json={"address": "Av. Brasil, 100"},
+        headers=admin_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
 
     # delete
-    resp = client.delete(f"{PREFIX}/{fid}", headers=admin)
+    resp = client.delete(f"{PREFIX}/{fid}", headers=admin_token_headers)
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
 
-def test_superuser_bypass(client: TestClient, db: Session) -> None:  # noqa: ARG001
+def test_superuser_bypass(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
     """Superuser with role=client bypasses permission checks."""
-    su = _superuser_headers(client)
-    resp = client.get(PREFIX, headers=su)
+    resp = client.get(PREFIX, headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
-    data = _create_fornecedor(client, su)
+    data = _create_fornecedor(client, superuser_token_headers)
     fid = data["id"]
-    resp = client.delete(f"{PREFIX}/{fid}", headers=su)
+    resp = client.delete(f"{PREFIX}/{fid}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
 
-def test_no_n_plus_one(client: TestClient, db: Session) -> None:
+def test_no_n_plus_one(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
     """List query must not trigger N+1: statement count should stay low."""
     from sqlalchemy import event
 
-    headers = _superuser_headers(client)
     # Create 5 fornecedores each with 2 contacts and 2 categories
     for _ in range(5):
-        data = _create_fornecedor(client, headers, categories=["tubos", "cabos"])
+        data = _create_fornecedor(
+            client, superuser_token_headers, categories=["tubos", "cabos"]
+        )
         fid = data["id"]
         for _ in range(2):
             client.post(
@@ -387,7 +389,7 @@ def test_no_n_plus_one(client: TestClient, db: Session) -> None:
                     "telefone": "11900000000",
                     "description": "x",
                 },
-                headers=headers,
+                headers=superuser_token_headers,
             )
 
     # Count SQL statements issued during the list request
@@ -400,7 +402,7 @@ def test_no_n_plus_one(client: TestClient, db: Session) -> None:
 
     event.listen(engine, "before_cursor_execute", before_cursor_execute)
     try:
-        resp = client.get(PREFIX, headers=headers)
+        resp = client.get(PREFIX, headers=superuser_token_headers)
         assert resp.status_code == HTTPStatus.OK
     finally:
         event.remove(engine, "before_cursor_execute", before_cursor_execute)

@@ -72,33 +72,19 @@ def test_read_clients_superuser(
         assert "id" in item
 
 
-def test_read_clients_finance_user_forbidden(client: TestClient, db: Session) -> None:
+def test_read_clients_finance_user_forbidden(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
     """Finance role does not have manage_clients by default."""
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.finance)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(client=client, email=email, password=password)
-
-    r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/clients/", headers=finance_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_read_clients_no_permission_forbidden(client: TestClient, db: Session) -> None:
+def test_read_clients_no_permission_forbidden(
+    client: TestClient, client_token_headers: dict[str, str]
+) -> None:
     """Client role has no permissions by default."""
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.client)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(client=client, email=email, password=password)
-
-    r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/clients/", headers=client_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
 
@@ -233,22 +219,17 @@ def test_create_client_unauthenticated(client: TestClient) -> None:
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
-def test_create_client_wrong_role_forbidden(client: TestClient, db: Session) -> None:
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.client)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(client=client, email=email, password=password)
-
+def test_create_client_wrong_role_forbidden(
+    client: TestClient, client_token_headers: dict[str, str]
+) -> None:
     payload = {
         "name": "Forbidden",
         "document_type": "cpf",
         "document_number": _cpf(),
     }
-    r = client.post(f"{settings.API_V1_STR}/clients/", headers=headers, json=payload)
+    r = client.post(
+        f"{settings.API_V1_STR}/clients/", headers=client_token_headers, json=payload
+    )
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
@@ -410,16 +391,12 @@ def test_delete_client_unauthenticated(client: TestClient, db: Session) -> None:
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
-def test_delete_client_wrong_role_forbidden(client: TestClient, db: Session) -> None:
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
+def test_delete_client_wrong_role_forbidden(
+    client: TestClient, client_token_headers: dict[str, str], db: Session
+) -> None:
     db_client = create_random_client(db)
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.client)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(client=client, email=email, password=password)
 
-    r = client.delete(f"{settings.API_V1_STR}/clients/{db_client.id}", headers=headers)
+    r = client.delete(
+        f"{settings.API_V1_STR}/clients/{db_client.id}", headers=client_token_headers
+    )
     assert r.status_code == HTTPStatus.FORBIDDEN

@@ -20,7 +20,6 @@ from app.models import (
     ServiceStatus,
     ServiceType,
 )
-from tests.utils.utils import random_lower_string
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,28 +76,6 @@ def create_service_item(db: Session, service: Service) -> ServiceItem:
     return crud.create_service_item(session=db, service_id=service.id, item_in=item_in)
 
 
-def _finance_headers(client: TestClient, db: Session) -> dict[str, str]:
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.finance)
-    crud.create_user(session=db, user_create=user_in)
-    return user_authentication_headers(client=client, email=email, password=password)
-
-
-def _client_role_headers(client: TestClient, db: Session) -> dict[str, str]:
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.client)
-    crud.create_user(session=db, user_create=user_in)
-    return user_authentication_headers(client=client, email=email, password=password)
-
-
 # ── List services ─────────────────────────────────────────────────────────────
 
 
@@ -117,17 +94,19 @@ def test_read_services_superuser(
         assert "status" in item
 
 
-def test_read_services_finance_role_forbidden(client: TestClient, db: Session) -> None:
+def test_read_services_finance_role_forbidden(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
     """Finance role does not have manage_services by default."""
-    headers = _finance_headers(client, db)
-    r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/services/", headers=finance_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_read_services_no_permission_forbidden(client: TestClient, db: Session) -> None:
+def test_read_services_no_permission_forbidden(
+    client: TestClient, client_token_headers: dict[str, str]
+) -> None:
     """Client role has no permissions by default."""
-    headers = _client_role_headers(client, db)
-    r = client.get(f"{settings.API_V1_STR}/services/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/services/", headers=client_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
 
@@ -221,15 +200,18 @@ def test_create_service_unauthenticated(client: TestClient, db: Session) -> None
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
-def test_create_service_wrong_role_forbidden(client: TestClient, db: Session) -> None:
+def test_create_service_wrong_role_forbidden(
+    client: TestClient, client_token_headers: dict[str, str], db: Session
+) -> None:
     db_client = create_random_client(db)
-    headers = _client_role_headers(client, db)
     payload = {
         "type": "perfuração",
         "execution_address": "Rua Nova, 200",
         "client_id": str(db_client.id),
     }
-    r = client.post(f"{settings.API_V1_STR}/services/", headers=headers, json=payload)
+    r = client.post(
+        f"{settings.API_V1_STR}/services/", headers=client_token_headers, json=payload
+    )
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
@@ -355,10 +337,13 @@ def test_delete_service_unauthenticated(client: TestClient, db: Session) -> None
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
-def test_delete_service_wrong_role_forbidden(client: TestClient, db: Session) -> None:
+def test_delete_service_wrong_role_forbidden(
+    client: TestClient, client_token_headers: dict[str, str], db: Session
+) -> None:
     svc = create_random_service(db)
-    headers = _client_role_headers(client, db)
-    r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}", headers=headers)
+    r = client.delete(
+        f"{settings.API_V1_STR}/services/{svc.id}", headers=client_token_headers
+    )
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
@@ -637,13 +622,14 @@ def test_patch_with_status_field_returns_422(
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_transition_finance_user_forbidden(client: TestClient, db: Session) -> None:
+def test_transition_finance_user_forbidden(
+    client: TestClient, finance_token_headers: dict[str, str], db: Session
+) -> None:
     """Finance user calling POST /transition returns 403."""
     svc = create_random_service(db)
-    headers = _finance_headers(client, db)
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
-        headers=headers,
+        headers=finance_token_headers,
         json={"to_status": "scheduled"},
     )
     assert r.status_code == HTTPStatus.FORBIDDEN

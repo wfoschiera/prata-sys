@@ -14,7 +14,6 @@ from app.models import (
     ProductCategory,
     ProductItemStatus,
     ServiceStatus,
-    UserRole,
 )
 from tests.utils.utils import random_lower_string
 
@@ -36,35 +35,6 @@ SERVICES_PREFIX = f"{settings.API_V1_STR}/services"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
-
-def _superuser_headers(client: TestClient) -> dict[str, str]:
-    login = client.post(
-        f"{settings.API_V1_STR}/login/access-token",
-        data={
-            "username": settings.FIRST_SUPERUSER,
-            "password": settings.FIRST_SUPERUSER_PASSWORD,
-        },
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-def _create_user_with_role(
-    client: TestClient, db: Session, role: UserRole
-) -> dict[str, str]:
-    from app import crud
-    from app.models import UserCreate
-
-    email = f"{random_lower_string()}@example.com"
-    user_in = UserCreate(email=email, password="testpassword123", role=role)
-    crud.create_user(session=db, user_create=user_in)
-    login = client.post(
-        f"{settings.API_V1_STR}/login/access-token",
-        data={"username": email, "password": "testpassword123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
 
 
 def _create_product_type(
@@ -116,9 +86,10 @@ def _create_product_item(
 # ── ProductType tests ──────────────────────────────────────────────────────────
 
 
-def test_create_product_type(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    data = _create_product_type(client, headers)
+def test_create_product_type(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = _create_product_type(client, superuser_token_headers)
     assert "id" in data
     assert data["category"] == "tubos"
     assert data["unit_of_measure"] == "metros"
@@ -126,21 +97,21 @@ def test_create_product_type(client: TestClient, db: Session) -> None:  # noqa: 
 
 def test_create_product_type_duplicate_conflict(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
     name = random_lower_string()
-    _create_product_type(client, headers, name=name)
+    _create_product_type(client, superuser_token_headers, name=name)
     resp = client.post(
         PT_PREFIX,
         json={"category": "tubos", "name": name, "unit_of_measure": "metros"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.CONFLICT
 
 
-def test_create_product_type_finance_forbidden(client: TestClient, db: Session) -> None:
-    headers = _create_user_with_role(client, db, UserRole.finance)
+def test_create_product_type_finance_forbidden(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
     resp = client.post(
         PT_PREFIX,
         json={
@@ -148,82 +119,88 @@ def test_create_product_type_finance_forbidden(client: TestClient, db: Session) 
             "name": random_lower_string(),
             "unit_of_measure": "m",
         },
-        headers=headers,
+        headers=finance_token_headers,
     )
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_list_product_types(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    _create_product_type(client, headers)
-    resp = client.get(PT_PREFIX, headers=headers)
+def test_list_product_types(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    _create_product_type(client, superuser_token_headers)
+    resp = client.get(PT_PREFIX, headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     assert isinstance(resp.json(), list)
     assert len(resp.json()) >= 1
 
 
-def test_list_product_types_finance_allowed(client: TestClient, db: Session) -> None:
-    headers = _create_user_with_role(client, db, UserRole.finance)
-    resp = client.get(PT_PREFIX, headers=headers)
+def test_list_product_types_finance_allowed(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    resp = client.get(PT_PREFIX, headers=finance_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
 
-def test_get_product_type(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    created = _create_product_type(client, headers)
-    resp = client.get(f"{PT_PREFIX}/{created['id']}", headers=headers)
+def test_get_product_type(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    created = _create_product_type(client, superuser_token_headers)
+    resp = client.get(f"{PT_PREFIX}/{created['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["id"] == created["id"]
 
 
 def test_get_product_type_not_found(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    resp = client.get(f"{PT_PREFIX}/{uuid.uuid4()}", headers=headers)
+    resp = client.get(f"{PT_PREFIX}/{uuid.uuid4()}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_update_product_type(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    created = _create_product_type(client, headers)
+def test_update_product_type(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    created = _create_product_type(client, superuser_token_headers)
     resp = client.patch(
         f"{PT_PREFIX}/{created['id']}",
         json={"unit_of_measure": "cm"},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["unit_of_measure"] == "cm"
 
 
-def test_delete_product_type(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    created = _create_product_type(client, headers)
-    resp = client.delete(f"{PT_PREFIX}/{created['id']}", headers=headers)
+def test_delete_product_type(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    created = _create_product_type(client, superuser_token_headers)
+    resp = client.delete(
+        f"{PT_PREFIX}/{created['id']}", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.NO_CONTENT
-    resp2 = client.get(f"{PT_PREFIX}/{created['id']}", headers=headers)
+    resp2 = client.get(f"{PT_PREFIX}/{created['id']}", headers=superuser_token_headers)
     assert resp2.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_delete_product_type_with_products_conflict(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    _create_product(client, headers, product_type_id=pt["id"])
-    resp = client.delete(f"{PT_PREFIX}/{pt['id']}", headers=headers)
+    pt = _create_product_type(client, superuser_token_headers)
+    _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    resp = client.delete(f"{PT_PREFIX}/{pt['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.CONFLICT
 
 
 # ── Product tests ─────────────────────────────────────────────────────────────
 
 
-def test_create_product(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    data = _create_product(client, headers, product_type_id=pt["id"])
+def test_create_product(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    data = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
     assert "id" in data
     assert data["product_type"]["id"] == pt["id"]
     assert data["unit_price"] == "10.00"
@@ -231,9 +208,8 @@ def test_create_product(client: TestClient, db: Session) -> None:  # noqa: ARG00
 
 def test_create_product_invalid_product_type_id(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
     resp = client.post(
         P_PREFIX,
         json={
@@ -241,17 +217,16 @@ def test_create_product_invalid_product_type_id(
             "name": random_lower_string(),
             "unit_price": 5.0,
         },
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_create_product_negative_unit_price(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
+    pt = _create_product_type(client, superuser_token_headers)
     resp = client.post(
         P_PREFIX,
         json={
@@ -259,15 +234,17 @@ def test_create_product_negative_unit_price(
             "name": random_lower_string(),
             "unit_price": -1.0,
         },
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_create_product_finance_forbidden(client: TestClient, db: Session) -> None:
-    admin_headers = _superuser_headers(client)
-    pt = _create_product_type(client, admin_headers)
-    headers = _create_user_with_role(client, db, UserRole.finance)
+def test_create_product_finance_forbidden(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    finance_token_headers: dict[str, str],
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
     resp = client.post(
         P_PREFIX,
         json={
@@ -275,92 +252,96 @@ def test_create_product_finance_forbidden(client: TestClient, db: Session) -> No
             "name": random_lower_string(),
             "unit_price": 5.0,
         },
-        headers=headers,
+        headers=finance_token_headers,
     )
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_list_products(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    _create_product(client, headers, product_type_id=pt["id"])
-    resp = client.get(P_PREFIX, headers=headers)
+def test_list_products(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    resp = client.get(P_PREFIX, headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     assert isinstance(resp.json(), list)
 
 
 def test_list_products_filter_category(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers, category="bombas")
-    _create_product(client, headers, product_type_id=pt["id"])
-    resp = client.get(f"{P_PREFIX}?category=bombas", headers=headers)
+    pt = _create_product_type(client, superuser_token_headers, category="bombas")
+    _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    resp = client.get(f"{P_PREFIX}?category=bombas", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     for p in resp.json():
         assert p["product_type"]["category"] == "bombas"
 
 
-def test_get_product(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    created = _create_product(client, headers, product_type_id=pt["id"])
-    resp = client.get(f"{P_PREFIX}/{created['id']}", headers=headers)
+def test_get_product(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    created = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    resp = client.get(f"{P_PREFIX}/{created['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["id"] == created["id"]
 
 
 def test_get_product_not_found(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    resp = client.get(f"{P_PREFIX}/{uuid.uuid4()}", headers=headers)
+    resp = client.get(f"{P_PREFIX}/{uuid.uuid4()}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_update_product(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    created = _create_product(client, headers, product_type_id=pt["id"])
+def test_update_product(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    created = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
     resp = client.patch(
         f"{P_PREFIX}/{created['id']}",
         json={"unit_price": 99.99},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["unit_price"] == "99.99"
 
 
-def test_delete_product(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    created = _create_product(client, headers, product_type_id=pt["id"])
-    resp = client.delete(f"{P_PREFIX}/{created['id']}", headers=headers)
+def test_delete_product(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    created = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    resp = client.delete(f"{P_PREFIX}/{created['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
 
 def test_delete_product_with_items_conflict(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    product = _create_product(client, headers, product_type_id=pt["id"])
-    _create_product_item(client, headers, product_id=product["id"])
-    resp = client.delete(f"{P_PREFIX}/{product['id']}", headers=headers)
+    pt = _create_product_type(client, superuser_token_headers)
+    product = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    _create_product_item(client, superuser_token_headers, product_id=product["id"])
+    resp = client.delete(f"{P_PREFIX}/{product['id']}", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.CONFLICT
 
 
 # ── ProductItem tests ──────────────────────────────────────────────────────────
 
 
-def test_create_product_item(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    product = _create_product(client, headers, product_type_id=pt["id"])
-    data = _create_product_item(client, headers, product_id=product["id"])
+def test_create_product_item(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    product = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    data = _create_product_item(
+        client, superuser_token_headers, product_id=product["id"]
+    )
     assert data["status"] == ProductItemStatus.em_estoque.value
     assert data["service_id"] is None
     assert data["quantity"] == "100.0000"
@@ -368,51 +349,54 @@ def test_create_product_item(client: TestClient, db: Session) -> None:  # noqa: 
 
 def test_create_product_item_invalid_product_id(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
     resp = client.post(
         PI_PREFIX,
         json={"product_id": str(uuid.uuid4()), "quantity": 10.0},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_create_product_item_zero_quantity(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    product = _create_product(client, headers, product_type_id=pt["id"])
+    pt = _create_product_type(client, superuser_token_headers)
+    product = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
     resp = client.post(
         PI_PREFIX,
         json={"product_id": product["id"], "quantity": 0},
-        headers=headers,
+        headers=superuser_token_headers,
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_create_product_item_finance_forbidden(client: TestClient, db: Session) -> None:
-    admin_headers = _superuser_headers(client)
-    pt = _create_product_type(client, admin_headers)
-    product = _create_product(client, admin_headers, product_type_id=pt["id"])
-    headers = _create_user_with_role(client, db, UserRole.finance)
+def test_create_product_item_finance_forbidden(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    finance_token_headers: dict[str, str],
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    product = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
     resp = client.post(
         PI_PREFIX,
         json={"product_id": product["id"], "quantity": 10.0},
-        headers=headers,
+        headers=finance_token_headers,
     )
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_list_product_items(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    pt = _create_product_type(client, headers)
-    product = _create_product(client, headers, product_type_id=pt["id"])
-    _create_product_item(client, headers, product_id=product["id"])
-    resp = client.get(f"{PI_PREFIX}?product_id={product['id']}", headers=headers)
+def test_list_product_items(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    pt = _create_product_type(client, superuser_token_headers)
+    product = _create_product(client, superuser_token_headers, product_type_id=pt["id"])
+    _create_product_item(client, superuser_token_headers, product_id=product["id"])
+    resp = client.get(
+        f"{PI_PREFIX}?product_id={product['id']}", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.OK
     assert len(resp.json()) >= 1
 
@@ -448,11 +432,13 @@ def test_validate_product_item_transition_invalid(db: Session) -> None:  # noqa:
 # ── Reserve stock tests ───────────────────────────────────────────────────────
 
 
-def test_reserve_stock_sufficient(client: TestClient, db: Session) -> None:
+def test_reserve_stock_sufficient(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
     from app import crud
     from app.models import ServiceCreate, ServiceType
 
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"], quantity=50.0)
@@ -501,11 +487,13 @@ def test_reserve_stock_sufficient(client: TestClient, db: Session) -> None:
     assert len(items) > 0
 
 
-def test_reserve_stock_insufficient(client: TestClient, db: Session) -> None:
+def test_reserve_stock_insufficient(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
     from app import crud
     from app.models import ServiceCreate, ServiceType
 
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"], quantity=5.0)
@@ -540,11 +528,13 @@ def test_reserve_stock_insufficient(client: TestClient, db: Session) -> None:
     assert warnings[0].shortfall_qty > 0
 
 
-def test_utilize_reserved_items(client: TestClient, db: Session) -> None:
+def test_utilize_reserved_items(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
     from app import crud
     from app.models import ServiceCreate, ServiceType
 
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"], quantity=30.0)
@@ -599,9 +589,9 @@ def test_utilize_reserved_items(client: TestClient, db: Session) -> None:
 
 def test_get_product_prediction_no_history(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     resp = client.get(f"{P_PREFIX}/{product['id']}/prediction", headers=headers)
@@ -613,9 +603,9 @@ def test_get_product_prediction_no_history(
 
 def test_get_product_prediction_with_stock(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"], quantity=500.0)
@@ -627,18 +617,19 @@ def test_get_product_prediction_with_stock(
 
 def test_get_product_prediction_not_found(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
-    resp = client.get(f"{P_PREFIX}/{uuid.uuid4()}/prediction", headers=headers)
+    resp = client.get(
+        f"{P_PREFIX}/{uuid.uuid4()}/prediction", headers=superuser_token_headers
+    )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_get_product_items_list(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"])
@@ -651,9 +642,10 @@ def test_get_product_items_list(
 # ── Dashboard tests ────────────────────────────────────────────────────────────
 
 
-def test_get_dashboard_admin(client: TestClient, db: Session) -> None:  # noqa: ARG001
-    headers = _superuser_headers(client)
-    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=headers)
+def test_get_dashboard_admin(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=superuser_token_headers)
     assert resp.status_code == HTTPStatus.OK
     data = resp.json()
     assert isinstance(data, list)
@@ -663,26 +655,30 @@ def test_get_dashboard_admin(client: TestClient, db: Session) -> None:  # noqa: 
     assert cats == {c.value for c in ProductCategory}
 
 
-def test_get_dashboard_finance(client: TestClient, db: Session) -> None:
-    headers = _create_user_with_role(client, db, UserRole.finance)
-    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=headers)
+def test_get_dashboard_finance(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=finance_token_headers)
     assert resp.status_code == HTTPStatus.OK
 
 
-def test_get_dashboard_client_forbidden(client: TestClient, db: Session) -> None:
-    headers = _create_user_with_role(client, db, UserRole.client)
-    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=headers)
+def test_get_dashboard_client_forbidden(
+    client: TestClient, client_token_headers: dict[str, str]
+) -> None:
+    resp = client.get(f"{ESTOQUE_PREFIX}/dashboard", headers=client_token_headers)
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
 # ── Baixar estoque tests ───────────────────────────────────────────────────────
 
 
-def test_baixar_estoque_on_executing_service(client: TestClient, db: Session) -> None:
+def test_baixar_estoque_on_executing_service(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
     from app import crud
     from app.models import ServiceCreate, ServiceType
 
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     _create_product_item(client, headers, product_id=product["id"], quantity=50.0)
@@ -739,11 +735,13 @@ def test_baixar_estoque_on_executing_service(client: TestClient, db: Session) ->
     assert data["items_updated"] >= 0
 
 
-def test_baixar_estoque_non_executing_service(client: TestClient, db: Session) -> None:
+def test_baixar_estoque_non_executing_service(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
     from app import crud
     from app.models import ServiceCreate, ServiceType
 
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
 
     client_resp = client.post(
         f"{settings.API_V1_STR}/clients",
@@ -772,10 +770,10 @@ def test_baixar_estoque_non_executing_service(client: TestClient, db: Session) -
 
 def test_update_product_invalid_product_type_id(
     client: TestClient,
-    db: Session,  # noqa: ARG001
+    superuser_token_headers: dict[str, str],
 ) -> None:
     """PATCH /products/{id} with invalid product_type_id returns 404."""
-    headers = _superuser_headers(client)
+    headers = superuser_token_headers
     pt = _create_product_type(client, headers)
     product = _create_product(client, headers, product_type_id=pt["id"])
     resp = client.patch(
