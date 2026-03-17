@@ -30,6 +30,8 @@ dev = [
     "ruff==0.15.5",
     "prek>=0.2.24,<1.0.0",
     "coverage<8.0.0,>=7.4.3",
+    "pytest-xdist>=3.8.0",
+    "pytest-randomly>=4.0.1",
 ]
 
 [build-system]
