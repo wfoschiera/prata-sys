@@ -410,3 +410,62 @@ def test_no_n_plus_one(
     # With selectinload, we expect: 1 auth query + ~3 data queries (fornecedores, contatos, categorias)
     # Generous upper bound: ≤ 10 total
     assert statement_count <= 10, f"Too many SQL statements: {statement_count}"
+
+
+# ── CNPJ duplicate on update ──────────────────────────────────────────────────
+
+
+def test_update_fornecedor_duplicate_cnpj_returns_409(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Updating a fornecedor's CNPJ to one already used by another returns 409."""
+    cnpj_a = _valid_cnpj()
+    cnpj_b = _valid_cnpj()
+
+    forn_a = _create_fornecedor(
+        client, superuser_token_headers, company_name="Empresa A", cnpj=cnpj_a
+    )
+    forn_b = _create_fornecedor(
+        client, superuser_token_headers, company_name="Empresa B", cnpj=cnpj_b
+    )
+
+    # Try to set forn_b's CNPJ to forn_a's CNPJ
+    r = client.patch(
+        f"{PREFIX}/{forn_b['id']}",
+        headers=superuser_token_headers,
+        json={"cnpj": cnpj_a},
+    )
+    assert r.status_code == HTTPStatus.CONFLICT
+    assert "CNPJ" in r.json()["detail"]
+
+
+def test_update_fornecedor_same_cnpj_is_ok(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Updating a fornecedor while keeping the same CNPJ should succeed."""
+    cnpj = _valid_cnpj()
+    forn = _create_fornecedor(
+        client, superuser_token_headers, company_name="Empresa C", cnpj=cnpj
+    )
+
+    # Update company_name but keep same CNPJ
+    r = client.patch(
+        f"{PREFIX}/{forn['id']}",
+        headers=superuser_token_headers,
+        json={"company_name": "Empresa C Updated", "cnpj": cnpj},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["company_name"] == "Empresa C Updated"
+
+
+def test_update_fornecedor_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Updating a nonexistent fornecedor returns 404."""
+    fake_id = uuid.uuid4()
+    r = client.patch(
+        f"{PREFIX}/{fake_id}",
+        headers=superuser_token_headers,
+        json={"company_name": "Nope"},
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND

@@ -782,3 +782,61 @@ def test_update_product_invalid_product_type_id(
         headers=headers,
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
+
+
+# ── Product list filter by fornecedor_id ──────────────────────────────────────
+
+
+def _create_fornecedor_for_estoque(client: TestClient, headers: dict[str, str]) -> dict:
+    resp = client.post(
+        f"{settings.API_V1_STR}/fornecedores",
+        json={"company_name": f"Forn-{random_lower_string()[:8]}"},
+        headers=headers,
+    )
+    assert resp.status_code == HTTPStatus.CREATED, resp.text
+    return resp.json()
+
+
+def test_list_products_filter_by_fornecedor_id(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """GET /products?fornecedor_id=... filters products by supplier."""
+    headers = superuser_token_headers
+    pt = _create_product_type(client, headers)
+
+    # Create a fornecedor
+    forn = _create_fornecedor_for_estoque(client, headers)
+
+    # Create product WITH fornecedor
+    body_with = {
+        "product_type_id": pt["id"],
+        "name": random_lower_string(),
+        "unit_price": 10.0,
+        "fornecedor_id": forn["id"],
+    }
+    resp_with = client.post(P_PREFIX, json=body_with, headers=headers)
+    assert resp_with.status_code == HTTPStatus.CREATED
+
+    # Create product WITHOUT fornecedor
+    _create_product(client, headers, product_type_id=pt["id"])
+
+    # Filter by fornecedor_id should only return the linked product
+    resp = client.get(P_PREFIX, params={"fornecedor_id": forn["id"]}, headers=headers)
+    assert resp.status_code == HTTPStatus.OK
+    products = resp.json()
+    assert len(products) >= 1
+    for p in products:
+        assert p["fornecedor_id"] == forn["id"]
+
+
+def test_list_products_filter_by_nonexistent_fornecedor_id(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Filtering by a nonexistent fornecedor_id returns empty list."""
+    resp = client.get(
+        P_PREFIX,
+        params={"fornecedor_id": str(uuid.uuid4())},
+        headers=superuser_token_headers,
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == []

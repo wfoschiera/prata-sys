@@ -1095,3 +1095,82 @@ def test_delete_item_from_executing_service_returns_422(
         headers=superuser_token_headers,
     )
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ── Additional coverage tests ──────────────────────────────────────────────────
+
+
+def test_cancel_executing_service_releases_stock(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Cancelling from executing state releases all reserved stock back to em_estoque."""
+    from app.models import ProductItemStatus
+
+    svc = create_random_service(db)
+    create_service_item(db, svc)
+    _create_product_item(db, quantity=20.0)
+
+    # requested → scheduled (reserves stock) → executing
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    reserved = _reserved_for_service(db, svc.id)
+    assert len(reserved) >= 1
+
+    client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "executing"},
+    )
+
+    # Cancel from executing
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{svc.id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "cancelled", "reason": "Projeto interrompido"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["service"]["status"] == "cancelled"
+
+    # All reserved items should be released
+    assert len(_reserved_for_service(db, svc.id)) == 0
+    assert len(_utilizado_for_service(db, svc.id)) == 0
+
+
+def test_deduct_stock_service_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """POST /deduct-stock on nonexistent service returns 404."""
+    fake_id = uuid.uuid4()
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{fake_id}/deduct-stock",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_baixar_estoque_service_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """POST /baixar-estoque on nonexistent service returns 422."""
+    fake_id = uuid.uuid4()
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{fake_id}/baixar-estoque",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_transition_service_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """POST /transition on nonexistent service returns 404."""
+    fake_id = uuid.uuid4()
+    r = client.post(
+        f"{settings.API_V1_STR}/services/{fake_id}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "scheduled"},
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND

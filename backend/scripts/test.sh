@@ -5,4 +5,7 @@ set -x
 
 coverage run -m pytest -n auto tests/
 coverage report
-coverage html --title "${@-coverage}" || echo "⚠️  coverage html failed (possibly permissions on htmlcov/)" >&2
+# Remove htmlcov/ before regenerating — it may be owned by root if previously
+# generated inside a Docker container, causing PermissionError.
+rm -rf htmlcov/
+coverage html --title "${@-coverage}"

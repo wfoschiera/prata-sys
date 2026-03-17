@@ -592,6 +592,146 @@ def test_update_item_on_approved_returns_422(
     assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
+# ── Combined filter tests ─────────────────────────────────────────────────────
+
+
+def test_list_combined_filters_search_and_status(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Combine search + status filters."""
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    cl_name = orc["client"]["name"]
+
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/",
+        params={"search": cl_name[:5], "status": "rascunho"},
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    data = r.json()
+    assert data["count"] >= 1
+    for item in data["data"]:
+        assert item["status"] == "rascunho"
+
+
+def test_list_combined_filters_search_status_and_date_range(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Combine search + status + date range filters."""
+    orc = _create_orcamento(client, superuser_token_headers, db)
+    cl_name = orc["client"]["name"]
+
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/",
+        params={
+            "search": cl_name[:5],
+            "status": "rascunho",
+            "data_inicio": "2020-01-01",
+            "data_fim": "2030-12-31",
+        },
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["count"] >= 1
+
+
+def test_list_filter_no_results(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Filters that match nothing return empty list."""
+    r = client.get(
+        f"{settings.API_V1_STR}/orcamentos/",
+        params={"search": "zzz_nonexistent_xyz_999"},
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["count"] == 0
+    assert r.json()["data"] == []
+
+
+# ── Item cross-orcamento tests ────────────────────────────────────────────────
+
+
+def test_update_item_wrong_orcamento_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Updating an item with the wrong orcamento_id returns 404."""
+    orc1 = _create_orcamento(client, superuser_token_headers, db)
+    orc2 = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    item = _add_item(client, superuser_token_headers, orc1["id"], str(prod.id))
+
+    # Try to update orc1's item via orc2's route
+    r = client.patch(
+        f"{settings.API_V1_STR}/orcamentos/{orc2['id']}/items/{item['id']}",
+        headers=superuser_token_headers,
+        json={"quantity": 99.0},
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_delete_item_wrong_orcamento_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Deleting an item with the wrong orcamento_id returns 404."""
+    orc1 = _create_orcamento(client, superuser_token_headers, db)
+    orc2 = _create_orcamento(client, superuser_token_headers, db)
+    prod = _create_product(db)
+    item = _add_item(client, superuser_token_headers, orc1["id"], str(prod.id))
+
+    # Try to delete orc1's item via orc2's route
+    r = client.delete(
+        f"{settings.API_V1_STR}/orcamentos/{orc2['id']}/items/{item['id']}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_delete_nonexistent_orcamento_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Deleting a nonexistent orcamento returns 404."""
+    r = client.delete(
+        f"{settings.API_V1_STR}/orcamentos/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_duplicate_nonexistent_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Duplicating a nonexistent orcamento returns 404."""
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{uuid.uuid4()}/duplicate",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_transition_nonexistent_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Transitioning a nonexistent orcamento returns 404."""
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{uuid.uuid4()}/transition",
+        headers=superuser_token_headers,
+        json={"to_status": "em_analise"},
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_convert_nonexistent_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Converting a nonexistent orcamento returns 404."""
+    r = client.post(
+        f"{settings.API_V1_STR}/orcamentos/{uuid.uuid4()}/convert-to-service",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
 # ── Company settings tests ────────────────────────────────────────────────────
 
 
