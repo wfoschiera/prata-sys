@@ -24,7 +24,7 @@ Reviews the PR changes using gh CLI.
    - Check for N+1 queries in any new/modified database operations
    - Verify UI text is in PT-BR and code/comments are in English
    - Check for known pitfalls (Zod v4 `error:` vs `required_error:`, `z.coerce.number()` misuse, SQLModel forward reference imports, Python 3.14 header validation)
-   - Verify the PR has a required label (`feat`, `fix`, `chore`, `refact`, `docs`, etc.)
+    - Verify the PR has a required label matching `<type>` or `<type>(<scope>)` (e.g. `fix`, `chore(backend)`, `feat(frontend)`)
    - Suggestions or concerns, if any
 4. After the analysis, ask the developer if they want to comment on the PR.
 5. Never comment on the PR, unless the developer explicitly asks for it.

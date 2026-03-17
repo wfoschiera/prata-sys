@@ -18,7 +18,7 @@ This command creates a PR for the current branch.
 - Generate a PR title and description for the current git diff against the base branch.
 - The PR title must follow the conventional commit format: e.g. `feat(frontend): add client dashboard`, `fix(backend): handle CNPJ validation edge case`, `chore(openspec): mark phase tasks complete`. Use a relevant scope like `backend`, `frontend`, `openspec`, or the specific module name.
 - Put the description with a brief explanation about the changes.
-- The PR must include exactly one label from the required set: `feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`. The `check-labels` CI job will fail without it.
+- The PR must include exactly one label matching the pattern `<type>` or `<type>(<scope>)`. Base types: `feat`, `fix`, `chore`, `refact`, `docs`, `upgrade`, `breaking`, `security`, `bug`, `feature`, `internal`, `lang-all`. The scope is optional and must be lowercase alphanumeric with dashes (e.g. `fix(backend)`, `chore(crud-api)`, `feat(frontend)`). The `check-labels` CI job will fail without a valid label.
 - Save the PR title and description in a temporary folder (e.g. `mktemp -d`): e.g. `pr-title.txt` and `pr-description.md`.
 - Execute `gh pr create --title "$(cat pr-title.txt)" --body-file pr-description.md --base <BASE_BRANCH> --label <LABEL> --web` to create the PR.
 - Do not call `gh pr view` after creating the PR; `gh pr create --web` already opens the PR in the browser.
