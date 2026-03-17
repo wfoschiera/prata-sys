@@ -8,9 +8,16 @@ from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import settings
 
+# Use fast Argon2 params in local/staging to speed up tests (~0.3s → ~0.001s per hash).
+# Production keeps the secure defaults (time_cost=3, memory_cost=65536, parallelism=4).
+if settings.ENVIRONMENT == "production":
+    _argon2_hasher = Argon2Hasher()
+else:
+    _argon2_hasher = Argon2Hasher(time_cost=1, memory_cost=1024, parallelism=1)
+
 password_hash = PasswordHash(
     (
-        Argon2Hasher(),
+        _argon2_hasher,
         BcryptHasher(),
     )
 )

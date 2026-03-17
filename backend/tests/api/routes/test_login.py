@@ -48,7 +48,7 @@ def test_use_access_token(
 
 
 def test_recovery_password(
-    client: TestClient, normal_user_token_headers: dict[str, str]
+    client: TestClient, admin_token_headers: dict[str, str]
 ) -> None:
     with (
         patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
@@ -57,7 +57,7 @@ def test_recovery_password(
         email = "test@example.com"
         r = client.post(
             f"{settings.API_V1_STR}/password-recovery/{email}",
-            headers=normal_user_token_headers,
+            headers=admin_token_headers,
         )
         assert r.status_code == HTTPStatus.OK
         assert r.json() == {
@@ -66,12 +66,12 @@ def test_recovery_password(
 
 
 def test_recovery_password_user_not_exits(
-    client: TestClient, normal_user_token_headers: dict[str, str]
+    client: TestClient, admin_token_headers: dict[str, str]
 ) -> None:
     email = "jVgQr@example.com"
     r = client.post(
         f"{settings.API_V1_STR}/password-recovery/{email}",
-        headers=normal_user_token_headers,
+        headers=admin_token_headers,
     )
     # Should return 200 with generic message to prevent email enumeration attacks
     assert r.status_code == HTTPStatus.OK

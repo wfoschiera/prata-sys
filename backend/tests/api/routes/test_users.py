@@ -25,14 +25,14 @@ def test_get_users_superuser_me(
 
 
 def test_get_users_normal_user_me(
-    client: TestClient, normal_user_token_headers: dict[str, str]
+    client: TestClient, admin_token_headers: dict[str, str]
 ) -> None:
-    r = client.get(f"{settings.API_V1_STR}/users/me", headers=normal_user_token_headers)
+    r = client.get(f"{settings.API_V1_STR}/users/me", headers=admin_token_headers)
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
     assert current_user["is_superuser"] is False
-    assert current_user["email"] == settings.EMAIL_TEST_USER
+    assert current_user["email"] == "test-admin@prata-sys.example.com"
 
 
 def test_create_user_new_email(
@@ -118,13 +118,13 @@ def test_get_existing_user_current_user(client: TestClient, db: Session) -> None
 def test_get_existing_user_permissions_error(
     db: Session,
     client: TestClient,
-    normal_user_token_headers: dict[str, str],
+    admin_token_headers: dict[str, str],
 ) -> None:
     user = create_random_user(db)
 
     r = client.get(
         f"{settings.API_V1_STR}/users/{user.id}",
-        headers=normal_user_token_headers,
+        headers=admin_token_headers,
     )
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json() == {"detail": "The user doesn't have enough privileges"}
@@ -132,13 +132,13 @@ def test_get_existing_user_permissions_error(
 
 def test_get_non_existing_user_permissions_error(
     client: TestClient,
-    normal_user_token_headers: dict[str, str],
+    admin_token_headers: dict[str, str],
 ) -> None:
     user_id = uuid.uuid4()
 
     r = client.get(
         f"{settings.API_V1_STR}/users/{user_id}",
-        headers=normal_user_token_headers,
+        headers=admin_token_headers,
     )
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json() == {"detail": "The user doesn't have enough privileges"}
@@ -206,14 +206,14 @@ def test_retrieve_users(
 
 
 def test_update_user_me(
-    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+    client: TestClient, admin_token_headers: dict[str, str], db: Session
 ) -> None:
     full_name = "Updated Name"
     email = random_email()
     data = {"full_name": full_name, "email": email}
     r = client.patch(
         f"{settings.API_V1_STR}/users/me",
-        headers=normal_user_token_headers,
+        headers=admin_token_headers,
         json=data,
     )
     assert r.status_code == HTTPStatus.OK
@@ -287,7 +287,7 @@ def test_update_password_me_incorrect_password(
 
 
 def test_update_user_me_email_exists(
-    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+    client: TestClient, admin_token_headers: dict[str, str], db: Session
 ) -> None:
     username = random_email()
     password = random_lower_string()
@@ -297,7 +297,7 @@ def test_update_user_me_email_exists(
     data = {"email": user.email}
     r = client.patch(
         f"{settings.API_V1_STR}/users/me",
-        headers=normal_user_token_headers,
+        headers=admin_token_headers,
         json=data,
     )
     assert r.status_code == HTTPStatus.CONFLICT

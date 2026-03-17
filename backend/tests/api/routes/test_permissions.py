@@ -8,7 +8,6 @@ from app import crud
 from app.core.config import settings
 from app.core.permissions import ALL_PERMISSIONS, ROLE_PERMISSIONS, get_role_defaults
 from app.models import UserCreate, UserPermission, UserRole
-from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_lower_string
 
 # ── Unit tests for permissions module ────────────────────────────────────────
@@ -91,22 +90,6 @@ def test_effective_no_duplicate(db: Session) -> None:
 # ── API tests for permissions endpoints ──────────────────────────────────────
 
 
-def _admin_headers(client: TestClient, db: Session) -> dict[str, str]:
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.admin)
-    crud.create_user(session=db, user_create=user_in)
-    return user_authentication_headers(client=client, email=email, password=password)
-
-
-def _finance_headers(client: TestClient, db: Session) -> dict[str, str]:
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.finance)
-    crud.create_user(session=db, user_create=user_in)
-    return user_authentication_headers(client=client, email=email, password=password)
-
-
 def test_get_available_permissions(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
@@ -119,18 +102,24 @@ def test_get_available_permissions(
     assert data == ALL_PERMISSIONS
 
 
-def test_get_available_permissions_admin(client: TestClient, db: Session) -> None:
+def test_get_available_permissions_admin(
+    client: TestClient, admin_token_headers: dict[str, str]
+) -> None:
     """Admin role has manage_permissions by default."""
-    headers = _admin_headers(client, db)
-    r = client.get(f"{settings.API_V1_STR}/permissions/available", headers=headers)
+    r = client.get(
+        f"{settings.API_V1_STR}/permissions/available",
+        headers=admin_token_headers,
+    )
     assert r.status_code == HTTPStatus.OK
 
 
 def test_get_available_permissions_finance_forbidden(
-    client: TestClient, db: Session
+    client: TestClient, finance_token_headers: dict[str, str]
 ) -> None:
-    headers = _finance_headers(client, db)
-    r = client.get(f"{settings.API_V1_STR}/permissions/available", headers=headers)
+    r = client.get(
+        f"{settings.API_V1_STR}/permissions/available",
+        headers=finance_token_headers,
+    )
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 
@@ -255,11 +244,10 @@ def test_get_single_user_permissions_not_found(
 
 
 def test_require_permission_allows_role_default(
-    client: TestClient, db: Session
+    client: TestClient, admin_token_headers: dict[str, str]
 ) -> None:
     """Admin can access manage_clients endpoint (role default)."""
-    headers = _admin_headers(client, db)
-    r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/clients/", headers=admin_token_headers)
     assert r.status_code == HTTPStatus.OK
 
 
@@ -275,22 +263,21 @@ def test_require_permission_allows_override(client: TestClient, db: Session) -> 
     db.add(up)
     db.commit()
 
-    headers = user_authentication_headers(client=client, email=email, password=password)
+    # Log in via API to get headers
+    r = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": email, "password": password},
+    )
+    headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
     assert r.status_code == HTTPStatus.OK
 
 
 def test_require_permission_denies_no_permission(
-    client: TestClient, db: Session
+    client: TestClient, client_token_headers: dict[str, str]
 ) -> None:
     """Client without override gets 403."""
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    user_in = UserCreate(email=email, password=password, role=UserRole.client)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(client=client, email=email, password=password)
-
-    r = client.get(f"{settings.API_V1_STR}/clients/", headers=headers)
+    r = client.get(f"{settings.API_V1_STR}/clients/", headers=client_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
 
 

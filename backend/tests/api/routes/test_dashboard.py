@@ -105,19 +105,6 @@ def _create_transaction(
     return crud.create_transacao(session=db, transacao_in=tx_in)
 
 
-def _client_role_headers(client: TestClient, db: Session) -> dict[str, str]:
-    from app.models import UserCreate, UserRole
-    from tests.utils.user import user_authentication_headers
-
-    email = f"{random_lower_string()}@example.com"
-    password = random_lower_string()
-    crud.create_user(
-        session=db,
-        user_create=UserCreate(email=email, password=password, role=UserRole.client),
-    )
-    return user_authentication_headers(client=client, email=email, password=password)
-
-
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 
@@ -266,11 +253,10 @@ def test_dashboard_operational_computes_weekly_profit(
 
 
 def test_dashboard_operational_permission_denied(
-    client: TestClient, db: Session
+    client: TestClient, client_token_headers: dict[str, str]
 ) -> None:
     """Client role gets 403 Forbidden."""
-    headers = _client_role_headers(client, db)
-    r = client.get(API_URL, headers=headers)
+    r = client.get(API_URL, headers=client_token_headers)
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
 
