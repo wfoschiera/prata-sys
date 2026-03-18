@@ -70,8 +70,8 @@ interface OrcamentoItem {
   id: string
   product_id: string
   description: string
-  quantity: number
-  unit_price: number
+  quantity: number | string
+  unit_price: number | string
   show_unit_price: boolean
 }
 
@@ -311,7 +311,7 @@ function ClientInfoBlock({
 
 function ItemsTable({ items }: { items: OrcamentoItem[] }) {
   const grandTotal = items.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
+    (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
     0,
   )
 
@@ -337,16 +337,18 @@ function ItemsTable({ items }: { items: OrcamentoItem[] }) {
         {items.map((item) => (
           <TableRow key={item.id} className="hover:bg-zinc-50/50">
             <TableCell className="text-right font-mono text-sm">
-              {formatQuantity(item.quantity)}
+              {formatQuantity(Number(item.quantity))}
             </TableCell>
             <TableCell className="text-sm text-zinc-800">
               {item.description}
             </TableCell>
             <TableCell className="text-right font-mono text-sm">
-              {item.show_unit_price ? formatCurrency(item.unit_price) : "—"}
+              {item.show_unit_price
+                ? formatCurrency(Number(item.unit_price))
+                : "—"}
             </TableCell>
             <TableCell className="text-right font-mono text-sm font-medium">
-              {formatCurrency(item.quantity * item.unit_price)}
+              {formatCurrency(Number(item.quantity) * Number(item.unit_price))}
             </TableCell>
           </TableRow>
         ))}
