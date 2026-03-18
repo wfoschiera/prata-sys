@@ -543,7 +543,7 @@ def test_update_user_role_change_clears_permissions(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Changing a user's role via PATCH clears their permission overrides."""
-    from app.models import UserPermission, UserRole
+    from app.models import UserRole
 
     # Create a finance user
     user_in = UserCreate(
@@ -578,7 +578,7 @@ def test_update_user_same_role_keeps_permissions(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Updating a user WITHOUT changing role does NOT clear permissions."""
-    from app.models import UserPermission, UserRole
+    from app.models import UserRole
 
     user_in = UserCreate(
         email=random_email(), password=random_lower_string(), role=UserRole.finance
