@@ -5,6 +5,7 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+.coverage
 
 # gstack build artifacts
 .claude/skills/gstack/node_modules/

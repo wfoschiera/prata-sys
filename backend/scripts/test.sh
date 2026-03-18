@@ -3,6 +3,10 @@
 set -e
 set -x
 
-coverage run -m pytest tests/
-coverage report
-coverage html --title "${@-coverage}" || echo "⚠️  coverage html failed (possibly permissions on htmlcov/)" >&2
+# pytest-cov handles xdist workers natively — no need for coverage run + combine
+pytest -n auto \
+  --cov=app \
+  --cov-context=test \
+  --cov-report=term-missing:skip-covered \
+  --cov-report=html \
+  tests/

@@ -26,10 +26,12 @@ Session-scoped role users persist across tests (like the superuser).
 Per-test changes are rolled back via the savepoint pattern.
 """
 
+import uuid
 from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from filelock import FileLock
 from pydantic import PostgresDsn
 from sqlalchemy import event, text
 from sqlmodel import Session, SQLModel, create_engine
@@ -38,7 +40,30 @@ from app import crud
 from app.api.deps import get_db
 from app.core.config import settings
 from app.main import app
-from app.models import UserCreate, UserRole
+from app.models import (
+    Client,
+    Fornecedor,
+    Product,
+    ProductItem,
+    ProductType,
+    Service,
+    ServiceItem,
+    Transacao,
+    UserCreate,
+    UserRole,
+)
+from tests.factories import (
+    ClientFactory,
+    FornecedorCategoriaFactory,
+    FornecedorContatoFactory,
+    FornecedorFactory,
+    ProductFactory,
+    ProductItemFactory,
+    ProductTypeFactory,
+    ServiceFactory,
+    ServiceItemFactory,
+    TransacaoFactory,
+)
 
 # ---------------------------------------------------------------------------
 # Test database engine (points to "app_test", not "app")
@@ -87,30 +112,39 @@ _SEEDED_USER_COUNT = 1 + len(_ROLE_USERS)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _setup_test_db() -> Generator[None, None, None]:
+def _setup_test_db(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Generator[None, None, None]:
     """Create all tables and seed the superuser + role users.
 
     Runs once per test session. The test DB persists between runs;
     the sentinel check below catches stale data.
+
+    When pytest-xdist spawns multiple workers, each gets its own
+    session-scoped fixture invocation. A file lock serializes the DDL
+    so only one worker runs CREATE TYPE / CREATE TABLE at a time,
+    preventing the ``pg_type_typname_nsp_index`` unique violation race.
     """
-    SQLModel.metadata.create_all(test_engine)
+    lock_path = tmp_path_factory.getbasetemp().parent / "db_setup.lock"
+    with FileLock(str(lock_path)):
+        SQLModel.metadata.create_all(test_engine)
 
-    with Session(test_engine) as session:
-        # Seed superuser (idempotent — init_db checks existence)
-        from app.core.db import init_db
+        with Session(test_engine) as session:
+            # Seed superuser (idempotent — init_db checks existence)
+            from app.core.db import init_db
 
-        init_db(session)
+            init_db(session)
 
-        # Seed role users (idempotent — skip if already exists)
-        for info in _ROLE_USERS.values():
-            existing = crud.get_user_by_email(session=session, email=info["email"])
-            if not existing:
-                user_in = UserCreate(
-                    email=info["email"],
-                    password=info["password"],
-                    role=info["role"],
-                )
-                crud.create_user(session=session, user_create=user_in)
+            # Seed role users (idempotent — skip if already exists)
+            for info in _ROLE_USERS.values():
+                existing = crud.get_user_by_email(session=session, email=info["email"])
+                if not existing:
+                    user_in = UserCreate(
+                        email=info["email"],
+                        password=info["password"],
+                        role=info["role"],
+                    )
+                    crud.create_user(session=session, user_create=user_in)
 
     yield
 
@@ -256,3 +290,111 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.pop(get_db, None)
+
+
+# ---------------------------------------------------------------------------
+# Factory Boy fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _bind_factory_session(db: Session) -> Generator[None, None, None]:
+    """Bind all factory_boy factories to the per-test transactional Session.
+
+    This runs automatically for every test, so factories always use the
+    same rollback-protected Session. After the test, the session reference
+    is cleared to avoid stale state.
+    """
+    _all_factories = [
+        FornecedorFactory,
+        FornecedorContatoFactory,
+        FornecedorCategoriaFactory,
+        ClientFactory,
+        ServiceFactory,
+        ServiceItemFactory,
+        ProductTypeFactory,
+        ProductFactory,
+        ProductItemFactory,
+        TransacaoFactory,
+    ]
+    for f in _all_factories:
+        f._meta.sqlalchemy_session = db  # type: ignore[attr-defined]
+    yield
+    for f in _all_factories:
+        f._meta.sqlalchemy_session = None  # type: ignore[attr-defined]
+
+
+@pytest.fixture()
+def fornecedor() -> Fornecedor:
+    """Create a Fornecedor (supplier) via factory_boy, inserted directly in DB.
+
+    The factory session is bound automatically by the ``_bind_factory_session``
+    autouse fixture (which depends on ``db``).
+    """
+    return FornecedorFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def random_client() -> Client:
+    """Create a Client (CPF, random name) via factory_boy."""
+    return ClientFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def service() -> Service:
+    """Create a Service (perfuração) via factory_boy.
+
+    Auto-creates a Client via SubFactory.
+    """
+    return ServiceFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def service_item() -> ServiceItem:
+    """Create a ServiceItem (material) via factory_boy.
+
+    Auto-creates a Service and Client via SubFactory chain.
+    """
+    return ServiceItemFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def product_type() -> ProductType:
+    """Create a ProductType (tubos) via factory_boy."""
+    return ProductTypeFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def product() -> Product:
+    """Create a Product via factory_boy.
+
+    Auto-creates a ProductType via SubFactory.
+    """
+    return ProductFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def product_item() -> ProductItem:
+    """Create a ProductItem (em_estoque) via factory_boy.
+
+    Auto-creates a Product and ProductType via SubFactory chain.
+    """
+    return ProductItemFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def transacao() -> Transacao:
+    """Create a Transacao (receita/SERVICO) via factory_boy."""
+    return TransacaoFactory()  # type: ignore[return-value]
+
+
+@pytest.fixture()
+def superuser_id(db: Session) -> uuid.UUID:
+    """Return the pre-seeded superuser's UUID.
+
+    Useful for tests that need a changed_by_id FK (e.g., service transitions).
+    """
+
+    user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    assert user is not None, "Superuser not found — was init_db run?"
+    return user.id

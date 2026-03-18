@@ -1,6 +1,5 @@
 """Tests for the operational dashboard endpoint."""
 
-import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from http import HTTPStatus
@@ -11,60 +10,29 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import (
-    Client,
-    ClientCreate,
-    DocumentType,
+    CategoriaTransacao,
     ItemType,
     Service,
-    ServiceCreate,
     ServiceItem,
     ServiceItemCreate,
     ServiceStatus,
     ServiceType,
     TipoTransacao,
-    TransacaoCreate,
-    TransacaoPublic,
 )
-from tests.utils.utils import random_lower_string
+from tests.factories import ServiceFactory, TransacaoFactory
 
 API_URL = f"{settings.API_V1_STR}/dashboard/operational"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _cpf() -> str:
-    uid_digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    return (uid_digits + "00000000000")[:11]
-
-
-def _create_client(db: Session) -> Client:
-    return crud.create_client(
-        session=db,
-        client_in=ClientCreate(
-            name=random_lower_string(),
-            document_type=DocumentType.cpf,
-            document_number=_cpf(),
-        ),
-    )
-
-
 def _create_completed_service(
     db: Session, svc_type: ServiceType = ServiceType.perfuracao
 ) -> Service:
-    cl = _create_client(db)
-    svc = crud.create_service(
-        session=db,
-        service_in=ServiceCreate(
-            type=svc_type,
-            execution_address="Rua Teste, 1",
-            client_id=cl.id,
-        ),
-    )
+    svc: Service = ServiceFactory(type=svc_type)  # type: ignore[assignment]
     # Transition to completed: requested → scheduled → executing → completed
-    superuser = db.get(
-        __import__("app.models", fromlist=["User"]).User,
-        crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER).id,  # type: ignore[union-attr]
-    )
+    superuser = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    assert superuser is not None
     for to_status in [
         ServiceStatus.scheduled,
         ServiceStatus.executing,
@@ -74,7 +42,7 @@ def _create_completed_service(
             session=db,
             service=svc,
             to_status=to_status,
-            changed_by_id=superuser.id,  # type: ignore[union-attr]
+            changed_by_id=superuser.id,
         )
         db.refresh(svc)
     return svc
@@ -88,21 +56,6 @@ def _add_drilling_item(db: Session, service: Service, quantity: float) -> Servic
         unit_price=Decimal("50.00"),
     )
     return crud.create_service_item(session=db, service_id=service.id, item_in=item_in)
-
-
-def _create_transaction(
-    db: Session, tipo: TipoTransacao, valor: Decimal, competencia: date | None = None
-) -> TransacaoPublic:
-    if competencia is None:
-        competencia = date.today()
-    tx_in = TransacaoCreate(
-        tipo=tipo,
-        valor=valor,
-        descricao=f"Test {tipo}",
-        data_competencia=competencia,
-        categoria="SERVICO" if tipo == TipoTransacao.receita else "COMBUSTIVEL",
-    )
-    return crud.create_transacao(session=db, transacao_in=tx_in)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
@@ -167,17 +120,9 @@ def test_dashboard_operational_sums_drilling_meters(
     """drilling_meters sums quantity of ItemType.perfuracao items on completed services."""
     ano = datetime.now(timezone.utc).year
     # Create service and add drilling item BEFORE completing it
-    cl = _create_client(db)
+    svc: Service = ServiceFactory(type=ServiceType.perfuracao)  # type: ignore[assignment]
     superuser = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
     assert superuser is not None
-    svc = crud.create_service(
-        session=db,
-        service_in=ServiceCreate(
-            type=ServiceType.perfuracao,
-            execution_address="Rua Teste, 1",
-            client_id=cl.id,
-        ),
-    )
     _add_drilling_item(db, svc, 120.5)
     for to_status in [
         ServiceStatus.scheduled,
@@ -202,16 +147,8 @@ def test_dashboard_operational_ignores_non_completed_services(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Services not in completed status are excluded from counts."""
-    cl = _create_client(db)
     # Create a service but leave it in 'requested' status
-    crud.create_service(
-        session=db,
-        service_in=ServiceCreate(
-            type=ServiceType.perfuracao,
-            execution_address="Rua Teste, 1",
-            client_id=cl.id,
-        ),
-    )
+    ServiceFactory(type=ServiceType.perfuracao)
     ano = datetime.now(timezone.utc).year
     r = client.get(API_URL, headers=superuser_token_headers, params={"ano": ano})
     assert r.status_code == HTTPStatus.OK
@@ -236,8 +173,18 @@ def test_dashboard_operational_computes_weekly_profit(
     )
     profit_before = Decimal(str(week_before["profit"])) if week_before else Decimal("0")
 
-    _create_transaction(db, TipoTransacao.receita, Decimal("1000.00"), today)
-    _create_transaction(db, TipoTransacao.despesa, Decimal("300.00"), today)
+    TransacaoFactory(
+        tipo=TipoTransacao.receita,
+        valor=Decimal("1000.00"),
+        data_competencia=today,
+        categoria=CategoriaTransacao.SERVICO,
+    )
+    TransacaoFactory(
+        tipo=TipoTransacao.despesa,
+        valor=Decimal("300.00"),
+        data_competencia=today,
+        categoria=CategoriaTransacao.COMBUSTIVEL,
+    )
 
     r_after = client.get(API_URL, headers=superuser_token_headers, params={"ano": ano})
     assert r_after.status_code == HTTPStatus.OK

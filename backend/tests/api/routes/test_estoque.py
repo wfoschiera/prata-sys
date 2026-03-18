@@ -6,11 +6,13 @@ from http import HTTPStatus
 from typing import Any
 
 import pytest
+from faker import Faker
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
 from app.models import (
+    Fornecedor,
     ProductCategory,
     ProductItemStatus,
     ServiceStatus,
@@ -19,14 +21,7 @@ from tests.utils.utils import random_lower_string
 
 PT_PREFIX = f"{settings.API_V1_STR}/product-types"
 
-
-def _random_cpf() -> str:
-    """Generate a random 11-digit CPF string from a UUID (avoids DB conflicts)."""
-    import uuid as _uuid
-
-    uid_digits = "".join(c for c in _uuid.uuid4().hex if c.isdigit())
-    return (uid_digits + "00000000000")[:11]
-
+fake = Faker("pt_BR")
 
 P_PREFIX = f"{settings.API_V1_STR}/products"
 PI_PREFIX = f"{settings.API_V1_STR}/product-items"
@@ -449,7 +444,7 @@ def test_reserve_stock_sufficient(
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": _random_cpf(),
+            "document_number": fake.cpf().replace(".", "").replace("-", ""),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -503,7 +498,7 @@ def test_reserve_stock_insufficient(
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": _random_cpf(),
+            "document_number": fake.cpf().replace(".", "").replace("-", ""),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -544,7 +539,7 @@ def test_utilize_reserved_items(
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": _random_cpf(),
+            "document_number": fake.cpf().replace(".", "").replace("-", ""),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -689,7 +684,7 @@ def test_baixar_estoque_on_executing_service(
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": _random_cpf(),
+            "document_number": fake.cpf().replace(".", "").replace("-", ""),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -748,7 +743,7 @@ def test_baixar_estoque_non_executing_service(
         json={
             "name": random_lower_string(),
             "document_type": "cpf",
-            "document_number": _random_cpf(),
+            "document_number": fake.cpf().replace(".", "").replace("-", ""),
             "email": f"{random_lower_string()}@example.com",
         },
         headers=headers,
@@ -782,3 +777,50 @@ def test_update_product_invalid_product_type_id(
         headers=headers,
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
+
+
+# ── Product list filter by fornecedor_id ──────────────────────────────────────
+
+
+def test_list_products_filter_by_fornecedor_id(
+    client: TestClient, superuser_token_headers: dict[str, str], fornecedor: Fornecedor
+) -> None:
+    """GET /products?fornecedor_id=... filters products by supplier."""
+    headers = superuser_token_headers
+    pt = _create_product_type(client, headers)
+
+    # Create product WITH fornecedor
+    body_with = {
+        "product_type_id": pt["id"],
+        "name": random_lower_string(),
+        "unit_price": 10.0,
+        "fornecedor_id": str(fornecedor.id),
+    }
+    resp_with = client.post(P_PREFIX, json=body_with, headers=headers)
+    assert resp_with.status_code == HTTPStatus.CREATED
+
+    # Create product WITHOUT fornecedor
+    _create_product(client, headers, product_type_id=pt["id"])
+
+    # Filter by fornecedor_id should only return the linked product
+    resp = client.get(
+        P_PREFIX, params={"fornecedor_id": str(fornecedor.id)}, headers=headers
+    )
+    assert resp.status_code == HTTPStatus.OK
+    products = resp.json()
+    assert len(products) >= 1
+    for p in products:
+        assert p["fornecedor_id"] == str(fornecedor.id)
+
+
+def test_list_products_filter_by_nonexistent_fornecedor_id(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """Filtering by a nonexistent fornecedor_id returns empty list."""
+    resp = client.get(
+        P_PREFIX,
+        params={"fornecedor_id": str(uuid.uuid4())},
+        headers=superuser_token_headers,
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == []

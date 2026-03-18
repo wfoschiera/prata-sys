@@ -81,7 +81,7 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
 
   const grandTotal =
     (service?.items ?? []).reduce(
-      (sum, item) => sum + item.quantity * item.unit_price,
+      (sum, item) => sum + item.quantity * Number(item.unit_price),
       0,
     ) ?? 0
 
@@ -180,19 +180,18 @@ const ServiceDetail = ({ serviceId, onClose }: ServiceDetailProps) => {
                             {item.quantity}
                           </TableCell>
                           <TableCell className="text-right">
-                            {item.unit_price.toLocaleString("pt-BR", {
+                            {Number(item.unit_price).toLocaleString("pt-BR", {
                               style: "currency",
                               currency: "BRL",
                             })}
                           </TableCell>
                           <TableCell className="text-right">
-                            {(item.quantity * item.unit_price).toLocaleString(
-                              "pt-BR",
-                              {
-                                style: "currency",
-                                currency: "BRL",
-                              },
-                            )}
+                            {(
+                              item.quantity * Number(item.unit_price)
+                            ).toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
                           </TableCell>
                         </TableRow>
                       ))}

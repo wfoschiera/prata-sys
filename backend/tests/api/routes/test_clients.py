@@ -1,66 +1,30 @@
 import uuid
 from http import HTTPStatus
 
+from faker import Faker
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
-from app.models import Client, ClientCreate, DocumentType
-from tests.utils.utils import random_lower_string
+from app.models import Client
+from tests.factories import ClientFactory
+
+fake = Faker("pt_BR")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _cpf() -> str:
-    """Return a unique 11-digit CPF string."""
-    base = random_lower_string()[:11]
-    digits = "".join(c for c in base if c.isdigit())
-    # Pad / trim to exactly 11 digits using a counter derived from a uuid
-    uid_digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    combined = (digits + uid_digits)[:11].ljust(11, "0")
-    return combined
-
-
-def _cnpj() -> str:
-    """Return a valid, unique 14-digit CNPJ string."""
-    import random
-
-    def calc_dv(digits: list[int], weights: list[int]) -> int:
-        remainder = sum(d * w for d, w in zip(digits, weights, strict=False)) % 11
-        return 0 if remainder < 2 else 11 - remainder
-
-    # Random 8-digit root + "0001" branch; compute both check digits
-    while True:
-        root = [random.randint(0, 9) for _ in range(8)]
-        branch = [0, 0, 0, 1]
-        base = root + branch
-        if len(set(base)) == 1:
-            continue
-        dv1 = calc_dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        dv2 = calc_dv(base + [dv1], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        return "".join(str(d) for d in base + [dv1, dv2])
-
-
-def create_random_client(db: Session) -> Client:
-    client_in = ClientCreate(
-        name="Test Client",
-        document_type=DocumentType.cpf,
-        document_number=_cpf(),
-        email="client@example.com",
-        phone="11999999999",
-        address="Rua Teste, 123",
-    )
-    return crud.create_client(session=db, client_in=client_in)
+# Replaced by `random_client` fixture (conftest.py) and `ClientFactory()`.
 
 
 # ── List clients ──────────────────────────────────────────────────────────────
 
 
 def test_read_clients_superuser(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    create_random_client(db)
     r = client.get(f"{settings.API_V1_STR}/clients/", headers=superuser_token_headers)
     assert r.status_code == HTTPStatus.OK
     data = r.json()
@@ -97,8 +61,8 @@ def test_read_clients_unauthenticated(client: TestClient) -> None:
 def test_read_clients_pagination(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    create_random_client(db)
-    create_random_client(db)
+    ClientFactory()
+    ClientFactory()
     r = client.get(
         f"{settings.API_V1_STR}/clients/?skip=0&limit=1",
         headers=superuser_token_headers,
@@ -114,7 +78,7 @@ def test_read_clients_pagination(
 def test_create_client_cpf(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    doc = _cpf()
+    doc = fake.cpf().replace(".", "").replace("-", "")
     payload = {
         "name": "João da Silva",
         "document_type": "cpf",
@@ -143,7 +107,7 @@ def test_create_client_cpf(
 def test_create_client_cnpj(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
-    doc = _cnpj()
+    doc = fake.cnpj().replace(".", "").replace("/", "").replace("-", "")
     payload = {
         "name": "Empresa LTDA",
         "document_type": "cnpj",
@@ -160,13 +124,15 @@ def test_create_client_cnpj(
 
 
 def test_create_client_duplicate_document(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    existing = create_random_client(db)
     payload = {
         "name": "Duplicate",
-        "document_type": existing.document_type.value,
-        "document_number": existing.document_number,
+        "document_type": random_client.document_type.value,
+        "document_number": random_client.document_number,
     }
     r = client.post(
         f"{settings.API_V1_STR}/clients/",
@@ -213,7 +179,7 @@ def test_create_client_unauthenticated(client: TestClient) -> None:
     payload = {
         "name": "No Auth",
         "document_type": "cpf",
-        "document_number": _cpf(),
+        "document_number": fake.cpf().replace(".", "").replace("-", ""),
     }
     r = client.post(f"{settings.API_V1_STR}/clients/", json=payload)
     assert r.status_code == HTTPStatus.UNAUTHORIZED
@@ -225,7 +191,7 @@ def test_create_client_wrong_role_forbidden(
     payload = {
         "name": "Forbidden",
         "document_type": "cpf",
-        "document_number": _cpf(),
+        "document_number": fake.cpf().replace(".", "").replace("-", ""),
     }
     r = client.post(
         f"{settings.API_V1_STR}/clients/", headers=client_token_headers, json=payload
@@ -237,17 +203,19 @@ def test_create_client_wrong_role_forbidden(
 
 
 def test_read_client(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    db_client = create_random_client(db)
     r = client.get(
-        f"{settings.API_V1_STR}/clients/{db_client.id}",
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
         headers=superuser_token_headers,
     )
     assert r.status_code == HTTPStatus.OK
     data = r.json()
-    assert data["id"] == str(db_client.id)
-    assert data["document_number"] == db_client.document_number
+    assert data["id"] == str(random_client.id)
+    assert data["document_number"] == random_client.document_number
 
 
 def test_read_client_not_found(
@@ -261,9 +229,10 @@ def test_read_client_not_found(
     assert r.json()["detail"] == "Client not found"
 
 
-def test_read_client_unauthenticated(client: TestClient, db: Session) -> None:
-    db_client = create_random_client(db)
-    r = client.get(f"{settings.API_V1_STR}/clients/{db_client.id}")
+def test_read_client_unauthenticated(
+    client: TestClient, db: Session, random_client: Client
+) -> None:
+    r = client.get(f"{settings.API_V1_STR}/clients/{random_client.id}")
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
@@ -271,11 +240,13 @@ def test_read_client_unauthenticated(client: TestClient, db: Session) -> None:
 
 
 def test_update_client_name(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    db_client = create_random_client(db)
     r = client.patch(
-        f"{settings.API_V1_STR}/clients/{db_client.id}",
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
         headers=superuser_token_headers,
         json={"name": "Updated Name"},
     )
@@ -286,12 +257,14 @@ def test_update_client_name(
 
 
 def test_update_client_document_number(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    db_client = create_random_client(db)
-    new_doc = _cpf()
+    new_doc = fake.cpf().replace(".", "").replace("-", "")
     r = client.patch(
-        f"{settings.API_V1_STR}/clients/{db_client.id}",
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
         headers=superuser_token_headers,
         json={"document_number": new_doc, "document_type": "cpf"},
     )
@@ -300,16 +273,18 @@ def test_update_client_document_number(
 
 
 def test_update_client_duplicate_document(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    client1 = create_random_client(db)
-    client2 = create_random_client(db)
+    other_client = ClientFactory()
     r = client.patch(
-        f"{settings.API_V1_STR}/clients/{client1.id}",
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
         headers=superuser_token_headers,
         json={
-            "document_number": client2.document_number,
-            "document_type": client2.document_type.value,
+            "document_number": other_client.document_number,
+            "document_type": other_client.document_type.value,
         },
     )
     assert r.status_code == HTTPStatus.CONFLICT
@@ -329,16 +304,18 @@ def test_update_client_not_found(
 
 
 def test_update_client_same_document_no_conflict(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
     """Updating a client with its own document number should not raise 409."""
-    db_client = create_random_client(db)
     r = client.patch(
-        f"{settings.API_V1_STR}/clients/{db_client.id}",
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
         headers=superuser_token_headers,
         json={
-            "document_number": db_client.document_number,
-            "document_type": db_client.document_type.value,
+            "document_number": random_client.document_number,
+            "document_type": random_client.document_type.value,
             "name": "Same Doc Updated",
         },
     )
@@ -346,10 +323,12 @@ def test_update_client_same_document_no_conflict(
     assert r.json()["name"] == "Same Doc Updated"
 
 
-def test_update_client_unauthenticated(client: TestClient, db: Session) -> None:
-    db_client = create_random_client(db)
+def test_update_client_unauthenticated(
+    client: TestClient, db: Session, random_client: Client
+) -> None:
     r = client.patch(
-        f"{settings.API_V1_STR}/clients/{db_client.id}", json={"name": "No Auth"}
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
+        json={"name": "No Auth"},
     )
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -358,10 +337,12 @@ def test_update_client_unauthenticated(client: TestClient, db: Session) -> None:
 
 
 def test_delete_client(
-    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    db_client = create_random_client(db)
-    client_id = db_client.id
+    client_id = random_client.id
     r = client.delete(
         f"{settings.API_V1_STR}/clients/{client_id}",
         headers=superuser_token_headers,
@@ -385,18 +366,21 @@ def test_delete_client_not_found(
     assert r.json()["detail"] == "Client not found"
 
 
-def test_delete_client_unauthenticated(client: TestClient, db: Session) -> None:
-    db_client = create_random_client(db)
-    r = client.delete(f"{settings.API_V1_STR}/clients/{db_client.id}")
+def test_delete_client_unauthenticated(
+    client: TestClient, db: Session, random_client: Client
+) -> None:
+    r = client.delete(f"{settings.API_V1_STR}/clients/{random_client.id}")
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_delete_client_wrong_role_forbidden(
-    client: TestClient, client_token_headers: dict[str, str], db: Session
+    client: TestClient,
+    client_token_headers: dict[str, str],
+    db: Session,
+    random_client: Client,
 ) -> None:
-    db_client = create_random_client(db)
-
     r = client.delete(
-        f"{settings.API_V1_STR}/clients/{db_client.id}", headers=client_token_headers
+        f"{settings.API_V1_STR}/clients/{random_client.id}",
+        headers=client_token_headers,
     )
     assert r.status_code == HTTPStatus.FORBIDDEN

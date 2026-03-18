@@ -14,54 +14,19 @@ from app.core.config import settings
 from app.core.permissions import get_role_defaults
 from app.models import (
     CategoriaTransacao,
-    Client,
-    ClientCreate,
-    DocumentType,
     Service,
-    ServiceCreate,
-    ServiceType,
     TipoTransacao,
     Transacao,
     TransacaoCreate,
     UserRole,
 )
+from tests.factories import ServiceFactory
 from tests.utils.utils import random_lower_string
 
 API_PREFIX = settings.API_V1_STR
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _unique_cpf() -> str:
-    digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    return (digits + "00000000000")[:11]
-
-
-def _create_client(db: Session) -> Client:
-    client_in = ClientCreate(
-        name="Test Cliente",
-        document_type=DocumentType("cpf"),
-        document_number=_unique_cpf(),
-    )
-    c = Client.model_validate(client_in)
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-def _create_service(db: Session, client_id: uuid.UUID) -> Service:
-    service_in = ServiceCreate(
-        type=ServiceType.perfuracao,
-        execution_address="Rua Teste 1",
-        client_id=client_id,
-    )
-    s = Service.model_validate(service_in)
-    db.add(s)
-    db.commit()
-    db.refresh(s)
-    return s
 
 
 def _make_receita(service_id: uuid.UUID | None = None) -> dict[str, object]:
@@ -422,8 +387,7 @@ def test_get_transacoes_filter_by_dates(db: Session) -> None:
 
 
 def test_get_transacoes_filter_by_service_id(db: Session) -> None:
-    cl = _create_client(db)
-    svc = _create_service(db, cl.id)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     _make_transacao_db(db, service_id=svc.id)
     _make_transacao_db(db)  # no service
 
@@ -490,3 +454,133 @@ def test_update_transacao_with_invalid_service_raises(
         json={"service_id": str(uuid.uuid4())},
     )
     assert r2.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ── Combined API filter tests ──────────────────────────────────────────────────
+
+
+def test_list_transacoes_filter_combined_tipo_and_categoria(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """Combine tipo + categoria filters via the API route."""
+    # Create a despesa with COMBUSTIVEL category
+    client.post(
+        f"{API_PREFIX}/transacoes/",
+        json=_make_despesa(),
+        headers=finance_token_headers,
+    )
+    r = client.get(
+        f"{API_PREFIX}/transacoes/",
+        params={"tipo": "despesa", "categoria": "COMBUSTIVEL"},
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    for t in r.json()["data"]:
+        assert t["tipo"] == "despesa"
+        assert t["categoria"] == "COMBUSTIVEL"
+
+
+def test_list_transacoes_filter_by_date_range_via_api(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """Filter by data_inicio and data_fim via the API route."""
+    client.post(
+        f"{API_PREFIX}/transacoes/",
+        json=_make_despesa(),
+        headers=finance_token_headers,
+    )
+    r = client.get(
+        f"{API_PREFIX}/transacoes/",
+        params={"data_inicio": "2020-01-01", "data_fim": "2030-12-31"},
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["count"] >= 1
+
+
+def test_list_transacoes_filter_by_service_id_via_api(
+    client: TestClient,
+    finance_token_headers: dict[str, str],
+    db: Session,  # noqa: ARG001
+) -> None:
+    """Filter by service_id via the API route."""
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+
+    payload = _make_receita(service_id=svc.id)
+    client.post(
+        f"{API_PREFIX}/transacoes/",
+        json=payload,
+        headers=finance_token_headers,
+    )
+
+    r = client.get(
+        f"{API_PREFIX}/transacoes/",
+        params={"service_id": str(svc.id)},
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    for t in r.json()["data"]:
+        assert t["service_id"] == str(svc.id)
+
+
+def test_list_transacoes_combined_all_filters(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """Combine tipo + categoria + date range filters via the API route."""
+    client.post(
+        f"{API_PREFIX}/transacoes/",
+        json=_make_despesa(),
+        headers=finance_token_headers,
+    )
+    r = client.get(
+        f"{API_PREFIX}/transacoes/",
+        params={
+            "tipo": "despesa",
+            "categoria": "COMBUSTIVEL",
+            "data_inicio": "2020-01-01",
+            "data_fim": "2030-12-31",
+        },
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    for t in r.json()["data"]:
+        assert t["tipo"] == "despesa"
+        assert t["categoria"] == "COMBUSTIVEL"
+
+
+def test_update_transacao_not_found(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """PATCH on nonexistent transacao returns 404."""
+    r = client.patch(
+        f"{API_PREFIX}/transacoes/{uuid.uuid4()}",
+        json={"valor": 99.99},
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_delete_transacao_not_found(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """DELETE on nonexistent transacao returns 404."""
+    r = client.delete(
+        f"{API_PREFIX}/transacoes/{uuid.uuid4()}",
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_resumo_with_specific_month(
+    client: TestClient, finance_token_headers: dict[str, str]
+) -> None:
+    """GET /resumo with specific ano and mes params."""
+    r = client.get(
+        f"{API_PREFIX}/transacoes/resumo",
+        params={"ano": 2024, "mes": 6},
+        headers=finance_token_headers,
+    )
+    assert r.status_code == HTTPStatus.OK
+    data = r.json()
+    assert "total_receitas" in data
+    assert "total_despesas" in data

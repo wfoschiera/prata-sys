@@ -27,7 +27,28 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: docker://agilepathway/pull-request-label-checker:latest
-        with:
-          one_of: breaking,security,feature,bug,refactor,upgrade,docs,lang-all,internal,fix,chore,feat,refact
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify PR has a required label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LABELS=$(gh pr view "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --json labels --jq '.labels[].name')
+
+          # Allowed base types (with optional scope in parentheses, e.g. fix(backend), chore(crud-api))
+          PATTERN='^(breaking|security|feature|bug|refactor|upgrade|docs|lang-all|internal|fix|chore|feat|refact)(\([a-z0-9-]+\))?$'
+
+          for label in $LABELS; do
+            if echo "$label" | grep -qE "$PATTERN"; then
+              echo "✅ Found valid label: $label"
+              exit 0
+            fi
+          done
+
+          echo "❌ No valid label found. PR must have at least one label matching:"
+          echo "   Base types: breaking, security, feature, bug, refactor, upgrade, docs, lang-all, internal, fix, chore, feat, refact"
+          echo "   Optional scope: (backend), (frontend), (crud-api), etc."
+          echo "   Examples: fix, chore(backend), feat(frontend), refact(crud-api)"
+          echo ""
+          echo "Current labels: $LABELS"
+          exit 1

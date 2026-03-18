@@ -394,7 +394,7 @@ export type ServiceItemCreate = {
     item_type: ItemType;
     description: string;
     quantity: number;
-    unit_price: number;
+    unit_price: (number | string);
     product_id?: (string | null);
 };
 
@@ -402,7 +402,7 @@ export type ServiceItemRead = {
     item_type: ItemType;
     description: string;
     quantity: number;
-    unit_price: number;
+    unit_price: string;
     product_id?: (string | null);
     id: string;
     service_id: string;

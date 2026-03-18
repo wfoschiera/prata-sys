@@ -534,3 +534,78 @@ def test_delete_user_without_privileges(client: TestClient, db: Session) -> None
     )
     assert r.status_code == HTTPStatus.FORBIDDEN
     assert r.json()["detail"] == "Insufficient permissions"
+
+
+# ── Role change clears permissions ────────────────────────────────────────────
+
+
+def test_update_user_role_change_clears_permissions(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Changing a user's role via PATCH clears their permission overrides."""
+    from app.models import UserRole
+
+    # Create a finance user
+    user_in = UserCreate(
+        email=random_email(), password=random_lower_string(), role=UserRole.finance
+    )
+    user = crud.create_user(session=db, user_create=user_in)
+
+    # Set custom permission overrides (use permissions NOT in finance role defaults)
+    crud.set_user_permissions(
+        session=db,
+        user_id=user.id,
+        permissions=["manage_users", "manage_services"],
+    )
+    perms = crud.get_user_permissions(session=db, user_id=user.id)
+    assert len(perms) == 2
+
+    # Change role from finance to admin
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"role": "admin"},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["role"] == "admin"
+
+    # Permission overrides should be cleared
+    perms_after = crud.get_user_permissions(session=db, user_id=user.id)
+    assert len(perms_after) == 0
+
+
+def test_update_user_same_role_keeps_permissions(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Updating a user WITHOUT changing role does NOT clear permissions."""
+    from app.models import UserRole
+
+    user_in = UserCreate(
+        email=random_email(), password=random_lower_string(), role=UserRole.finance
+    )
+    user = crud.create_user(session=db, user_create=user_in)
+
+    # Set custom permission overrides (use a permission NOT in finance role defaults)
+    crud.set_user_permissions(
+        session=db,
+        user_id=user.id,
+        permissions=["manage_users"],
+    )
+    # Verify override was stored
+    perms_before = crud.get_user_permissions(session=db, user_id=user.id)
+    assert len(perms_before) == 1
+
+    # Update without changing role — explicitly send the same role + a new full_name.
+    # (We must include `role` because UserUpdate inherits a non-None default
+    # from UserBase; omitting it causes Pydantic to fill in UserRole.admin.)
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"full_name": "Finance User", "role": "finance"},
+    )
+    assert r.status_code == HTTPStatus.OK
+
+    # Permissions should still be there — expire session state first to force fresh read
+    db.expire_all()
+    perms_after = crud.get_user_permissions(session=db, user_id=user.id)
+    assert len(perms_after) == 1

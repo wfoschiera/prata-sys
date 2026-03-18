@@ -2467,8 +2467,16 @@ export const ServiceItemCreateSchema = {
             title: 'Quantity'
         },
         unit_price: {
-            type: 'number',
-            minimum: 0,
+            anyOf: [
+                {
+                    type: 'number',
+                    minimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
             title: 'Unit Price'
         },
         product_id: {
@@ -2506,8 +2514,8 @@ export const ServiceItemReadSchema = {
             title: 'Quantity'
         },
         unit_price: {
-            type: 'number',
-            minimum: 0,
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
             title: 'Unit Price'
         },
         product_id: {
