@@ -358,7 +358,7 @@ class ServiceItemBase(SQLModel):
     item_type: ItemType
     description: str = Field(min_length=1, max_length=500)
     quantity: float = Field(gt=0)
-    unit_price: float = Field(ge=0)
+    unit_price: Decimal = Field(ge=0)
     # Optional link to a catalog Product — enables product-scoped stock reservation.
     # When set, _check_stock_for_service() will reserve ProductItems for this product.
     product_id: uuid.UUID | None = Field(default=None)
