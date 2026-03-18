@@ -2,79 +2,26 @@ import uuid
 from decimal import Decimal
 from http import HTTPStatus
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
 from app.models import (
-    Client,
-    ClientCreate,
     DeductionItem,
-    DocumentType,
     ItemType,
     Service,
-    ServiceCreate,
     ServiceItem,
     ServiceItemCreate,
     ServiceStatus,
-    ServiceType,
 )
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _cpf() -> str:
-    uid_digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    return (uid_digits + "00000000000")[:11]
-
-
-def _cnpj() -> str:
-    import random
-
-    def calc_dv(digits: list[int], weights: list[int]) -> int:
-        remainder = sum(d * w for d, w in zip(digits, weights, strict=False)) % 11
-        return 0 if remainder < 2 else 11 - remainder
-
-    while True:
-        root = [random.randint(0, 9) for _ in range(8)]
-        base = root + [0, 0, 0, 1]
-        if len(set(base)) == 1:
-            continue
-        dv1 = calc_dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        dv2 = calc_dv(base + [dv1], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        return "".join(str(d) for d in base + [dv1, dv2])
-
-
-def create_random_client(db: Session) -> Client:
-    client_in = ClientCreate(
-        name="Test Client",
-        document_type=DocumentType.cpf,
-        document_number=_cpf(),
-    )
-    return crud.create_client(session=db, client_in=client_in)
-
-
-def create_random_service(db: Session, client: Client | None = None) -> Service:
-    if client is None:
-        client = create_random_client(db)
-    service_in = ServiceCreate(
-        type=ServiceType.perfuracao,
-        execution_address="Rua das Palmeiras, 100",
-        client_id=client.id,
-    )
-    return crud.create_service(session=db, service_in=service_in)
-
-
-def create_service_item(db: Session, service: Service) -> ServiceItem:
-    item_in = ServiceItemCreate(
-        item_type=ItemType.material,
-        description="Tubo PVC 50mm",
-        quantity=10.0,
-        unit_price=15.50,
-    )
-    return crud.create_service_item(session=db, service_id=service.id, item_in=item_in)
-
+from tests.factories import (
+    ClientFactory,
+    ProductItemFactory,
+    ServiceFactory,
+    ServiceItemFactory,
+)
 
 # ── List services ─────────────────────────────────────────────────────────────
 
@@ -82,7 +29,7 @@ def create_service_item(db: Session, service: Service) -> ServiceItem:
 def test_read_services_superuser(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    create_random_service(db)
+    ServiceFactory()
     r = client.get(f"{settings.API_V1_STR}/services/", headers=superuser_token_headers)
     assert r.status_code == HTTPStatus.OK
     data = r.json()
@@ -119,8 +66,8 @@ def test_read_services_unauthenticated(client: TestClient) -> None:
 def test_read_services_pagination(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    create_random_service(db)
-    create_random_service(db)
+    ServiceFactory()
+    ServiceFactory()
     r = client.get(
         f"{settings.API_V1_STR}/services/?skip=0&limit=1",
         headers=superuser_token_headers,
@@ -135,7 +82,7 @@ def test_read_services_pagination(
 def test_create_service(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    db_client = create_random_client(db)
+    db_client = ClientFactory()
     payload = {
         "type": "perfuração",
         "execution_address": "Rua Nova, 200",
@@ -156,7 +103,7 @@ def test_create_service(
 def test_create_service_with_notes(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    db_client = create_random_client(db)
+    db_client = ClientFactory()
     payload = {
         "type": "reparo",
         "execution_address": "Rua Velha, 10",
@@ -190,7 +137,7 @@ def test_create_service_client_not_found(
 
 
 def test_create_service_unauthenticated(client: TestClient, db: Session) -> None:
-    db_client = create_random_client(db)
+    db_client = ClientFactory()
     payload = {
         "type": "perfuração",
         "execution_address": "Rua Nova, 200",
@@ -203,7 +150,7 @@ def test_create_service_unauthenticated(client: TestClient, db: Session) -> None
 def test_create_service_wrong_role_forbidden(
     client: TestClient, client_token_headers: dict[str, str], db: Session
 ) -> None:
-    db_client = create_random_client(db)
+    db_client = ClientFactory()
     payload = {
         "type": "perfuração",
         "execution_address": "Rua Nova, 200",
@@ -221,7 +168,7 @@ def test_create_service_wrong_role_forbidden(
 def test_read_service(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.get(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
@@ -246,7 +193,7 @@ def test_read_service_not_found(
 
 
 def test_read_service_unauthenticated(client: TestClient, db: Session) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.get(f"{settings.API_V1_STR}/services/{svc.id}")
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -257,7 +204,7 @@ def test_read_service_unauthenticated(client: TestClient, db: Session) -> None:
 def test_update_service_address(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.patch(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
@@ -273,7 +220,7 @@ def test_update_service_status_via_patch_rejected(
 ) -> None:
     # Status transitions are no longer allowed via PATCH /services/{id}.
     # Use POST /services/{id}/transition instead (added in Phase 5 API routes).
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     assert svc.status == ServiceStatus.requested
     r = client.patch(
         f"{settings.API_V1_STR}/services/{svc.id}",
@@ -296,7 +243,7 @@ def test_update_service_not_found(
 
 
 def test_update_service_unauthenticated(client: TestClient, db: Session) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.patch(
         f"{settings.API_V1_STR}/services/{svc.id}",
         json={"execution_address": "No Auth"},
@@ -310,7 +257,7 @@ def test_update_service_unauthenticated(client: TestClient, db: Session) -> None
 def test_delete_service(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     svc_id = svc.id
     r = client.delete(
         f"{settings.API_V1_STR}/services/{svc_id}",
@@ -332,7 +279,7 @@ def test_delete_service_not_found(
 
 
 def test_delete_service_unauthenticated(client: TestClient, db: Session) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}")
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -340,7 +287,7 @@ def test_delete_service_unauthenticated(client: TestClient, db: Session) -> None
 def test_delete_service_wrong_role_forbidden(
     client: TestClient, client_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.delete(
         f"{settings.API_V1_STR}/services/{svc.id}", headers=client_token_headers
     )
@@ -353,7 +300,7 @@ def test_delete_service_wrong_role_forbidden(
 def test_create_service_item(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     payload = {
         "item_type": "material",
         "description": "Tubo PVC 50mm",
@@ -370,14 +317,14 @@ def test_create_service_item(
     assert data["service_id"] == str(svc.id)
     assert data["description"] == "Tubo PVC 50mm"
     assert data["quantity"] == 5.0
-    assert data["unit_price"] == 20.0
+    assert float(data["unit_price"]) == pytest.approx(20.0)
     assert "id" in data
 
 
 def test_create_service_item_servico_type(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     payload = {
         "item_type": "serviço",
         "description": "Mão de obra",
@@ -414,7 +361,7 @@ def test_create_service_item_service_not_found(
 def test_create_service_item_invalid_quantity(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     payload = {
         "item_type": "material",
         "description": "Bad qty",
@@ -430,7 +377,7 @@ def test_create_service_item_invalid_quantity(
 
 
 def test_create_service_item_unauthenticated(client: TestClient, db: Session) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     payload = {
         "item_type": "material",
         "description": "No auth",
@@ -447,8 +394,8 @@ def test_create_service_item_unauthenticated(client: TestClient, db: Session) ->
 def test_delete_service_item(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
-    item = create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    item = ServiceItemFactory(service=svc)
     item_id = item.id
 
     r = client.delete(
@@ -463,7 +410,7 @@ def test_delete_service_item(
 def test_delete_service_item_not_found(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.delete(
         f"{settings.API_V1_STR}/services/{svc.id}/items/{uuid.uuid4()}",
         headers=superuser_token_headers,
@@ -476,9 +423,9 @@ def test_delete_service_item_wrong_service(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Item belongs to svc1 but we try to delete it via svc2 — should 404."""
-    svc1 = create_random_service(db)
-    svc2 = create_random_service(db)
-    item = create_service_item(db, svc1)
+    svc1 = ServiceFactory()
+    svc2 = ServiceFactory()
+    item = ServiceItemFactory(service=svc1)
 
     r = client.delete(
         f"{settings.API_V1_STR}/services/{svc2.id}/items/{item.id}",
@@ -489,8 +436,8 @@ def test_delete_service_item_wrong_service(
 
 
 def test_delete_service_item_unauthenticated(client: TestClient, db: Session) -> None:
-    svc = create_random_service(db)
-    item = create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    item = ServiceItemFactory(service=svc)
     r = client.delete(f"{settings.API_V1_STR}/services/{svc.id}/items/{item.id}")
     assert r.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -501,9 +448,9 @@ def test_delete_service_item_unauthenticated(client: TestClient, db: Session) ->
 def test_read_service_includes_items(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
-    create_service_item(db, svc)
-    create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
+    ServiceItemFactory(service=svc)
     r = client.get(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
@@ -517,8 +464,8 @@ def test_read_service_includes_items(
 def test_delete_service_cascades_items(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    svc = create_random_service(db)
-    item = create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    item = ServiceItemFactory(service=svc)
     item_id = item.id
 
     r = client.delete(
@@ -540,7 +487,7 @@ def test_valid_transition_creates_status_log(
     """POST /transition valid forward transition creates a ServiceStatusLog entry."""
     from app.models import ServiceStatusLog
 
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     assert svc.status == ServiceStatus.requested
 
     r = client.post(
@@ -565,7 +512,7 @@ def test_transition_to_cancelled_without_reason_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /transition to cancelled without reason returns 422."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
         headers=superuser_token_headers,
@@ -578,7 +525,7 @@ def test_transition_to_cancelled_with_reason_persists(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /transition to cancelled with reason persists cancelled_reason."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     reason = "Obra suspensa pelo cliente"
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
@@ -595,7 +542,7 @@ def test_transition_from_terminal_state_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /transition from a terminal state (cancelled) returns 422."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
         headers=superuser_token_headers,
@@ -613,7 +560,7 @@ def test_patch_with_status_field_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """PATCH /services/{id} with status in body is rejected (status not in ServiceUpdate)."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.patch(
         f"{settings.API_V1_STR}/services/{svc.id}",
         headers=superuser_token_headers,
@@ -626,7 +573,7 @@ def test_transition_finance_user_forbidden(
     client: TestClient, finance_token_headers: dict[str, str], db: Session
 ) -> None:
     """Finance user calling POST /transition returns 403."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
         headers=finance_token_headers,
@@ -639,7 +586,7 @@ def test_deduct_stock_on_non_executing_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /deduct-stock on a non-executing service returns 422."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/deduct-stock",
         headers=superuser_token_headers,
@@ -651,7 +598,7 @@ def test_get_service_includes_status_logs(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """GET /services/{id} response includes status_logs in chronological order."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
         headers=superuser_token_headers,
@@ -686,11 +633,9 @@ def test_valid_transitions_logic() -> None:
 
 def test_deduct_stock_items_rejects_non_material(db: Session) -> None:
     """_deduct_stock_items raises ValueError when service_item_id is not a material item."""
-    import pytest
-
     from app.crud import _deduct_stock_items
 
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     item = crud.create_service_item(
         session=db,
         service_id=svc.id,
@@ -711,7 +656,7 @@ def test_get_service_status_logs_crud(
     db: Session, superuser_token_headers: dict[str, str], client: TestClient
 ) -> None:
     """get_service_status_logs returns logs ordered by changed_at."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
         headers=superuser_token_headers,
@@ -729,43 +674,6 @@ def test_get_service_status_logs_crud(
 
 
 # ── Phase 8: Stock integration tests ─────────────────────────────────────────
-
-
-def _create_product_item(db: Session, quantity: float = 5.0) -> object:
-    """Create a ProductType, Product, and ProductItem with em_estoque status."""
-    from app.models import (
-        Product,
-        ProductCategory,
-        ProductItem,
-        ProductItemStatus,
-        ProductType,
-    )
-
-    pt = ProductType(
-        category=ProductCategory.tubos,
-        name=f"Tubo Teste {uuid.uuid4().hex[:6]}",
-        unit_of_measure="un",
-    )
-    db.add(pt)
-    db.flush()
-
-    prod = Product(
-        product_type_id=pt.id,
-        name=f"Produto {uuid.uuid4().hex[:6]}",
-        unit_price=Decimal("10.00"),
-    )
-    db.add(prod)
-    db.flush()
-
-    item = ProductItem(
-        product_id=prod.id,
-        quantity=Decimal(str(quantity)),
-        status=ProductItemStatus.em_estoque,
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
 
 
 def _reserved_for_service(db: Session, service_id: object) -> list:
@@ -800,9 +708,9 @@ def test_transition_to_scheduled_reserves_stock(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Transitioning to scheduled reserves em_estoque ProductItems for the service."""
-    svc = create_random_service(db)
-    create_service_item(db, svc)
-    _create_product_item(db, quantity=20.0)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
+    ProductItemFactory(quantity=Decimal("20.0"))
 
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
@@ -821,7 +729,7 @@ def test_transition_to_scheduled_with_insufficient_stock_returns_warning(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Insufficient stock produces a warning but does not block transition."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     # Service item needs 10 units, only 2 available
     item_in = ServiceItemCreate(
         item_type=ItemType.material,
@@ -830,7 +738,7 @@ def test_transition_to_scheduled_with_insufficient_stock_returns_warning(
         unit_price=5.0,
     )
     crud.create_service_item(session=db, service_id=svc.id, item_in=item_in)
-    _create_product_item(db, quantity=2.0)
+    ProductItemFactory(quantity=Decimal("2.0"))
 
     r = client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
@@ -851,9 +759,9 @@ def test_transition_to_cancelled_releases_reserved_stock(
     """Cancelling a service releases all reserved ProductItems back to em_estoque."""
     from app.models import ProductItemStatus
 
-    svc = create_random_service(db)
-    create_service_item(db, svc)
-    _create_product_item(db, quantity=20.0)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
+    ProductItemFactory(quantity=Decimal("20.0"))
 
     # Schedule (reserves stock)
     client.post(
@@ -890,9 +798,9 @@ def test_transition_to_completed_marks_stock_utilizado(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Completing a service marks reserved ProductItems as utilizado."""
-    svc = create_random_service(db)
-    svc_item = create_service_item(db, svc)
-    _create_product_item(db, quantity=20.0)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    svc_item = ServiceItemFactory(service=svc)
+    ProductItemFactory(quantity=Decimal("20.0"))
 
     # requested → scheduled → executing → completed
     client.post(
@@ -928,9 +836,9 @@ def test_deduct_stock_marks_reserved_items_utilizado(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """POST /deduct-stock on an executing service marks reserved items utilizado."""
-    svc = create_random_service(db)
-    create_service_item(db, svc)
-    _create_product_item(db, quantity=20.0)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
+    ProductItemFactory(quantity=Decimal("20.0"))
 
     client.post(
         f"{settings.API_V1_STR}/services/{svc.id}/transition",
@@ -985,7 +893,7 @@ def test_delete_scheduled_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cannot delete a service in scheduled status."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     _advance_service_to(client, superuser_token_headers, svc.id, "scheduled")
 
     r = client.delete(
@@ -999,7 +907,7 @@ def test_delete_executing_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cannot delete a service in executing status."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     _advance_service_to(client, superuser_token_headers, svc.id, "executing")
 
     r = client.delete(
@@ -1013,7 +921,7 @@ def test_delete_requested_service_succeeds(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Can delete a service in requested status (no state lock)."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
 
     r = client.delete(
         f"{settings.API_V1_STR}/services/{svc.id}",
@@ -1026,7 +934,7 @@ def test_add_item_to_executing_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cannot add line items to an executing service."""
-    svc = create_random_service(db)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     _advance_service_to(client, superuser_token_headers, svc.id, "executing")
 
     r = client.post(
@@ -1046,8 +954,8 @@ def test_add_item_to_completed_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cannot add line items to a completed service."""
-    svc = create_random_service(db)
-    svc_item = create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    svc_item = ServiceItemFactory(service=svc)
 
     # Complete the service
     client.post(
@@ -1086,8 +994,8 @@ def test_delete_item_from_executing_service_returns_422(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cannot remove line items from an executing service."""
-    svc = create_random_service(db)
-    svc_item = create_service_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    svc_item = ServiceItemFactory(service=svc)
     _advance_service_to(client, superuser_token_headers, svc.id, "executing")
 
     r = client.delete(
@@ -1104,11 +1012,9 @@ def test_cancel_executing_service_releases_stock(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     """Cancelling from executing state releases all reserved stock back to em_estoque."""
-    from app.models import ProductItemStatus
-
-    svc = create_random_service(db)
-    create_service_item(db, svc)
-    _create_product_item(db, quantity=20.0)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
+    ProductItemFactory(quantity=Decimal("20.0"))
 
     # requested → scheduled (reserves stock) → executing
     client.post(

@@ -14,54 +14,19 @@ from app.core.config import settings
 from app.core.permissions import get_role_defaults
 from app.models import (
     CategoriaTransacao,
-    Client,
-    ClientCreate,
-    DocumentType,
     Service,
-    ServiceCreate,
-    ServiceType,
     TipoTransacao,
     Transacao,
     TransacaoCreate,
     UserRole,
 )
+from tests.factories import ServiceFactory
 from tests.utils.utils import random_lower_string
 
 API_PREFIX = settings.API_V1_STR
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _unique_cpf() -> str:
-    digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    return (digits + "00000000000")[:11]
-
-
-def _create_client(db: Session) -> Client:
-    client_in = ClientCreate(
-        name="Test Cliente",
-        document_type=DocumentType("cpf"),
-        document_number=_unique_cpf(),
-    )
-    c = Client.model_validate(client_in)
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-def _create_service(db: Session, client_id: uuid.UUID) -> Service:
-    service_in = ServiceCreate(
-        type=ServiceType.perfuracao,
-        execution_address="Rua Teste 1",
-        client_id=client_id,
-    )
-    s = Service.model_validate(service_in)
-    db.add(s)
-    db.commit()
-    db.refresh(s)
-    return s
 
 
 def _make_receita(service_id: uuid.UUID | None = None) -> dict[str, object]:
@@ -422,8 +387,7 @@ def test_get_transacoes_filter_by_dates(db: Session) -> None:
 
 
 def test_get_transacoes_filter_by_service_id(db: Session) -> None:
-    cl = _create_client(db)
-    svc = _create_service(db, cl.id)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     _make_transacao_db(db, service_id=svc.id)
     _make_transacao_db(db)  # no service
 
@@ -537,12 +501,10 @@ def test_list_transacoes_filter_by_date_range_via_api(
 def test_list_transacoes_filter_by_service_id_via_api(
     client: TestClient,
     finance_token_headers: dict[str, str],
-    superuser_token_headers: dict[str, str],
-    db: Session,
+    db: Session,  # noqa: ARG001
 ) -> None:
     """Filter by service_id via the API route."""
-    cl = _create_client(db)
-    svc = _create_service(db, cl.id)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
 
     payload = _make_receita(service_id=svc.id)
     client.post(

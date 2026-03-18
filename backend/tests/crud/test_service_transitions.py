@@ -11,64 +11,12 @@ from sqlmodel import Session
 
 from app import crud
 from app.models import (
-    Client,
-    ClientCreate,
-    DocumentType,
-    ItemType,
     Service,
-    ServiceCreate,
-    ServiceItem,
-    ServiceItemCreate,
     ServiceStatus,
-    ServiceType,
 )
+from tests.factories import ServiceFactory, ServiceItemFactory
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
-
-def _make_client(db: Session) -> Client:
-    uid_digits = "".join(c for c in uuid.uuid4().hex if c.isdigit())
-    cpf = (uid_digits + "00000000000")[:11]
-    client_in = ClientCreate(
-        name="Test Client",
-        document_type=DocumentType.cpf,
-        document_number=cpf,
-    )
-    return crud.create_client(session=db, client_in=client_in)
-
-
-def _make_service(db: Session) -> Service:
-    client = _make_client(db)
-    return crud.create_service(
-        session=db,
-        service_in=ServiceCreate(
-            type=ServiceType.perfuracao,
-            execution_address="Rua Teste, 100",
-            client_id=client.id,
-        ),
-    )
-
-
-def _make_material_item(db: Session, service: Service) -> ServiceItem:
-    return crud.create_service_item(
-        session=db,
-        service_id=service.id,
-        item_in=ServiceItemCreate(
-            item_type=ItemType.material,
-            description="Tubo teste",
-            quantity=5.0,
-            unit_price=10.0,
-        ),
-    )
-
-
-def _get_superuser_id(db: Session) -> uuid.UUID:
-    """Fetch the seeded superuser's ID to satisfy the changed_by FK."""
-    from app.core.config import settings
-
-    user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert user is not None, "Superuser not found — was init_db run?"
-    return user.id
 
 
 def _transition(
@@ -78,12 +26,13 @@ def _transition(
     *,
     reason: str | None = None,
     deduction_items=None,
+    superuser_id: uuid.UUID,
 ) -> tuple[Service, list]:
     return crud.transition_service_status(
         session=db,
         service=service,
         to_status=to_status,
-        changed_by_id=_get_superuser_id(db),
+        changed_by_id=superuser_id,
         reason=reason,
         deduction_items=deduction_items or [],
     )
@@ -92,29 +41,35 @@ def _transition(
 # ── Valid transition tests ─────────────────────────────────────────────────────
 
 
-def test_requested_to_scheduled(db: Session) -> None:
-    svc = _make_service(db)
+def test_requested_to_scheduled(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     assert svc.status == ServiceStatus.requested
-    updated, warnings = _transition(db, svc, ServiceStatus.scheduled)
+    updated, warnings = _transition(
+        db, svc, ServiceStatus.scheduled, superuser_id=superuser_id
+    )
     assert updated.status == ServiceStatus.scheduled
     assert warnings == []
 
 
-def test_scheduled_to_executing(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.scheduled)
+def test_scheduled_to_executing(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    updated, warnings = _transition(db, svc, ServiceStatus.executing)
+    updated, warnings = _transition(
+        db, svc, ServiceStatus.executing, superuser_id=superuser_id
+    )
     assert updated.status == ServiceStatus.executing
 
 
-def test_executing_to_completed_with_deduction_items(db: Session) -> None:
-    svc = _make_service(db)
-    item = _make_material_item(db, svc)
+def test_executing_to_completed_with_deduction_items(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    item = ServiceItemFactory(service=svc)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.scheduled)
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.executing)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     db.refresh(svc)
     from app.models import DeductionItem
 
@@ -123,59 +78,78 @@ def test_executing_to_completed_with_deduction_items(db: Session) -> None:
         svc,
         ServiceStatus.completed,
         deduction_items=[DeductionItem(service_item_id=item.id, quantity=5.0)],
+        superuser_id=superuser_id,
     )
     assert updated.status == ServiceStatus.completed
 
 
-def test_requested_to_cancelled(db: Session) -> None:
-    svc = _make_service(db)
+def test_requested_to_cancelled(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     updated, _ = _transition(
-        db, svc, ServiceStatus.cancelled, reason="Cancelado pelo cliente"
+        db,
+        svc,
+        ServiceStatus.cancelled,
+        reason="Cancelado pelo cliente",
+        superuser_id=superuser_id,
     )
     assert updated.status == ServiceStatus.cancelled
     assert updated.cancelled_reason == "Cancelado pelo cliente"
 
 
-def test_scheduled_to_cancelled(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.scheduled)
+def test_scheduled_to_cancelled(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    updated, _ = _transition(db, svc, ServiceStatus.cancelled, reason="Motivo teste")
+    updated, _ = _transition(
+        db,
+        svc,
+        ServiceStatus.cancelled,
+        reason="Motivo teste",
+        superuser_id=superuser_id,
+    )
     assert updated.status == ServiceStatus.cancelled
 
 
-def test_executing_to_cancelled(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.scheduled)
+def test_executing_to_cancelled(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.executing)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     db.refresh(svc)
-    updated, _ = _transition(db, svc, ServiceStatus.cancelled, reason="Emergência")
+    updated, _ = _transition(
+        db, svc, ServiceStatus.cancelled, reason="Emergência", superuser_id=superuser_id
+    )
     assert updated.status == ServiceStatus.cancelled
 
 
 # ── Invalid transition tests ───────────────────────────────────────────────────
 
 
-def test_invalid_requested_to_executing_raises(db: Session) -> None:
-    svc = _make_service(db)
+def test_invalid_requested_to_executing_raises(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     with pytest.raises(ValueError, match="Cannot transition"):
-        _transition(db, svc, ServiceStatus.executing)
+        _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
 
 
-def test_invalid_requested_to_completed_raises(db: Session) -> None:
-    svc = _make_service(db)
+def test_invalid_requested_to_completed_raises(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
     with pytest.raises(ValueError, match="Cannot transition"):
-        _transition(db, svc, ServiceStatus.completed)
+        _transition(db, svc, ServiceStatus.completed, superuser_id=superuser_id)
 
 
-def test_invalid_completed_to_anything_raises(db: Session) -> None:
-    svc = _make_service(db)
-    item = _make_material_item(db, svc)
+def test_invalid_completed_to_anything_raises(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    item = ServiceItemFactory(service=svc)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.scheduled)
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.executing)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     db.refresh(svc)
     from app.models import DeductionItem
 
@@ -184,6 +158,7 @@ def test_invalid_completed_to_anything_raises(db: Session) -> None:
         svc,
         ServiceStatus.completed,
         deduction_items=[DeductionItem(service_item_id=item.id, quantity=5.0)],
+        superuser_id=superuser_id,
     )
     db.refresh(svc)
     for bad_status in [
@@ -193,12 +168,16 @@ def test_invalid_completed_to_anything_raises(db: Session) -> None:
         ServiceStatus.cancelled,
     ]:
         with pytest.raises(ValueError, match="Cannot transition"):
-            _transition(db, svc, bad_status)
+            _transition(db, svc, bad_status, superuser_id=superuser_id)
 
 
-def test_invalid_cancelled_to_anything_raises(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.cancelled, reason="Teste")
+def test_invalid_cancelled_to_anything_raises(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(
+        db, svc, ServiceStatus.cancelled, reason="Teste", superuser_id=superuser_id
+    )
     db.refresh(svc)
     for bad_status in [
         ServiceStatus.requested,
@@ -207,26 +186,28 @@ def test_invalid_cancelled_to_anything_raises(db: Session) -> None:
         ServiceStatus.completed,
     ]:
         with pytest.raises(ValueError, match="Cannot transition"):
-            _transition(db, svc, bad_status)
+            _transition(db, svc, bad_status, superuser_id=superuser_id)
 
 
 # ── Status log tests ───────────────────────────────────────────────────────────
 
 
-def test_transition_creates_status_log(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.scheduled)
+def test_transition_creates_status_log(db: Session, superuser_id: uuid.UUID) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     logs = crud.get_service_status_logs(session=db, service_id=svc.id)
     assert len(logs) == 1
     assert logs[0].from_status == ServiceStatus.requested
     assert logs[0].to_status == ServiceStatus.scheduled
 
 
-def test_multiple_transitions_create_ordered_logs(db: Session) -> None:
-    svc = _make_service(db)
-    _transition(db, svc, ServiceStatus.scheduled)
+def test_multiple_transitions_create_ordered_logs(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.executing)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     logs = crud.get_service_status_logs(session=db, service_id=svc.id)
     assert len(logs) == 2
     assert logs[0].from_status == ServiceStatus.requested
@@ -236,14 +217,14 @@ def test_multiple_transitions_create_ordered_logs(db: Session) -> None:
 # ── Deduction item validation tests ───────────────────────────────────────────
 
 
-def test_invalid_deduction_item_id_raises(db: Session) -> None:
+def test_invalid_deduction_item_id_raises(db: Session, superuser_id: uuid.UUID) -> None:
     """Completing with a service_item_id not belonging to this service raises ValueError."""
-    svc = _make_service(db)
-    _make_material_item(db, svc)
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    ServiceItemFactory(service=svc)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.scheduled)
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
     db.refresh(svc)
-    _transition(db, svc, ServiceStatus.executing)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     db.refresh(svc)
     from app.models import DeductionItem
 
@@ -253,4 +234,5 @@ def test_invalid_deduction_item_id_raises(db: Session) -> None:
             svc,
             ServiceStatus.completed,
             deduction_items=[DeductionItem(service_item_id=uuid.uuid4(), quantity=1.0)],
+            superuser_id=superuser_id,
         )

@@ -13,33 +13,12 @@ from sqlmodel import Session
 from app import crud
 from app.models import (
     Product,
-    ProductCategory,
     ProductItem,
     ProductItemStatus,
-    ProductType,
 )
+from tests.factories import ProductFactory
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
-
-def _make_product(db: Session) -> Product:
-    """Create a minimal ProductType + Product for testing."""
-    pt = ProductType(
-        category=ProductCategory.tubos,
-        name=f"TestType-{uuid.uuid4().hex[:6]}",
-        unit_of_measure="un",
-    )
-    db.add(pt)
-    db.flush()
-    prod = Product(
-        product_type_id=pt.id,
-        name=f"TestProduct-{uuid.uuid4().hex[:6]}",
-        unit_price=Decimal("1.00"),
-    )
-    db.add(prod)
-    db.commit()
-    db.refresh(prod)
-    return prod
 
 
 def _add_items(
@@ -70,7 +49,7 @@ def _add_items(
 
 def test_prediction_no_stock_no_history(db: Session) -> None:
     """Product with zero stock and no consumption history → green, no stockout date."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     result = crud.get_stock_prediction(session=db, product_id=prod.id)
 
     assert result.level == "green"
@@ -82,7 +61,7 @@ def test_prediction_no_stock_no_history(db: Session) -> None:
 
 def test_prediction_stock_available_no_history(db: Session) -> None:
     """Stock available but no consumption history → green (cannot predict)."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     _add_items(db, prod.id, ProductItemStatus.em_estoque, quantity=50.0)
 
     result = crud.get_stock_prediction(session=db, product_id=prod.id)
@@ -94,7 +73,7 @@ def test_prediction_stock_available_no_history(db: Session) -> None:
 
 def test_prediction_all_reserved_no_history(db: Session) -> None:
     """All stock reserved, no consumption history → yellow."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     _add_items(db, prod.id, ProductItemStatus.reservado, quantity=10.0)
 
     result = crud.get_stock_prediction(session=db, product_id=prod.id)
@@ -106,7 +85,7 @@ def test_prediction_all_reserved_no_history(db: Session) -> None:
 
 def test_prediction_net_stock_zero_with_history(db: Session) -> None:
     """Net stock ≤ 0 with consumption history → red."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     # All em_estoque is also all reserved → net = 0
     _add_items(db, prod.id, ProductItemStatus.reservado, quantity=20.0)
     _add_items(db, prod.id, ProductItemStatus.utilizado, quantity=1.0)
@@ -118,7 +97,7 @@ def test_prediction_net_stock_zero_with_history(db: Session) -> None:
 
 def test_prediction_red_threshold(db: Session) -> None:
     """≤ 7 days to stockout → red."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     # 7 units in stock, consuming 1/day → 7 days → red
     _add_items(db, prod.id, ProductItemStatus.em_estoque, quantity=7.0)
     # Simulate 90 days of consumption: 90 units utilizado
@@ -133,7 +112,7 @@ def test_prediction_red_threshold(db: Session) -> None:
 
 def test_prediction_yellow_threshold(db: Session) -> None:
     """8–30 days to stockout → yellow."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     # 20 units in stock, 1/day avg consumption → 20 days → yellow
     _add_items(db, prod.id, ProductItemStatus.em_estoque, quantity=20.0)
     _add_items(db, prod.id, ProductItemStatus.utilizado, quantity=90.0)
@@ -147,7 +126,7 @@ def test_prediction_yellow_threshold(db: Session) -> None:
 
 def test_prediction_green_threshold(db: Session) -> None:
     """31+ days to stockout → green."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     # 100 units in stock, 1/day avg → 100 days → green
     _add_items(db, prod.id, ProductItemStatus.em_estoque, quantity=100.0)
     _add_items(db, prod.id, ProductItemStatus.utilizado, quantity=90.0)
@@ -188,7 +167,7 @@ def test_prediction_parametrized(
     expected_level: str,
 ) -> None:
     """Parametrized coverage of all level branches."""
-    prod = _make_product(db)
+    prod: Product = ProductFactory()  # type: ignore[assignment]
     if em_estoque:
         _add_items(db, prod.id, ProductItemStatus.em_estoque, quantity=em_estoque)
     if reservado:

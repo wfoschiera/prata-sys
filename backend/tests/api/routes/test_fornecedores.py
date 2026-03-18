@@ -1,6 +1,7 @@
 import uuid
 from http import HTTPStatus
 
+from faker import Faker
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -10,27 +11,11 @@ from app.models import (
 )
 from tests.utils.utils import random_lower_string
 
+fake = Faker("pt_BR")
+
 PREFIX = f"{settings.API_V1_STR}/fornecedores"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _valid_cnpj() -> str:
-    """Return a valid, unique numeric CNPJ using the Modulo 11 algorithm."""
-    import random
-
-    def calc_dv(digits: list[int], weights: list[int]) -> int:
-        remainder = sum(d * w for d, w in zip(digits, weights, strict=False)) % 11
-        return 0 if remainder < 2 else 11 - remainder
-
-    while True:
-        root = [random.randint(0, 9) for _ in range(8)]
-        base = root + [0, 0, 0, 1]
-        if len(set(base)) == 1:
-            continue
-        dv1 = calc_dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        dv2 = calc_dv(base + [dv1], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-        return "".join(str(d) for d in base + [dv1, dv2])
 
 
 def _create_fornecedor(
@@ -78,7 +63,7 @@ def test_create_fornecedor_with_categories(
 def test_create_fornecedor_duplicate_cnpj(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
-    cnpj = _valid_cnpj()
+    cnpj = fake.cnpj().replace(".", "").replace("/", "").replace("-", "")
     _create_fornecedor(client, superuser_token_headers, cnpj=cnpj)
     resp = client.post(
         PREFIX,
@@ -419,10 +404,10 @@ def test_update_fornecedor_duplicate_cnpj_returns_409(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     """Updating a fornecedor's CNPJ to one already used by another returns 409."""
-    cnpj_a = _valid_cnpj()
-    cnpj_b = _valid_cnpj()
+    cnpj_a = fake.cnpj().replace(".", "").replace("/", "").replace("-", "")
+    cnpj_b = fake.cnpj().replace(".", "").replace("/", "").replace("-", "")
 
-    forn_a = _create_fornecedor(
+    _create_fornecedor(
         client, superuser_token_headers, company_name="Empresa A", cnpj=cnpj_a
     )
     forn_b = _create_fornecedor(
@@ -443,7 +428,7 @@ def test_update_fornecedor_same_cnpj_is_ok(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     """Updating a fornecedor while keeping the same CNPJ should succeed."""
-    cnpj = _valid_cnpj()
+    cnpj = fake.cnpj().replace(".", "").replace("/", "").replace("-", "")
     forn = _create_fornecedor(
         client, superuser_token_headers, company_name="Empresa C", cnpj=cnpj
     )
