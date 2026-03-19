@@ -11,6 +11,6 @@
     "test:ui": "bun run --filter frontend test:ui"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.14"
+    "@biomejs/biome": "^2.4.8"
   }
 }
