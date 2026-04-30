@@ -57,6 +57,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Connect runner to the private network (Tailscale)
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci-prata-sys
+
       - name: Rsync repo to deploy host
         uses: burnett01/rsync-deployments@7
         with:

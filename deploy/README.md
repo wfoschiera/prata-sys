@@ -60,12 +60,37 @@ See [`.env.example`](.env.example) for the full template. The blanks you must fi
 
 ## GitHub Secrets used by the deploy workflow
 
-The workflow uses one set of credentials per environment.
+The workflow connects to the deploy host over a private mesh via Tailscale, then uses SSH. You'll need both Tailscale OAuth credentials and the usual SSH/path/URL secrets.
+
+### Tailscale (private mesh)
 
 | Secret | Value |
 |---|---|
-| `DEPLOY_HOST_STAGING` | Hostname/IP of the staging deploy host |
-| `DEPLOY_HOST_PRODUCTION` | Hostname/IP of the prod deploy host (can be the same machine) |
+| `TS_OAUTH_CLIENT_ID` | OAuth client ID generated at https://login.tailscale.com/admin/settings/oauth |
+| `TS_OAUTH_SECRET` | OAuth client secret from the same place |
+
+The runner joins the tailnet with the tag `tag:ci-prata-sys`. You must:
+
+1. Declare the tag in your tailnet ACL under `tagOwners`, e.g.:
+   ```jsonc
+   "tagOwners": {
+     "tag:ci-prata-sys": ["autogroup:admin"]
+   }
+   ```
+2. Authorize the OAuth client to attach `tag:ci-prata-sys`.
+3. Make sure your ACL allows the tagged node to reach the deploy host on port 22, e.g.:
+   ```jsonc
+   "acls": [
+     { "action": "accept", "src": ["tag:ci-prata-sys"], "dst": ["<deploy-host>:22"] }
+   ]
+   ```
+
+### Deploy SSH + targets
+
+| Secret | Value |
+|---|---|
+| `DEPLOY_HOST_STAGING` | Tailscale hostname (MagicDNS) or IP of the staging host |
+| `DEPLOY_HOST_PRODUCTION` | Tailscale hostname/IP of the prod host (can be the same machine) |
 | `DEPLOY_USER` | SSH user on the deploy host |
 | `DEPLOY_SSH_KEY` | Private key matching `~/.ssh/authorized_keys` of `DEPLOY_USER` |
 | `DEPLOY_PATH_STAGING` | Absolute path on the host where staging code lives |
