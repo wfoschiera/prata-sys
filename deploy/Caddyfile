@@ -1,0 +1,43 @@
+# prata-sys Caddy configuration
+#
+# Usage:
+#   No DNS (IP access):  leave SITE_ADDRESS unset -> serves on :80
+#   With DNS:            set SITE_ADDRESS=pratapocos.com.br -> auto HTTPS
+#
+# Environment variables (set in /opt/prata-sys/.env):
+#   SITE_ADDRESS  - domain name or :80 (default: :80)
+#   DOMAIN        - bare domain for www redirect (default: localhost)
+
+{$SITE_ADDRESS::80} {
+	root * /var/www/prata-sys/frontend
+	encode gzip
+
+	# API and docs reverse proxy to uvicorn
+	handle /api/* {
+		reverse_proxy localhost:8000
+	}
+	handle /docs {
+		reverse_proxy localhost:8000
+	}
+	handle /redoc {
+		reverse_proxy localhost:8000
+	}
+
+	# SPA fallback - serve index.html for all non-file routes
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+# www -> bare domain redirect (only active when DOMAIN is set to a real domain)
+www.{$DOMAIN:localhost} {
+	redir https://{$DOMAIN}{uri} permanent
+}

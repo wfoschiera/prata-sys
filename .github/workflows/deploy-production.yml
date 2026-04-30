@@ -6,27 +6,138 @@ on:
       - published
 
 jobs:
-  deploy:
-    # Do not deploy in the main repository, only in user projects
+  test:
+    # Do not deploy in the template repository
     if: github.repository_owner != 'fastapi'
-    runs-on:
-      - self-hosted
-      - production
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: changethis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      ENVIRONMENT: production
-      DOMAIN: ${{ secrets.DOMAIN_PRODUCTION }}
-      STACK_NAME: ${{ secrets.STACK_NAME_PRODUCTION }}
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      FIRST_SUPERUSER: ${{ secrets.FIRST_SUPERUSER }}
-      FIRST_SUPERUSER_PASSWORD: ${{ secrets.FIRST_SUPERUSER_PASSWORD }}
-      SMTP_HOST: ${{ secrets.SMTP_HOST }}
-      SMTP_USER: ${{ secrets.SMTP_USER }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      EMAILS_FROM_EMAIL: ${{ secrets.EMAILS_FROM_EMAIL }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      ENVIRONMENT: local
+      PROJECT_NAME: "prata-sys"
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changethis
+      FIRST_SUPERUSER: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      SECRET_KEY: changethis
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - run: docker compose -f compose.yml --project-name ${{ secrets.STACK_NAME_PRODUCTION }} build
-      - run: docker compose -f compose.yml --project-name ${{ secrets.STACK_NAME_PRODUCTION }} up -d
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: uv sync --frozen
+        working-directory: backend
+      - name: Run migrations
+        run: uv run bash scripts/prestart.sh
+        working-directory: backend
+      - name: Run tests
+        run: uv run bash scripts/test.sh
+        working-directory: backend
+
+  build-frontend:
+    if: github.repository_owner != 'fastapi'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: frontend
+      - name: Build
+        run: bun run build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PRODUCTION }}
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  deploy:
+    needs: [test, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Deploy backend via rsync
+        uses: burnett01/rsync-deployments@7
+        with:
+          switches: >-
+            -avz --delete
+            --exclude='.venv'
+            --exclude='__pycache__'
+            --exclude='htmlcov'
+            --exclude='tests/'
+            --exclude='.pytest_cache'
+            --exclude='.coverage'
+          path: backend/
+          remote_path: /opt/prata-sys/backend/
+          remote_host: ${{ secrets.VPS_HOST_PRODUCTION }}
+          remote_user: ${{ secrets.VPS_USER }}
+          remote_key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy frontend static files
+        uses: burnett01/rsync-deployments@7
+        with:
+          switches: -avz --delete
+          path: frontend/dist/
+          remote_path: /var/www/prata-sys/frontend/
+          remote_host: ${{ secrets.VPS_HOST_PRODUCTION }}
+          remote_user: ${{ secrets.VPS_USER }}
+          remote_key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy config files
+        uses: burnett01/rsync-deployments@7
+        with:
+          switches: -avz
+          path: deploy/
+          remote_path: /opt/prata-sys/deploy/
+          remote_host: ${{ secrets.VPS_HOST_PRODUCTION }}
+          remote_user: ${{ secrets.VPS_USER }}
+          remote_key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Run migrations and restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST_PRODUCTION }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Update deploy configs if changed
+            sudo cp /opt/prata-sys/deploy/Caddyfile /etc/caddy/Caddyfile
+            sudo cp /opt/prata-sys/deploy/prata-backend.service /etc/systemd/system/prata-backend.service
+            sudo systemctl daemon-reload
+            sudo systemctl reload caddy
+            # Run deploy script (installs deps, migrates, restarts, health checks)
+            bash /opt/prata-sys/deploy/deploy.sh
