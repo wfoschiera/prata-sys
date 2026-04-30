@@ -1,9 +1,9 @@
-name: Deploy to Production
+name: Deploy
 
 on:
-  release:
-    types:
-      - published
+  push:
+    branches:
+      - main
 
 jobs:
   test:
@@ -64,7 +64,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci-prata-sys
 
-      - name: Rsync repo to production deploy host
+      - name: Rsync repo to deploy host
         uses: burnett01/rsync-deployments@7
         with:
           switches: >-
@@ -84,17 +84,17 @@ jobs:
             --exclude='frontend/playwright-report'
             --exclude='.env'
           path: ./
-          remote_path: ${{ secrets.DEPLOY_PATH_PRODUCTION }}
-          remote_host: ${{ secrets.DEPLOY_HOST_PRODUCTION }}
+          remote_path: ${{ secrets.DEPLOY_PATH }}
+          remote_host: ${{ secrets.DEPLOY_HOST }}
           remote_user: ${{ secrets.DEPLOY_USER }}
           remote_key: ${{ secrets.DEPLOY_SSH_KEY }}
 
-      - name: Build and (re)start the production stack
+      - name: Build and (re)start the stack on the deploy host
         uses: appleboy/ssh-action@v1
         env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_PRODUCTION }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
-          host: ${{ secrets.DEPLOY_HOST_PRODUCTION }}
+          host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           envs: DEPLOY_PATH

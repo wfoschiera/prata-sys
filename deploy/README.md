@@ -85,18 +85,15 @@ The runner joins the tailnet with the tag `tag:ci-prata-sys`. You must:
    ]
    ```
 
-### Deploy SSH + targets
+### Deploy SSH + target
 
 | Secret | Value |
 |---|---|
-| `DEPLOY_HOST_STAGING` | Tailscale hostname (MagicDNS) or IP of the staging host |
-| `DEPLOY_HOST_PRODUCTION` | Tailscale hostname/IP of the prod host (can be the same machine) |
+| `DEPLOY_HOST` | Tailscale hostname (MagicDNS) or IP of the deploy host |
 | `DEPLOY_USER` | SSH user on the deploy host |
 | `DEPLOY_SSH_KEY` | Private key matching `~/.ssh/authorized_keys` of `DEPLOY_USER` |
-| `DEPLOY_PATH_STAGING` | Absolute path on the host where staging code lives |
-| `DEPLOY_PATH_PRODUCTION` | Absolute path on the host where production code lives |
-| `VITE_API_URL_STAGING` | Build-time API URL for staging (matches staging `FRONTEND_HOST`) |
-| `VITE_API_URL_PRODUCTION` | Build-time API URL for production |
+| `DEPLOY_PATH` | Absolute path on the host where the code lives |
+| `VITE_API_URL` | Build-time API URL (matches `FRONTEND_HOST` in `.env`) |
 
 ## Common operations
 
