@@ -20,6 +20,10 @@ services:
       dockerfile: backend/Dockerfile
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
     command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 4 app/main.py"]
+    # Resolve "host.docker.internal" to the host gateway so the backend can reach
+    # an external Postgres listening on the host (e.g. POSTGRES_SERVER=host.docker.internal).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
