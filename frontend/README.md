@@ -8,37 +8,16 @@ The frontend is built with [Vite](https://vitejs.dev/), [React](https://reactjs.
 
 ## Quick Start
 
+Backend infra (Postgres) needs to be up first — see [`../development.md`](../development.md).
+
 ```bash
 bun install
 bun run dev
 ```
 
-* Then open your browser at http://localhost:5173/.
+Open http://localhost:5173/.
 
-Notice that this live server is not running inside Docker, it's for local development, and that is the recommended workflow. Once you are happy with your frontend, you can build the frontend Docker image and start it, to test it in a production-like environment. But building the image at every change will not be as productive as running the local development server with live reload.
-
-Check the file `package.json` to see other available options.
-
-### Removing the frontend
-
-If you are developing an API-only app and want to remove the frontend, you can do it easily:
-
-* Remove the `./frontend` directory.
-
-* In the `compose.yml` file, remove the whole service / section `frontend`.
-
-* In the `compose.override.yml` file, remove the whole service / section `frontend` and `playwright`.
-
-Done, you have a frontend-less (api-only) app. 🤓
-
----
-
-If you want, you can also remove the `FRONTEND` environment variables from:
-
-* `.env`
-* `./scripts/*.sh`
-
-But it would be only to clean them up, leaving them won't really have any effect either way.
+Check `package.json` for other scripts.
 
 ## Generate Client
 
@@ -92,30 +71,30 @@ The frontend code is structured as follows:
 
 ## End-to-End Testing with Playwright
 
-The frontend includes initial end-to-end tests using Playwright. To run the tests, you need to have the Docker Compose stack running. Start the stack with the following command:
+The Playwright suite runs natively against the dev infra (`compose.dev.yml` provides Postgres + Mailpit) and a backend started via `uv run fastapi run`. Playwright auto-starts the frontend via the `webServer` block in `playwright.config.ts`.
+
+### Run locally
+
+Boot the dev infra and the backend (with SMTP pointing at Mailpit):
 
 ```bash
-docker compose up -d --wait backend
+# from project root
+bash scripts/dev-setup.sh
+
+# in another terminal — backend with SMTP wired to Mailpit
+cd backend
+SMTP_HOST=localhost SMTP_PORT=1025 SMTP_TLS=False EMAILS_FROM_EMAIL=dev@example.com \
+  uv run fastapi run app/main.py --port 8000
 ```
 
-Then, you can run the tests with the following command:
+Then run the tests:
 
 ```bash
-bunx playwright test
+cd frontend
+MAILPIT_HOST=http://localhost:8025 bunx playwright test           # all tests
+MAILPIT_HOST=http://localhost:8025 bunx playwright test --ui      # interactive
 ```
 
-You can also run your tests in UI mode to see the browser and interact with it running:
+### CI
 
-```bash
-bunx playwright test --ui
-```
-
-To stop and remove the Docker Compose stack and clean the data created in tests, use the following command:
-
-```bash
-docker compose down -v
-```
-
-To update the tests, navigate to the tests directory and modify the existing test files or add new ones as needed.
-
-For more information on writing and running Playwright tests, refer to the official [Playwright documentation](https://playwright.dev/docs/intro).
+`.github/workflows/playwright.yml` runs the suite on every push to `main` and on PRs touching `backend/`, `frontend/`, `.env`, or the workflow itself. Matrix shards 1–4 in parallel; reports are merged into a single HTML artifact.

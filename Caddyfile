@@ -1,0 +1,21 @@
+# Single-domain reverse proxy for prata-sys.
+# Caddy listens on :80 inside the container; the host port is mapped via HOST_PORT in compose.prod.yml.
+#
+# Routing:
+#   /api/*         -> backend (FastAPI)
+#   /docs, /redoc  -> backend (Swagger / ReDoc)
+#   /openapi.json  -> backend
+#   anything else  -> frontend (nginx serving the SPA)
+
+:80 {
+    encode gzip
+
+    @backend path /api/* /docs /redoc /openapi.json
+    handle @backend {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        reverse_proxy frontend:80
+    }
+}

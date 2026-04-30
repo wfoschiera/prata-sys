@@ -1,0 +1,39 @@
+# Local dev infrastructure (PostgreSQL + Mailpit) — backend and frontend run
+# natively via uv / bun and are NOT part of this stack.
+#
+# Quickstart:
+#   docker compose -f compose.dev.yml up -d        # boot
+#   docker compose -f compose.dev.yml down         # stop
+#   docker compose -f compose.dev.yml down -v      # stop + wipe data
+
+services:
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changethis}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - prata-pg-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+volumes:
+  prata-pg-dev:
