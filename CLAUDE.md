@@ -40,7 +40,7 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
 | API Client  | Auto-generated from OpenAPI (openapi-ts)       |
 | Testing     | Pytest (backend), Playwright (E2E frontend)    |
 | Linting     | Ruff + MyPy (backend), Biome (frontend)        |
-| Containers  | Docker Compose + Traefik                        |
+| Deploy      | Native (rsync + systemd + Caddy on VPS)        |
 | Pkg Mgmt    | uv (Python), Bun (JavaScript)                  |
 
 ---
@@ -65,39 +65,37 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
 
 ## Key Development Commands
 
+Local dev runs natively (no Docker). First-time setup: `bash scripts/dev-setup.sh` — see `development.md`.
+
 ```bash
-# Start full dev stack (hot-reload)
-docker compose watch
+# Backend (from /backend) — port 8000
+uv run fastapi dev app/main.py
 
-# Backend only (from /backend)
-fastapi dev app/main.py
-
-# Frontend only (from /frontend)
+# Frontend (from /frontend) — port 5173
 bun run dev
 
 # Generate OpenAPI client (after backend changes)
 bash ./scripts/generate-client.sh
 
 # Run backend tests
-bash ./scripts/test.sh
+cd backend && bash scripts/test.sh
 
 # Run frontend E2E tests
 cd frontend && bun run test
 
 # DB migrations (from /backend)
-alembic upgrade head
-alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
+uv run alembic revision --autogenerate -m "description"
 ```
 
 ## Local Dev URLs
 
-| Service      | URL                        |
-|--------------|---------------------------|
-| Frontend     | http://localhost:5173      |
-| Backend API  | http://localhost:8000      |
-| Swagger docs | http://localhost:8000/docs |
-| DB Admin     | http://localhost:8080      |
-| Email test   | http://localhost:1080      |
+| Service        | URL                          |
+|----------------|------------------------------|
+| Frontend       | http://localhost:5173        |
+| Backend API    | http://localhost:8000        |
+| Swagger docs   | http://localhost:8000/docs   |
+| Mailpit (opt.) | http://localhost:8025        |
 
 ---
 
@@ -177,9 +175,6 @@ Every PR must have at least one label matching `<type>` or `<type>(<scope>)`. Ba
 **pre-commit mypy hook**
 - The `mirrors-mypy` pre-commit hook runs in an isolated environment; it must have `additional_dependencies` listing `sqlmodel`, `pydantic`, and `fastapi` to understand SQLModel table models (`table=True`)
 - The hook must also pass `--python-version=3.14` to match the project's Python version
-
-**Docker: tests not found**
-- The `backend/tests/` directory must be explicitly `COPY`-ed in `backend/Dockerfile` — it is not included by default and pytest will fail with "file or directory not found: tests/"
 
 **Python 3.14: HTTP response header names must be valid (no trailing colon)**
 - Python 3.14 tightened RFC 5322 validation in `email.message` — header field names with trailing colons (e.g. `"subject:"`) now raise `ValueError`

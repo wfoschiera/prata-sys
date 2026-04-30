@@ -1,221 +1,159 @@
-# FastAPI Project - Development
+# prata-sys — Local Development
 
-## Docker Compose
+Local dev runs the **backend** and **frontend** natively (no Docker), and uses a tiny Docker Compose stack only for the **infrastructure** (PostgreSQL + Mailpit). This keeps the development loop fast and frictionless while ensuring the database matches production.
 
-* Start the local stack with Docker Compose:
+The full Docker stack (Traefik, prod-style backend/frontend containers, etc.) lives on the [`docker-stack`](https://github.com/wfoschiera/prata-sys/tree/docker-stack) branch and is intended for FastAPI Cloud or other container-based deploys.
 
-```bash
-docker compose watch
-```
+## Prerequisites
 
-* Now you can open your browser and interact with these URLs:
+| Tool          | Why                                  |
+|---------------|--------------------------------------|
+| Python 3.14+  | Backend runtime                      |
+| `uv`          | Python package manager               |
+| Bun           | Frontend package manager + Vite      |
+| Docker        | Runs Postgres + Mailpit only         |
 
-Frontend, built with Docker, with routes handled based on the path: <http://localhost:5173>
-
-Backend, JSON based web API based on OpenAPI: <http://localhost:8000>
-
-Automatic interactive documentation with Swagger UI (from the OpenAPI backend): <http://localhost:8000/docs>
-
-Adminer, database web administration: <http://localhost:8080>
-
-Traefik UI, to see how the routes are being handled by the proxy: <http://localhost:8090>
-
-**Note**: The first time you start your stack, it might take a minute for it to be ready. While the backend waits for the database to be ready and configures everything. You can check the logs to monitor it.
-
-To check the logs, run (in another terminal):
+## First-time setup
 
 ```bash
-docker compose logs
+bash scripts/dev-setup.sh
 ```
 
-To check the logs of a specific service, add the name of the service, e.g.:
+The script is idempotent and:
+
+1. Boots `compose.dev.yml` (Postgres + Mailpit), waits for the DB healthcheck.
+2. Syncs backend deps (`uv sync --frozen`) and frontend deps (`bun install --frozen-lockfile`).
+3. Runs migrations (`alembic upgrade head`) and seeds the first superuser.
+
+## Daily workflow
+
+Two terminals (the dev infra runs in the background via Docker):
 
 ```bash
-docker compose logs backend
+# Terminal 1 — backend (hot-reload on http://localhost:8000)
+cd backend && uv run fastapi dev app/main.py
+
+# Terminal 2 — frontend (hot-reload on http://localhost:5173)
+cd frontend && bun run dev
 ```
 
-## Mailcatcher
-
-Mailcatcher is a simple SMTP server that catches all emails sent by the backend during local development. Instead of sending real emails, they are captured and displayed in a web interface.
-
-This is useful for:
-
-* Testing email functionality during development
-* Verifying email content and formatting
-* Debugging email-related functionality without sending real emails
-
-The backend is automatically configured to use Mailcatcher when running with Docker Compose locally (SMTP on port 1025). All captured emails can be viewed at <http://localhost:1080>.
-
-## Local Development
-
-The Docker Compose files are configured so that each of the services is available in a different port in `localhost`.
-
-For the backend and frontend, they use the same port that would be used by their local development server, so, the backend is at `http://localhost:8000` and the frontend at `http://localhost:5173`.
-
-This way, you could turn off a Docker Compose service and start its local development service, and everything would keep working, because it all uses the same ports.
-
-For example, you can stop that `frontend` service in the Docker Compose, in another terminal, run:
+Stop / start the infra:
 
 ```bash
-docker compose stop frontend
+docker compose -f compose.dev.yml up -d        # start
+docker compose -f compose.dev.yml down         # stop (keeps data)
+docker compose -f compose.dev.yml down -v      # stop + wipe DB volume
 ```
 
-And then start the local frontend development server:
+## Local dev URLs
+
+| Service        | URL                          |
+|----------------|------------------------------|
+| Frontend       | http://localhost:5173        |
+| Backend API    | http://localhost:8000        |
+| Swagger docs   | http://localhost:8000/docs   |
+| ReDoc          | http://localhost:8000/redoc  |
+| Mailpit        | http://localhost:8025        |
+
+## Database admin
+
+Use `psql`, [DBeaver](https://dbeaver.io/), or [pgcli](https://www.pgcli.com/):
 
 ```bash
-bun run dev
+psql "postgresql://postgres:changethis@localhost:5432/app"
 ```
 
-Or you could stop the `backend` Docker Compose service:
+## Resetting the database
 
 ```bash
-docker compose stop backend
+docker compose -f compose.dev.yml down -v
+bash scripts/dev-setup.sh
 ```
 
-And then you can run the local development server for the backend:
+## Email testing (Mailpit)
 
-```bash
-cd backend
-fastapi dev app/main.py
-```
-
-## Docker Compose in `localhost.tiangolo.com`
-
-When you start the Docker Compose stack, it uses `localhost` by default, with different ports for each service (backend, frontend, adminer, etc).
-
-When you deploy it to production (or staging), it will deploy each service in a different subdomain, like `api.example.com` for the backend and `dashboard.example.com` for the frontend.
-
-In the guide about [deployment](deployment.md) you can read about Traefik, the configured proxy. That's the component in charge of transmitting traffic to each service based on the subdomain.
-
-If you want to test that it's all working locally, you can edit the local `.env` file, and change:
+Mailpit is up automatically by `compose.dev.yml`. To route the backend's outgoing emails into it, set in `.env`:
 
 ```dotenv
-DOMAIN=localhost.tiangolo.com
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_TLS=False
+EMAILS_FROM_EMAIL=dev@localhost
 ```
 
-That will be used by the Docker Compose files to configure the base domain for the services.
+Captured emails: http://localhost:8025
 
-Traefik will use this to transmit traffic at `api.localhost.tiangolo.com` to the backend, and traffic at `dashboard.localhost.tiangolo.com` to the frontend.
+## OpenAPI client regeneration
 
-The domain `localhost.tiangolo.com` is a special domain that is configured (with all its subdomains) to point to `127.0.0.1`. This way you can use that for your local development.
-
-After you update it, run again:
+After changing backend routes/schemas:
 
 ```bash
-docker compose watch
+bash scripts/generate-client.sh
 ```
 
-When deploying, for example in production, the main Traefik is configured outside of the Docker Compose files. For local development, there's an included Traefik in `compose.override.yml`, just to let you test that the domains work as expected, for example with `api.localhost.tiangolo.com` and `dashboard.localhost.tiangolo.com`.
+## Pre-commit hooks (`prek`)
 
-## Docker Compose files and env vars
-
-There is a main `compose.yml` file with all the configurations that apply to the whole stack, it is used automatically by `docker compose`.
-
-And there's also a `compose.override.yml` with overrides for development, for example to mount the source code as a volume. It is used automatically by `docker compose` to apply overrides on top of `compose.yml`.
-
-These Docker Compose files use the `.env` file containing configurations to be injected as environment variables in the containers.
-
-They also use some additional configurations taken from environment variables set in the scripts before calling the `docker compose` command.
-
-After changing variables, make sure you restart the stack:
+We use [prek](https://prek.j178.dev/) (a faster pre-commit replacement). It runs on every commit.
 
 ```bash
-docker compose watch
+# Install hook (run once after clone)
+cd backend && uv run prek install -f
+
+# Run on all files manually
+cd backend && uv run prek run --all-files
 ```
 
-## The .env file
-
-The `.env` file is the one that contains all your configurations, generated keys and passwords, etc.
-
-Depending on your workflow, you could want to exclude it from Git, for example if your project is public. In that case, you would have to make sure to set up a way for your CI tools to obtain it while building or deploying your project.
-
-One way to do it could be to add each environment variable to your CI/CD system, and updating the `compose.yml` file to read that specific env var instead of reading the `.env` file.
-
-## Pre-commits and code linting
-
-we are using a tool called [prek](https://prek.j178.dev/) (modern alternative to [Pre-commit](https://pre-commit.com/)) for code linting and formatting.
-
-When you install it, it runs right before making a commit in git. This way it ensures that the code is consistent and formatted even before it is committed.
-
-You can find a file `.pre-commit-config.yaml` with configurations at the root of the project.
-
-#### Install prek to run automatically
-
-`prek` is already part of the dependencies of the project.
-
-After having the `prek` tool installed and available, you need to "install" it in the local repository, so that it runs automatically before each commit.
-
-Using `uv`, you could do it with (make sure you are inside `backend` folder):
+## Tests
 
 ```bash
-❯ uv run prek install -f
-prek installed at `../.git/hooks/pre-commit`
+# Backend
+cd backend && bash scripts/test.sh
+
+# Frontend E2E (Playwright) — currently lives on the docker-stack branch
+# (depends on the full Docker stack); being refactored to run natively.
 ```
 
-The `-f` flag forces the installation, in case there was already a `pre-commit` hook previously installed.
+---
 
-Now whenever you try to commit, e.g. with:
+## Alternative: dev against TrueNAS PostgreSQL
+
+If you'd rather not run a local Postgres at all, you can point dev at the **Postgres app on the TrueNAS homelab** using a separate database (`dev`) — keeping prod data untouched.
+
+### One-time setup on the TrueNAS
+
+Connect to the TrueNAS Postgres app (e.g. via Adminer or `psql`) and create a dev database:
+
+```sql
+CREATE DATABASE dev OWNER postgres;
+```
+
+Make sure the Postgres app accepts connections from your LAN (check `pg_hba.conf` / app port mapping — exposed on `192.168.1.244:<port>`).
+
+### Switch your `.env`
+
+```dotenv
+POSTGRES_SERVER=192.168.1.244
+POSTGRES_PORT=<the-port-the-app-exposes>
+POSTGRES_DB=dev
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=<your-prod-postgres-password>
+```
+
+Then run only the backend init bits (skip Docker):
 
 ```bash
-git commit
+cd backend && uv sync --frozen && uv run bash scripts/prestart.sh
+cd ../frontend && bun install --frozen-lockfile
 ```
 
-...prek will run and check and format the code you are about to commit, and will ask you to add that code (stage it) with git again before committing.
+### Tradeoffs
 
-Then you can `git add` the modified/fixed files again and now you can commit.
+| Choice                 | When it's better                                                      |
+|------------------------|----------------------------------------------------------------------|
+| Local Docker Postgres  | Default. Offline work, fast resets, isolation, matches prod version. |
+| TrueNAS `dev` DB       | No infra on laptop, share state across machines, low traffic.        |
 
-#### Running prek hooks manually
-
-you can also run `prek` manually on all the files, you can do it using `uv` with:
-
-```bash
-❯ uv run prek run --all-files
-check for added large files..............................................Passed
-check toml...............................................................Passed
-check yaml...............................................................Passed
-fix end of files.........................................................Passed
-trim trailing whitespace.................................................Passed
-ruff.....................................................................Passed
-ruff-format..............................................................Passed
-biome check..............................................................Passed
-```
-
-## URLs
-
-The production or staging URLs would use these same paths, but with your own domain.
-
-### Development URLs
-
-Development URLs, for local development.
-
-Frontend: <http://localhost:5173>
-
-Backend: <http://localhost:8000>
-
-Automatic Interactive Docs (Swagger UI): <http://localhost:8000/docs>
-
-Automatic Alternative Docs (ReDoc): <http://localhost:8000/redoc>
-
-Adminer: <http://localhost:8080>
-
-Traefik UI: <http://localhost:8090>
-
-MailCatcher: <http://localhost:1080>
-
-### Development URLs with `localhost.tiangolo.com` Configured
-
-Development URLs, for local development.
-
-Frontend: <http://dashboard.localhost.tiangolo.com>
-
-Backend: <http://api.localhost.tiangolo.com>
-
-Automatic Interactive Docs (Swagger UI): <http://api.localhost.tiangolo.com/docs>
-
-Automatic Alternative Docs (ReDoc): <http://api.localhost.tiangolo.com/redoc>
-
-Adminer: <http://localhost.tiangolo.com:8080>
-
-Traefik UI: <http://localhost.tiangolo.com:8090>
-
-MailCatcher: <http://localhost.tiangolo.com:1080>
+⚠️ Risks of pointing at TrueNAS:
+- Always double-check `POSTGRES_DB=dev` before running migrations — pointing at the prod DB by mistake will rewrite schema.
+- Offline = dev breaks.
+- Mixing prod and dev on the same server makes a slow DB query in dev visible to the prod app.
