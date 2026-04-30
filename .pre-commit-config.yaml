@@ -52,7 +52,7 @@ repos:
         files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
 
       - id: local-pytest
-        name: pytest (requires docker compose db to be running)
+        name: pytest (requires compose.dev.yml postgres to be running)
         entry: bash scripts/run-tests-if-db-up.sh
         pass_filenames: false
         require_serial: true
