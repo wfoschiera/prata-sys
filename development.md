@@ -109,8 +109,10 @@ cd backend && uv run prek run --all-files
 # Backend
 cd backend && bash scripts/test.sh
 
-# Frontend E2E (Playwright) — currently lives on the docker-stack branch
-# (depends on the full Docker stack); being refactored to run natively.
+# Frontend E2E (Playwright) — needs backend with SMTP pointing at Mailpit:
+#   cd backend && SMTP_HOST=localhost SMTP_PORT=1025 SMTP_TLS=False \
+#     EMAILS_FROM_EMAIL=dev@example.com uv run fastapi run app/main.py --port 8000
+#   cd frontend && MAILPIT_HOST=http://localhost:8025 bunx playwright test
 ```
 
 ---

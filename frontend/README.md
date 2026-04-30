@@ -71,16 +71,30 @@ The frontend code is structured as follows:
 
 ## End-to-End Testing with Playwright
 
-> **Note:** the historical Playwright workflow ran on top of the full Docker
-> Compose stack. That setup lives on the `docker-stack` branch. The native
-> playwright workflow is being refactored — until then, use `docker-stack`
-> if you need to run E2E tests.
+The Playwright suite runs natively against the dev infra (`compose.dev.yml` provides Postgres + Mailpit) and a backend started via `uv run fastapi run`. Playwright auto-starts the frontend via the `webServer` block in `playwright.config.ts`.
 
-To run the existing tests against a manually-started backend + frontend:
+### Run locally
+
+Boot the dev infra and the backend (with SMTP pointing at Mailpit):
 
 ```bash
-bunx playwright test           # all tests
-bunx playwright test --ui      # interactive
+# from project root
+bash scripts/dev-setup.sh
+
+# in another terminal — backend with SMTP wired to Mailpit
+cd backend
+SMTP_HOST=localhost SMTP_PORT=1025 SMTP_TLS=False EMAILS_FROM_EMAIL=dev@example.com \
+  uv run fastapi run app/main.py --port 8000
 ```
 
-For more information, see the [Playwright documentation](https://playwright.dev/docs/intro).
+Then run the tests:
+
+```bash
+cd frontend
+MAILPIT_HOST=http://localhost:8025 bunx playwright test           # all tests
+MAILPIT_HOST=http://localhost:8025 bunx playwright test --ui      # interactive
+```
+
+### CI
+
+`.github/workflows/playwright.yml` runs the suite on every push to `main` and on PRs touching `backend/`, `frontend/`, `.env`, or the workflow itself. Matrix shards 1–4 in parallel; reports are merged into a single HTML artifact.
