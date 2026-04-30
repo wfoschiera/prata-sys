@@ -67,7 +67,7 @@ jobs:
           tags: tag:ci-prata-sys
 
       - name: Rsync repo to deploy host
-        uses: burnett01/rsync-deployments@7
+        uses: burnett01/rsync-deployments@v8
         with:
           switches: >-
             -avz --delete
