@@ -24,7 +24,7 @@ if [[ ! -f compose.dev.yml ]]; then
     exit 1
 fi
 if ! command -v docker >/dev/null 2>&1; then
-    echo "ERROR: docker not found. Install Docker, or see development.md for the TrueNAS alternative." >&2
+    echo "ERROR: docker not found. Install Docker, or see development.md for the external-Postgres alternative." >&2
     exit 1
 fi
 

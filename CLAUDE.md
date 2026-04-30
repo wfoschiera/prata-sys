@@ -40,7 +40,7 @@ The project is built on the [FastAPI Full-Stack Template](https://github.com/fas
 | API Client  | Auto-generated from OpenAPI (openapi-ts)       |
 | Testing     | Pytest (backend), Playwright (E2E frontend)    |
 | Linting     | Ruff + MyPy (backend), Biome (frontend)        |
-| Deploy      | Native (rsync + systemd + Caddy on VPS)        |
+| Deploy      | Docker Compose (single host)                   |
 | Pkg Mgmt    | uv (Python), Bun (JavaScript)                  |
 
 ---

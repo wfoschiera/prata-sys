@@ -2,7 +2,7 @@
 
 Local dev runs the **backend** and **frontend** natively (no Docker), and uses a tiny Docker Compose stack only for the **infrastructure** (PostgreSQL + Mailpit). This keeps the development loop fast and frictionless while ensuring the database matches production.
 
-The full Docker stack (Traefik, prod-style backend/frontend containers, etc.) lives on the [`docker-stack`](https://github.com/wfoschiera/prata-sys/tree/docker-stack) branch and is intended for FastAPI Cloud or other container-based deploys.
+Production deploys to a single Docker Compose host via `compose.prod.yml` — see [`deploy/README.md`](deploy/README.md). The historical Traefik-based stack lives on the [`docker-stack`](https://github.com/wfoschiera/prata-sys/tree/docker-stack) branch and is intended for FastAPI Cloud or any other container-based managed deploy.
 
 ## Prerequisites
 
@@ -117,28 +117,28 @@ cd backend && bash scripts/test.sh
 
 ---
 
-## Alternative: dev against TrueNAS PostgreSQL
+## Alternative: dev against an external Postgres
 
-If you'd rather not run a local Postgres at all, you can point dev at the **Postgres app on the TrueNAS homelab** using a separate database (`dev`) — keeping prod data untouched.
+If you'd rather not run a local Postgres at all, you can point dev at any reachable Postgres instance using a separate database (`dev`) — keeping prod data untouched.
 
-### One-time setup on the TrueNAS
+### One-time setup on the Postgres host
 
-Connect to the TrueNAS Postgres app (e.g. via Adminer or `psql`) and create a dev database:
+Create a dev database:
 
 ```sql
 CREATE DATABASE dev OWNER postgres;
 ```
 
-Make sure the Postgres app accepts connections from your LAN (check `pg_hba.conf` / app port mapping — exposed on `192.168.1.244:<port>`).
+Make sure the Postgres instance accepts connections from your machine (`pg_hba.conf` / firewall / port mapping).
 
 ### Switch your `.env`
 
 ```dotenv
-POSTGRES_SERVER=192.168.1.244
-POSTGRES_PORT=<the-port-the-app-exposes>
+POSTGRES_SERVER=<host-or-ip>
+POSTGRES_PORT=<port>
 POSTGRES_DB=dev
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=<your-prod-postgres-password>
+POSTGRES_PASSWORD=<password>
 ```
 
 Then run only the backend init bits (skip Docker):
@@ -150,12 +150,12 @@ cd ../frontend && bun install --frozen-lockfile
 
 ### Tradeoffs
 
-| Choice                 | When it's better                                                      |
-|------------------------|----------------------------------------------------------------------|
-| Local Docker Postgres  | Default. Offline work, fast resets, isolation, matches prod version. |
-| TrueNAS `dev` DB       | No infra on laptop, share state across machines, low traffic.        |
+| Choice                | When it's better                                                      |
+|-----------------------|----------------------------------------------------------------------|
+| Local Docker Postgres | Default. Offline work, fast resets, isolation, matches prod version. |
+| External `dev` DB     | No infra on laptop, share state across machines, low traffic.        |
 
-⚠️ Risks of pointing at TrueNAS:
+⚠️ Risks of pointing at an external DB:
 - Always double-check `POSTGRES_DB=dev` before running migrations — pointing at the prod DB by mistake will rewrite schema.
 - Offline = dev breaks.
 - Mixing prod and dev on the same server makes a slow DB query in dev visible to the prod app.
