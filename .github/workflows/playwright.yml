@@ -76,7 +76,7 @@ jobs:
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
       SMTP_TLS: "False"
-      EMAILS_FROM_EMAIL: dev@localhost
+      EMAILS_FROM_EMAIL: dev@example.com
       MAILPIT_HOST: http://localhost:8025
       VITE_API_URL: http://localhost:8000
     steps:

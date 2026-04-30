@@ -43,6 +43,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
         working-directory: backend
+      - name: Create test database
+        run: psql "postgresql://postgres:changethis@localhost:5432/app" -c "CREATE DATABASE app_test;"
       - name: Run migrations
         run: uv run bash scripts/prestart.sh
         working-directory: backend
