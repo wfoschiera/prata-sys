@@ -1,9 +1,15 @@
 import type { APIRequestContext } from "@playwright/test"
 
-type Email = {
-  id: number
-  recipients: string[]
-  subject: string
+// Mailpit JSON message shape (subset we use).
+// See: https://mailpit.axllent.org/docs/api-v1/
+export type MailpitMessage = {
+  ID: string
+  To: { Address: string; Name?: string }[]
+  Subject: string
+}
+
+type MailpitListResponse = {
+  messages: MailpitMessage[]
 }
 
 async function findEmail({
@@ -11,23 +17,19 @@ async function findEmail({
   filter,
 }: {
   request: APIRequestContext
-  filter?: (email: Email) => boolean
+  filter?: (email: MailpitMessage) => boolean
 }) {
-  const response = await request.get(`${process.env.MAILCATCHER_HOST}/messages`)
+  const response = await request.get(`${process.env.MAILPIT_HOST}/api/v1/messages`)
+  const data = (await response.json()) as MailpitListResponse
 
-  let emails = await response.json()
-
+  let messages = data.messages ?? []
   if (filter) {
-    emails = emails.filter(filter)
+    messages = messages.filter(filter)
   }
 
-  const email = emails[emails.length - 1]
-
-  if (email) {
-    return email as Email
-  }
-
-  return null
+  // Mailpit returns newest first, so the most recent matching email is at index 0.
+  const email = messages[0]
+  return email ?? null
 }
 
 export function findLastEmail({
@@ -36,7 +38,7 @@ export function findLastEmail({
   timeout = 5000,
 }: {
   request: APIRequestContext
-  filter?: (email: Email) => boolean
+  filter?: (email: MailpitMessage) => boolean
   timeout?: number
 }) {
   const timeoutPromise = new Promise<never>((_, reject) =>
@@ -49,11 +51,9 @@ export function findLastEmail({
   const checkEmails = async () => {
     while (true) {
       const emailData = await findEmail({ request, filter })
-
       if (emailData) {
         return emailData
       }
-      // Wait for 100ms before checking again
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }
