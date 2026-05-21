@@ -1,0 +1,17 @@
+{
+  "skillOverrides": {
+    "browse": "on",
+    "qa": "on",
+    "review": "on",
+    "ship": "on",
+    "plan-ceo-review": "on",
+    "plan-eng-review": "on",
+    "setup-browser-cookies": "on",
+    "retro": "on",
+    "gstack-upgrade": "on",
+    "gstack": "on",
+    "jusbrasil-data": "off",
+    "jusbrasil-sql-schema": "off",
+    "daily": "off"
+  }
+}
