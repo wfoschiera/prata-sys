@@ -32,7 +32,7 @@ GitHub (merge to main)
 
 ## First-time setup on the deploy host
 
-Pick a directory for the stack (e.g. `/mnt/dados/apps/prata-sys`) and make sure the SSH user used by the deploy workflow can write to it and run docker.
+Pick a directory for the stack (e.g. `/opt/prata-sys`) and make sure the SSH user used by the deploy workflow can write to it and run docker.
 
 Only three files live there — `compose.prod.yml` and `Caddyfile` (copied by every deploy) plus your hand-written `.env`:
 
@@ -121,4 +121,4 @@ docker compose -f compose.prod.yml down
 
 ## Backup
 
-This stack is stateless except for the Caddy volumes (`caddy-data`, `caddy-config`). Application data lives in your external Postgres — back it up via your normal database backup policy (for the TrueNAS setup: nightly `pg_dump` cron + ZFS snapshots on the data dataset).
+This stack is stateless except for the Caddy volumes (`caddy-data`, `caddy-config`). Application data lives in your external Postgres — back it up via your normal database backup policy (e.g. a nightly `pg_dump` cron plus filesystem snapshots of the data directory).

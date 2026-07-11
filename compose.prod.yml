@@ -18,7 +18,7 @@ services:
     image: ${DOCKER_IMAGE_BACKEND:-ghcr.io/wfoschiera/prata-sys-backend}:${TAG:-latest}
     restart: unless-stopped
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
-    # 2 workers: the deploy host has 7 GiB RAM shared with other services.
+    # 2 workers to keep the memory footprint modest.
     command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 app/main.py"]
     # Join the shared external network so the backend can reach a Postgres that
     # runs outside this stack (POSTGRES_SERVER=postgres). extra_hosts is kept as a
