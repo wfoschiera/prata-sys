@@ -57,8 +57,7 @@ jobs:
         run: uv run bash scripts/test.sh
         working-directory: backend
 
-  # Build images in CI and push to GHCR. The deploy host (7 GiB homelab box) only
-  # pulls — it never builds.
+  # Build images in CI and push to GHCR; the deploy host only pulls, never builds.
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -119,7 +118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Connect runner to the private network (Tailscale)
+      - name: Connect to the deploy network
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -157,8 +156,7 @@ jobs:
             # Authenticate to GHCR so the pull works even while the images are
             # private (job-scoped token; we log out again at the end).
             echo "$GHCR_TOKEN" | sudo docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            # TrueNAS forbids adding users to the builtin "docker" group, so the
-            # deploy user runs docker via passwordless sudo. sudo resets the
+            # The deploy user runs docker via passwordless sudo. sudo resets the
             # environment, so TAG must be passed explicitly via `env` — otherwise
             # compose falls back to the .env default and never pins the sha.
             sudo env TAG="$TAG" docker compose -f compose.prod.yml pull

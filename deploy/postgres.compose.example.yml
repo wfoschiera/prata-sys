@@ -1,5 +1,5 @@
 # Standalone Postgres for prata-sys — deliberately OUTSIDE the app stack.
-# Data lives on the TrueNAS pool (/mnt/dados/apps/postgres_data).
+# Data is bind-mounted to a persistent directory on the host (set DATA_DIR below).
 # Reachable only by containers on the shared "prata-net" network (no host port
 # published -> not exposed on the LAN).
 #
@@ -14,10 +14,12 @@ services:
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - /mnt/dados/apps/postgres_data:/var/lib/postgresql/data
+      # Point this at a persistent directory on your host. The dir (or its owner)
+      # must allow uid 999 to write, e.g. `chown 999:999 <dir>`.
+      - ${DATA_DIR:-./pgdata}:/var/lib/postgresql/data
     networks:
       - prata-net
-    # Modest footprint for a 7 GiB host shared with other apps.
+    # Keep the shared-memory footprint modest.
     shm_size: "256mb"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
