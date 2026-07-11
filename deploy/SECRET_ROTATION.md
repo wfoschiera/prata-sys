@@ -6,6 +6,12 @@ Rotate in this order (least → most likely to lock you out): app secrets → Po
 
 ## Fill these in for your environment (kept out of the repo)
 
+## A reliable way to re-check the container name any time (in case the number ever changes after a recreate):
+```bash
+ssh -i ~/.ssh/id_prata_sys gh-deploy@192.168.1.244 \
+  'sudo docker ps --filter name=postgres --format "{{.Names}}"'
+```
+
 Set these once in your shell before running the commands below. Use your real values locally — **do not commit them**.
 
 ```bash
@@ -19,7 +25,9 @@ APP_URL=<http://host:8080>        # how you reach the app in a browser
 SUPERUSER_EMAIL=<admin-email>     # the FIRST_SUPERUSER email
 REPO=<owner>/<repo>               # GitHub repo, e.g. you/prata-sys
 
-SSH="ssh -i $KEY $DEPLOY_USER@$HOST"
+# Helper to run a command on the server. A function (not a variable) so it works
+# in both bash and zsh — zsh does not word-split an unquoted "$SSH" variable.
+dssh() { ssh -i "$KEY" "$DEPLOY_USER@$HOST" "$@"; }
 
 # Generators:
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"   # for SECRET_KEY
@@ -36,7 +44,7 @@ Rotating this **logs everyone out** (all existing tokens become invalid). No coo
 
 ```bash
 NEW=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-$SSH "sed -i 's|^SECRET_KEY=.*|SECRET_KEY=$NEW|' $DEPLOY_PATH/.env \
+dssh "sed -i 's|^SECRET_KEY=.*|SECRET_KEY=$NEW|' $DEPLOY_PATH/.env \
   && cd $DEPLOY_PATH \
   && sudo docker compose -f compose.prod.yml up -d backend"
 # Verify:
@@ -53,21 +61,21 @@ The **running password lives in the database**, not the `.env`. The `.env` value
 NEW=$(openssl rand -base64 24)
 
 # a) Change the role password in the live database (takes effect immediately):
-$SSH "sudo docker exec $PG_CONTAINER psql -U prata_sys -d prata_sys \
+dssh "sudo docker exec $PG_CONTAINER psql -U prata_sys -d prata_sys \
   -c \"ALTER USER prata_sys PASSWORD '$NEW';\""
 
 # b) Update both .env files so they stay consistent with the DB:
-$SSH "sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW|' $DEPLOY_PATH/.env \
+dssh "sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW|' $DEPLOY_PATH/.env \
   && sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW|' $PG_DIR/.env"
 
 # c) Recreate the backend so it reconnects with the new password:
-$SSH "cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml up -d backend"
+dssh "cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml up -d backend"
 
 # Verify:
-$SSH "sudo docker inspect --format '{{.State.Health.Status}}' \$(cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml ps -q backend)"   # expect healthy
+dssh "sudo docker inspect --format '{{.State.Health.Status}}' \$(cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml ps -q backend)"   # expect healthy
 ```
 
-> If a special character in the password ever breaks `sed`, edit the files by hand with `$SSH -t "nano $DEPLOY_PATH/.env"` instead.
+> If a special character in the password ever breaks `sed`, edit the files by hand with `dssh -t "nano $DEPLOY_PATH/.env"` instead.
 
 ---
 
@@ -81,10 +89,10 @@ $SSH "sudo docker inspect --format '{{.State.Health.Status}}' \$(cd $DEPLOY_PATH
 
 ```bash
 NEW=$(openssl rand -base64 24)
-BACKEND=$($SSH "cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml ps -q backend")
-HASH=$($SSH "sudo docker exec $BACKEND python -c \
+BACKEND=$(dssh "cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml ps -q backend")
+HASH=$(dssh "sudo docker exec $BACKEND python -c \
   \"from app.core.security import get_password_hash; print(get_password_hash('$NEW'))\"")
-$SSH "sudo docker exec $PG_CONTAINER psql -U prata_sys -d prata_sys \
+dssh "sudo docker exec $PG_CONTAINER psql -U prata_sys -d prata_sys \
   -c \"UPDATE \\\"user\\\" SET hashed_password='$HASH' WHERE email='$SUPERUSER_EMAIL';\""
 echo "New superuser password: $NEW"
 ```
@@ -92,7 +100,7 @@ echo "New superuser password: $NEW"
 Then update `.env` for consistency (used only if the DB is ever wiped and re-seeded):
 
 ```bash
-$SSH "sed -i 's|^FIRST_SUPERUSER_PASSWORD=.*|FIRST_SUPERUSER_PASSWORD=$NEW|' $DEPLOY_PATH/.env"
+dssh "sed -i 's|^FIRST_SUPERUSER_PASSWORD=.*|FIRST_SUPERUSER_PASSWORD=$NEW|' $DEPLOY_PATH/.env"
 ```
 
 ---
@@ -130,7 +138,7 @@ Add the **new public key** to `DEPLOY_USER`'s authorized keys **alongside** the 
 
 ```bash
 # Only if your host does NOT manage authorized_keys through a UI:
-$SSH "printf '%s\n' \"$(cat ~/.ssh/deploy_new.pub)\" >> ~/.ssh/authorized_keys"
+dssh "printf '%s\n' \"$(cat ~/.ssh/deploy_new.pub)\" >> ~/.ssh/authorized_keys"
 ```
 
 ```bash
