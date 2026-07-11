@@ -20,8 +20,12 @@ services:
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
     # 2 workers: the deploy host has 7 GiB RAM shared with other services.
     command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 app/main.py"]
-    # Resolve "host.docker.internal" to the host gateway so the backend can reach
-    # an external Postgres listening on the host (e.g. POSTGRES_SERVER=host.docker.internal).
+    # Join the shared external network so the backend can reach a Postgres that
+    # runs outside this stack (POSTGRES_SERVER=postgres). extra_hosts is kept as a
+    # fallback for setups where Postgres listens on the host instead.
+    networks:
+      - default
+      - prata-net
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
@@ -73,3 +77,9 @@ services:
 volumes:
   caddy-data:
   caddy-config:
+
+networks:
+  # Bridges to the standalone Postgres stack. Create once on the host:
+  #   docker network create prata-net
+  prata-net:
+    external: true
