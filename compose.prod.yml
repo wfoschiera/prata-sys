@@ -1,8 +1,10 @@
 # Production stack: backend + frontend + Caddy reverse proxy on a single port.
+# Images are built by CI and pulled from GHCR — this host never builds.
 # Postgres lives outside this compose, configured via .env (POSTGRES_SERVER, etc.).
 #
-# Quickstart on the deploy host:
-#   docker compose -f compose.prod.yml up -d --build
+# Deploy (normally done by GitHub Actions):
+#   TAG=sha-xxxxxxx docker compose -f compose.prod.yml pull
+#   TAG=sha-xxxxxxx docker compose -f compose.prod.yml up -d --wait
 #
 # Logs:
 #   docker compose -f compose.prod.yml logs -f
@@ -13,13 +15,11 @@
 services:
 
   backend:
-    image: ${DOCKER_IMAGE_BACKEND:-prata-sys-backend}:${TAG:-latest}
+    image: ${DOCKER_IMAGE_BACKEND:-ghcr.io/wfoschiera/prata-sys-backend}:${TAG:-latest}
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
-    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 4 app/main.py"]
+    # 2 workers: the deploy host has 7 GiB RAM shared with other services.
+    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 app/main.py"]
     # Resolve "host.docker.internal" to the host gateway so the backend can reach
     # an external Postgres listening on the host (e.g. POSTGRES_SERVER=host.docker.internal).
     extra_hosts:
@@ -52,14 +52,8 @@ services:
       start_period: 60s
 
   frontend:
-    image: ${DOCKER_IMAGE_FRONTEND:-prata-sys-frontend}:${TAG:-latest}
+    image: ${DOCKER_IMAGE_FRONTEND:-ghcr.io/wfoschiera/prata-sys-frontend}:${TAG:-latest}
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL?Variable not set}
-        - NODE_ENV=production
 
   caddy:
     image: caddy:2
