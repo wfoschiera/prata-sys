@@ -37,6 +37,8 @@ jobs:
       FIRST_SUPERUSER: admin@example.com
       FIRST_SUPERUSER_PASSWORD: changethis
       SECRET_KEY: changethis
+      # Email tests patch SMTP_HOST but rely on EMAILS_FROM_EMAIL from settings.
+      EMAILS_FROM_EMAIL: test@example.com
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

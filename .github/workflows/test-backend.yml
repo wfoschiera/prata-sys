@@ -37,6 +37,9 @@ jobs:
       FIRST_SUPERUSER: admin@example.com
       FIRST_SUPERUSER_PASSWORD: changethis
       SECRET_KEY: changethis
+      # Email tests patch SMTP_HOST but rely on EMAILS_FROM_EMAIL from settings.
+      # Previously supplied by a committed .env; set it explicitly now.
+      EMAILS_FROM_EMAIL: test@example.com
     steps:
       - name: Checkout
         uses: actions/checkout@v6
