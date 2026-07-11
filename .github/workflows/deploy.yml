@@ -148,7 +148,9 @@ jobs:
               exit 1
             fi
             export TAG
-            docker compose -f compose.prod.yml pull
-            docker compose -f compose.prod.yml up -d --wait --remove-orphans
-            docker image prune -f
+            # TrueNAS forbids adding users to the builtin "docker" group, so the
+            # deploy user runs docker via passwordless sudo (scoped to /usr/bin/docker).
+            sudo docker compose -f compose.prod.yml pull
+            sudo docker compose -f compose.prod.yml up -d --wait --remove-orphans
+            sudo docker image prune -f
             echo "Deployed $TAG"
