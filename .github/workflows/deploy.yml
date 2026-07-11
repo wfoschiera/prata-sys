@@ -154,14 +154,15 @@ jobs:
               echo "ERROR: $DEPLOY_PATH/.env is missing. Copy deploy/.env.example and fill in values." >&2
               exit 1
             fi
-            export TAG
             # Authenticate to GHCR so the pull works even while the images are
             # private (job-scoped token; we log out again at the end).
             echo "$GHCR_TOKEN" | sudo docker login ghcr.io -u "$GHCR_USER" --password-stdin
             # TrueNAS forbids adding users to the builtin "docker" group, so the
-            # deploy user runs docker via passwordless sudo (scoped to /usr/bin/docker).
-            sudo docker compose -f compose.prod.yml pull
-            sudo docker compose -f compose.prod.yml up -d --wait --remove-orphans
+            # deploy user runs docker via passwordless sudo. sudo resets the
+            # environment, so TAG must be passed explicitly via `env` — otherwise
+            # compose falls back to the .env default and never pins the sha.
+            sudo env TAG="$TAG" docker compose -f compose.prod.yml pull
+            sudo env TAG="$TAG" docker compose -f compose.prod.yml up -d --wait --remove-orphans
             sudo docker image prune -f
             sudo docker logout ghcr.io || true
             echo "Deployed $TAG"
