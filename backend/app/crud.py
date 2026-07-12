@@ -422,25 +422,77 @@ def _deduct_stock_items(
     service: Service,
     deduction_items: list[DeductionItem],
 ) -> None:
-    """Mark reserved ProductItems as utilizado when a service is completed."""
-    material_ids = {
-        item.id for item in service.items if item.item_type == ItemType.material
+    """Consume reserved ProductItems on completion, honoring per-item quantities.
+
+    For each DeductionItem, reserved items belonging to the service are consumed
+    FIFO (oldest created_at first) up to the requested quantity. A ProductItem has
+    no service_item_id, so reserved items are attributed to a service item by
+    matching ``product_id``; when the service item has no ``product_id`` (legacy),
+    any reserved item qualifies. Physical items are whole units and are never
+    split — the first reserved items whose cumulative quantity reaches the
+    requested amount are consumed. Any reserved items left over after all
+    deductions are released back to ``em_estoque``, since the service is now
+    terminal. If the requested quantity exceeds what is reserved, all matching
+    reserved items are consumed and a shortfall is logged.
+    """
+    material_items = {
+        item.id: item
+        for item in service.items
+        if item.item_type == ItemType.material
     }
     for d in deduction_items:
-        if d.service_item_id not in material_ids:
+        if d.service_item_id not in material_items:
             msg = f"service_item_id {d.service_item_id} is not a material item of this service"
             raise ValueError(msg)
 
     reserved_items = session.exec(
-        select(ProductItem).where(
+        select(ProductItem)
+        .where(
             ProductItem.service_id == service.id,
             ProductItem.status == ProductItemStatus.reservado,
         )
+        .order_by(ProductItem.created_at)  # type: ignore[arg-type]  # FIFO
     ).all()
+
+    consumed: set[uuid.UUID] = set()
+    for d in deduction_items:
+        service_item = material_items[d.service_item_id]
+        needed = Decimal(str(d.quantity))
+        taken = Decimal("0")
+        for item in reserved_items:
+            if taken >= needed:
+                break
+            if item.id in consumed:
+                continue
+            if (
+                service_item.product_id is not None
+                and item.product_id != service_item.product_id
+            ):
+                continue
+            item.status = ProductItemStatus.utilizado
+            item.updated_at = get_datetime_utc()
+            session.add(item)
+            consumed.add(item.id)
+            taken += item.quantity
+        if taken < needed:
+            logger.warning(
+                "service_deduction_shortfall",
+                extra={
+                    "service_id": str(service.id),
+                    "service_item_id": str(d.service_item_id),
+                    "requested_quantity": float(needed),
+                    "deducted_quantity": float(taken),
+                },
+            )
+
+    # Release any reserved items not consumed — the service is now completed,
+    # so leftover reservations return to available stock.
     for item in reserved_items:
-        item.status = ProductItemStatus.utilizado
-        item.updated_at = get_datetime_utc()
-        session.add(item)
+        if item.id not in consumed:
+            item.status = ProductItemStatus.em_estoque
+            item.service_id = None
+            item.updated_at = get_datetime_utc()
+            session.add(item)
 
 
 def transition_service_status(
