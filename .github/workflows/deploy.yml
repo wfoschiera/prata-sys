@@ -40,7 +40,7 @@ jobs:
       # Email tests patch SMTP_HOST but rely on EMAILS_FROM_EMAIL from settings.
       EMAILS_FROM_EMAIL: test@example.com
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -66,7 +66,7 @@ jobs:
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Compute image tag
         id: meta
@@ -116,7 +116,7 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Connect to the deploy network
         uses: tailscale/github-action@v4
