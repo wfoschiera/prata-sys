@@ -295,3 +295,39 @@ def test_reset_password_rate_limited(client: TestClient) -> None:
     finally:
         limiter.enabled = False
         limiter.reset()
+
+
+# ---------------------------------------------------------------------------
+# SEC-006: no timing/behavioral oracle for account existence
+# ---------------------------------------------------------------------------
+
+
+def test_recover_password_same_response_and_background_send(
+    client: TestClient,
+) -> None:
+    """password-recovery returns an identical response either way, and only
+    schedules the (background) email send when the account actually exists —
+    proving the enumeration oracle is closed behaviorally, not by timing.
+    """
+    with patch("app.api.routes.login.send_email") as mock_send_email:
+        existing_email = settings.FIRST_SUPERUSER
+        nonexistent_email = random_email()
+
+        r_existing = client.post(
+            f"{settings.API_V1_STR}/password-recovery/{existing_email}"
+        )
+        r_missing = client.post(
+            f"{settings.API_V1_STR}/password-recovery/{nonexistent_email}"
+        )
+
+        assert r_existing.status_code == HTTPStatus.OK
+        assert r_missing.status_code == HTTPStatus.OK
+        expected_message = {
+            "message": "If that email is registered, we sent a password recovery link"
+        }
+        assert r_existing.json() == expected_message
+        assert r_missing.json() == expected_message
+
+        # Only the existing user should trigger a (background) email send.
+        mock_send_email.assert_called_once()
+        assert mock_send_email.call_args.kwargs["email_to"] == existing_email

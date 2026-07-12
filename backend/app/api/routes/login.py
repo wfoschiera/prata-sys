@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -62,20 +62,25 @@ def recover_password(
     request: Request,  # noqa: ARG001 — required by slowapi limiter to read client IP
     email: str,
     session: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> Message:
     """
     Password Recovery
     """
     user = crud.get_user_by_email(session=session, email=email)
 
-    # Always return the same response to prevent email enumeration attacks
-    # Only send email if user actually exists
+    # Always return the same response to prevent email enumeration attacks.
+    # Only schedule the email if the user actually exists, but do so as a
+    # background task (rather than sending inline) so the in-request work is
+    # identical regardless of whether the user exists — this closes the
+    # timing side-channel that would otherwise leak account existence.
     if user:
         password_reset_token = generate_password_reset_token(email=email)
         email_data = generate_reset_password_email(
             email_to=user.email, email=email, token=password_reset_token
         )
-        send_email(
+        background_tasks.add_task(
+            send_email,
             email_to=user.email,
             subject=email_data.subject,
             html_content=email_data.html_content,
