@@ -1,8 +1,10 @@
 # Production stack: backend + frontend + Caddy reverse proxy on a single port.
+# Images are built by CI and pulled from GHCR — this host never builds.
 # Postgres lives outside this compose, configured via .env (POSTGRES_SERVER, etc.).
 #
-# Quickstart on the deploy host:
-#   docker compose -f compose.prod.yml up -d --build
+# Deploy (normally done by GitHub Actions):
+#   TAG=sha-xxxxxxx docker compose -f compose.prod.yml pull
+#   TAG=sha-xxxxxxx docker compose -f compose.prod.yml up -d --wait
 #
 # Logs:
 #   docker compose -f compose.prod.yml logs -f
@@ -13,15 +15,17 @@
 services:
 
   backend:
-    image: ${DOCKER_IMAGE_BACKEND:-prata-sys-backend}:${TAG:-latest}
+    image: ${DOCKER_IMAGE_BACKEND:-ghcr.io/wfoschiera/prata-sys-backend}:${TAG:-latest}
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
-    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 4 app/main.py"]
-    # Resolve "host.docker.internal" to the host gateway so the backend can reach
-    # an external Postgres listening on the host (e.g. POSTGRES_SERVER=host.docker.internal).
+    # 2 workers to keep the memory footprint modest.
+    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 app/main.py"]
+    # Join the shared external network so the backend can reach a Postgres that
+    # runs outside this stack (POSTGRES_SERVER=postgres). extra_hosts is kept as a
+    # fallback for setups where Postgres listens on the host instead.
+    networks:
+      - default
+      - prata-net
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
@@ -45,21 +49,15 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/readiness/"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 60s
 
   frontend:
-    image: ${DOCKER_IMAGE_FRONTEND:-prata-sys-frontend}:${TAG:-latest}
+    image: ${DOCKER_IMAGE_FRONTEND:-ghcr.io/wfoschiera/prata-sys-frontend}:${TAG:-latest}
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL?Variable not set}
-        - NODE_ENV=production
 
   caddy:
     image: caddy:2
@@ -79,3 +77,9 @@ services:
 volumes:
   caddy-data:
   caddy-config:
+
+networks:
+  # Bridges to the standalone Postgres stack. Create once on the host:
+  #   docker network create prata-net
+  prata-net:
+    external: true

@@ -2,15 +2,14 @@
 # Caddy listens on :80 inside the container; the host port is mapped via HOST_PORT in compose.prod.yml.
 #
 # Routing:
-#   /api/*         -> backend (FastAPI)
+#   /api/*         -> backend (FastAPI; the OpenAPI spec is at /api/v1/openapi.json)
 #   /docs, /redoc  -> backend (Swagger / ReDoc)
-#   /openapi.json  -> backend
 #   anything else  -> frontend (nginx serving the SPA)
 
 :80 {
     encode gzip
 
-    @backend path /api/* /docs /redoc /openapi.json
+    @backend path /api/* /docs /redoc
     handle @backend {
         reverse_proxy backend:8000
     }
