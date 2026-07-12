@@ -85,15 +85,30 @@ dssh "sudo docker inspect --format '{{.State.Health.Status}}' \$(cd $DEPLOY_PATH
 
 **Option A — via the app (simplest):** log in at `$APP_URL` as the superuser → user settings → change password.
 
-**Option B — via SQL** (if you're locked out). Generate the hash inside the backend container, then update the row:
+**Option B — reset inside the container** (if you're locked out). Hash the new
+password **and** write it in one Python process inside the backend container, so
+the Argon2 hash never passes through a shell.
+
+> ⚠️ Do **not** capture the hash into a shell variable and `UPDATE … '$HASH'`:
+> an Argon2 hash contains `$argon2id`, `$v`, `$m`, `$p`, which the shell expands
+> as (empty) variables and silently corrupts the hash — logins then return 500.
+> Use a hex password (`openssl rand -hex`) so the password itself is shell-safe too.
 
 ```bash
-NEW=$(openssl rand -base64 24)
+NEW=$(openssl rand -hex 24)
 BACKEND=$(dssh "cd $DEPLOY_PATH && sudo docker compose -f compose.prod.yml ps -q backend")
-HASH=$(dssh "sudo docker exec $BACKEND python -c \
-  \"from app.core.security import get_password_hash; print(get_password_hash('$NEW'))\"")
-dssh "sudo docker exec $PG_CONTAINER psql -U prata_sys -d prata_sys \
-  -c \"UPDATE \\\"user\\\" SET hashed_password='$HASH' WHERE email='$SUPERUSER_EMAIL';\""
+dssh "sudo docker exec -i -e NEWPW='$NEW' -e EMAIL='$SUPERUSER_EMAIL' $BACKEND python -" <<'PY'
+import os
+from sqlmodel import Session, select
+from app.core.db import engine
+from app.models import User
+from app.core.security import get_password_hash
+with Session(engine) as s:
+    u = s.exec(select(User).where(User.email == os.environ["EMAIL"])).one()
+    u.hashed_password = get_password_hash(os.environ["NEWPW"])
+    s.add(u); s.commit()
+print("password updated; hash prefix", u.hashed_password[:10])
+PY
 echo "New superuser password: $NEW"
 ```
 
