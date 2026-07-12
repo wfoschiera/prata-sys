@@ -103,7 +103,7 @@ uv run alembic revision --autogenerate -m "description"
 
 This project uses [OpenSpec](https://openspec.dev) for spec-driven development. OpenSpec structures changes through artifacts (proposal → specs → design → tasks) before implementation.
 
-Config lives in `backend/openspec/config.yaml`. Changes are tracked under `backend/openspec/changes/`.
+Config lives in `openspec/config.yaml`. Changes are tracked under `openspec/changes/`.
 
 ### Key `/opsx` commands (Claude slash commands)
 
