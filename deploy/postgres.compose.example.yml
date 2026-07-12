@@ -1,0 +1,32 @@
+# Standalone Postgres for prata-sys — deliberately OUTSIDE the app stack.
+# Data is bind-mounted to a persistent directory on the host (set DATA_DIR below).
+# Reachable only by containers on the shared "prata-net" network (no host port
+# published -> not exposed on the LAN).
+#
+#   docker compose -f compose.yml up -d
+#   docker compose -f compose.yml logs -f
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Point this at a persistent directory on your host. The dir (or its owner)
+      # must allow uid 999 to write, e.g. `chown 999:999 <dir>`.
+      - ${DATA_DIR:-./pgdata}:/var/lib/postgresql/data
+    networks:
+      - prata-net
+    # Keep the shared-memory footprint modest.
+    shm_size: "256mb"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  prata-net:
+    external: true
