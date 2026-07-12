@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    # Docs-only changes never affect the running app, so skip the whole
+    # build + deploy pipeline for them (this is push-only and not a required
+    # check, so paths-ignore is safe here).
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
 
 env:
   BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend
