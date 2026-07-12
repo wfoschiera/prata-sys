@@ -136,6 +136,12 @@ Use OpenSpec for any non-trivial feature or fix. For small, obvious changes a di
 - **Before every commit**: run linter, typecheck, and tests (see `/git-commit` skill for commands)
 - **Never commit `htmlcov/`** — generated artifacts, already in `.gitignore`
 
+### Bug Workflow (required)
+Never start fixing a bug directly. For every bug, follow these steps in order:
+1. **Open a GitHub issue first** — one issue per bug, describing the problem before any code changes.
+2. **Create one branch per issue** — each issue gets its own dedicated branch; never fix multiple issues on the same branch.
+3. **Name the branch** `wfoschiera/<type>/<description>`, where `<type>` is the conventional-commit type (`fix` for bugs) and `<description>` is a short kebab-case summary. Example: `wfoschiera/fix/stock-deduction-quantities`.
+
 ### Git Worktrees
 Use [Worktrunk](https://worktrunk.dev) (`wt`) for creating and managing git worktrees — prefer worktrees over branch-switching in the same directory for parallel or isolated work. See `docs/git-worktrees.md` for full usage.
 - **Always use `wt`** — never raw `git worktree` commands
