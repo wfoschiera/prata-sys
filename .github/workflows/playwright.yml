@@ -38,10 +38,17 @@ jobs:
     if: ${{ needs.changes.outputs.changed == 'true' }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    # Official Playwright image ships chromium + all OS deps preinstalled, so we
+    # skip `playwright install --with-deps` entirely. Tag must match the
+    # @playwright/test version in frontend/package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     strategy:
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        # Fewer shards + more workers per shard (see --workers below): halves the
+        # duplicated per-shard setup while keeping overall parallelism.
+        shardIndex: [1, 2]
+        shardTotal: [2]
       fail-fast: false
     services:
       postgres:
@@ -50,8 +57,6 @@ jobs:
           POSTGRES_DB: app
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: changethis
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
@@ -59,13 +64,12 @@ jobs:
           --health-retries 5
       mailpit:
         image: axllent/mailpit:latest
-        ports:
-          - 1025:1025
-          - 8025:8025
     env:
       ENVIRONMENT: local
       PROJECT_NAME: "prata-sys"
-      POSTGRES_SERVER: localhost
+      # In a containerized job, services are reached by their label hostname
+      # (not localhost).
+      POSTGRES_SERVER: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_DB: app
       POSTGRES_USER: postgres
@@ -73,11 +77,12 @@ jobs:
       FIRST_SUPERUSER: admin@example.com
       FIRST_SUPERUSER_PASSWORD: changethis
       SECRET_KEY: changethis
-      SMTP_HOST: localhost
+      SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_TLS: "False"
       EMAILS_FROM_EMAIL: dev@example.com
-      MAILPIT_HOST: http://localhost:8025
+      MAILPIT_HOST: http://mailpit:8025
+      # Backend runs inside this job's container, reachable on localhost.
       VITE_API_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v7
@@ -92,6 +97,19 @@ jobs:
           limit-access-to-actor: true
       - name: Install uv
         uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install backend deps
         run: uv sync --frozen
@@ -106,10 +124,6 @@ jobs:
 
       - name: Generate API client
         run: bash scripts/generate-client.sh
-
-      - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
-        working-directory: frontend
 
       - name: Start backend (background)
         run: |
@@ -131,7 +145,7 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: bunx playwright test --fail-on-flaky-tests --trace=retain-on-failure --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: bunx playwright test --fail-on-flaky-tests --trace=retain-on-failure --workers=2 --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         working-directory: frontend
 
       - name: Upload blob report to GitHub Actions Artifacts
