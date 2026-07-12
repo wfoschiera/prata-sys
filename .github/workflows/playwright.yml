@@ -42,7 +42,7 @@ jobs:
     # skip `playwright install --with-deps` entirely. Tag must match the
     # @playwright/test version in frontend/package.json.
     container:
-      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
     strategy:
       matrix:
         # Fewer shards + more workers per shard (see --workers below): halves the
