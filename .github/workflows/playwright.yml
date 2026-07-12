@@ -101,7 +101,12 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
+      # Canary channel: Bun v1.4.0 (the Rust rewrite of the runtime, replacing
+      # the previous Zig implementation) is not yet a stable release.
+      # https://bun.com/blog/bun-in-rust
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
 
       - name: Cache bun dependencies
         uses: actions/cache@v4
