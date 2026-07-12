@@ -38,11 +38,6 @@ jobs:
     if: ${{ needs.changes.outputs.changed == 'true' }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    # Official Playwright image ships chromium + all OS deps preinstalled, so we
-    # skip `playwright install --with-deps` entirely. Tag must match the
-    # @playwright/test version in frontend/package.json.
-    container:
-      image: mcr.microsoft.com/playwright:v1.59.1-noble
     strategy:
       matrix:
         # Fewer shards + more workers per shard (see --workers below): halves the
@@ -85,12 +80,7 @@ jobs:
       # Backend runs inside this job's container, reachable on localhost.
       VITE_API_URL: http://localhost:8000
     steps:
-      - name: Install unzip
-        run: apt update && apt install -y unzip
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: canary
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -105,9 +95,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
-      # Canary channel: Bun v1.4.0 (the Rust rewrite of the runtime, replacing
-      # the previous Zig implementation) is not yet a stable release.
-      # https://bun.com/blog/bun-in-rust
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: canary
@@ -133,6 +120,10 @@ jobs:
 
       - name: Generate API client
         run: bash scripts/generate-client.sh
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+        working-directory: frontend
 
       - name: Start backend (background)
         run: |
