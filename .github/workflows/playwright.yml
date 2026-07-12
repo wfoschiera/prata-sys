@@ -52,6 +52,8 @@ jobs:
           POSTGRES_DB: app
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: changethis
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
@@ -59,12 +61,13 @@ jobs:
           --health-retries 5
       mailpit:
         image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       ENVIRONMENT: local
       PROJECT_NAME: "prata-sys"
-      # In a containerized job, services are reached by their label hostname
-      # (not localhost).
-      POSTGRES_SERVER: postgres
+      POSTGRES_SERVER: localhost
       POSTGRES_PORT: "5432"
       POSTGRES_DB: app
       POSTGRES_USER: postgres
@@ -72,12 +75,11 @@ jobs:
       FIRST_SUPERUSER: admin@example.com
       FIRST_SUPERUSER_PASSWORD: changethis
       SECRET_KEY: changethis
-      SMTP_HOST: mailpit
+      SMTP_HOST: localhost
       SMTP_PORT: "1025"
       SMTP_TLS: "False"
       EMAILS_FROM_EMAIL: dev@example.com
-      MAILPIT_HOST: http://mailpit:8025
-      # Backend runs inside this job's container, reachable on localhost.
+      MAILPIT_HOST: http://localhost:8025
       VITE_API_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v7
