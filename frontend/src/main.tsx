@@ -13,7 +13,9 @@ import { Toaster } from "./components/ui/sonner"
 import "./index.css"
 import { routeTree } from "./routeTree.gen"
 
-OpenAPI.BASE = import.meta.env.VITE_API_URL
+// Empty/unset VITE_API_URL = same-origin: requests go to /api/* on whatever
+// host serves the SPA (the reverse proxy routes them to the backend).
+OpenAPI.BASE = import.meta.env.VITE_API_URL || ""
 OpenAPI.TOKEN = async () => {
   return localStorage.getItem("access_token") || ""
 }
