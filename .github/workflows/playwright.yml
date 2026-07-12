@@ -85,6 +85,8 @@ jobs:
       # Backend runs inside this job's container, reachable on localhost.
       VITE_API_URL: http://localhost:8000
     steps:
+      - name: Install unzip
+        run: sudo apt update && sudo apt install -y unzip
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
