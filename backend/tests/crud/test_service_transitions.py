@@ -4,17 +4,27 @@ These tests exercise transition_service_status() directly — no HTTP layer.
 This catches logic bugs in the state machine without the overhead of route setup.
 """
 
+import logging
 import uuid
+from decimal import Decimal
 
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app import crud
 from app.models import (
+    DeductionItem,
+    ProductItem,
+    ProductItemStatus,
     Service,
     ServiceStatus,
 )
-from tests.factories import ServiceFactory, ServiceItemFactory
+from tests.factories import (
+    ProductFactory,
+    ProductItemFactory,
+    ServiceFactory,
+    ServiceItemFactory,
+)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -226,7 +236,6 @@ def test_invalid_deduction_item_id_raises(db: Session, superuser_id: uuid.UUID) 
     db.refresh(svc)
     _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
     db.refresh(svc)
-    from app.models import DeductionItem
 
     with pytest.raises(ValueError, match="not a material item"):
         _transition(
@@ -236,3 +245,112 @@ def test_invalid_deduction_item_id_raises(db: Session, superuser_id: uuid.UUID) 
             deduction_items=[DeductionItem(service_item_id=uuid.uuid4(), quantity=1.0)],
             superuser_id=superuser_id,
         )
+
+
+# ── Stock deduction quantities on completion (issue #102) ───────────────────────
+
+
+def _items_for_product(db: Session, product_id: uuid.UUID) -> list[ProductItem]:
+    return list(
+        db.exec(
+            select(ProductItem).where(ProductItem.product_id == product_id)
+        ).all()
+    )
+
+
+def _setup_reserved_service(
+    db: Session,
+    superuser_id: uuid.UUID,
+    *,
+    item_qtys: list[str],
+    needed: float,
+) -> tuple[Service, uuid.UUID, uuid.UUID]:
+    """Build a product with reserved stock and advance a service to executing.
+
+    Creates one ProductItem per entry in ``item_qtys`` (all em_estoque), a service
+    with a single material ServiceItem scoped to that product needing ``needed``
+    units, then schedules (reserves) and moves it to executing. Returns the
+    service, the service-item id, and the product id.
+    """
+    product = ProductFactory()  # type: ignore[assignment]
+    for qty in item_qtys:
+        ProductItemFactory(product=product, quantity=Decimal(qty))
+    svc: Service = ServiceFactory()  # type: ignore[assignment]
+    svc_item = ServiceItemFactory(
+        service=svc, product_id=product.id, quantity=needed
+    )
+    db.refresh(svc)
+    _transition(db, svc, ServiceStatus.scheduled, superuser_id=superuser_id)
+    db.refresh(svc)
+    _transition(db, svc, ServiceStatus.executing, superuser_id=superuser_id)
+    db.refresh(svc)
+    return svc, svc_item.id, product.id
+
+
+def test_completion_partial_deduction_releases_remainder(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    """Deducting less than reserved consumes only what is needed; rest is released."""
+    svc, svc_item_id, product_id = _setup_reserved_service(
+        db, superuser_id, item_qtys=["5", "5"], needed=10.0
+    )
+    # Two 5-unit items reserved (total 10). Deduct only 5.
+    _transition(
+        db,
+        svc,
+        ServiceStatus.completed,
+        deduction_items=[DeductionItem(service_item_id=svc_item_id, quantity=5.0)],
+        superuser_id=superuser_id,
+    )
+    items = _items_for_product(db, product_id)
+    utilizado = [i for i in items if i.status == ProductItemStatus.utilizado]
+    em_estoque = [i for i in items if i.status == ProductItemStatus.em_estoque]
+    assert len(utilizado) == 1
+    assert len(em_estoque) == 1
+    # Released item is back in stock and no longer tied to the service.
+    assert em_estoque[0].service_id is None
+    assert not [i for i in items if i.status == ProductItemStatus.reservado]
+
+
+def test_completion_full_deduction_consumes_all(
+    db: Session, superuser_id: uuid.UUID
+) -> None:
+    """Deducting the full reserved quantity consumes every reserved item."""
+    svc, svc_item_id, product_id = _setup_reserved_service(
+        db, superuser_id, item_qtys=["5", "5"], needed=10.0
+    )
+    _transition(
+        db,
+        svc,
+        ServiceStatus.completed,
+        deduction_items=[DeductionItem(service_item_id=svc_item_id, quantity=10.0)],
+        superuser_id=superuser_id,
+    )
+    items = _items_for_product(db, product_id)
+    assert len(items) == 2
+    assert all(i.status == ProductItemStatus.utilizado for i in items)
+
+
+def test_completion_over_request_consumes_all_reserved_and_logs(
+    db: Session,
+    superuser_id: uuid.UUID,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requesting more than reserved consumes all reserved and logs a shortfall."""
+    svc, svc_item_id, product_id = _setup_reserved_service(
+        db, superuser_id, item_qtys=["5"], needed=5.0
+    )
+    with caplog.at_level(logging.WARNING, logger="app.crud"):
+        updated, _ = _transition(
+            db,
+            svc,
+            ServiceStatus.completed,
+            deduction_items=[
+                DeductionItem(service_item_id=svc_item_id, quantity=999.0)
+            ],
+            superuser_id=superuser_id,
+        )
+    assert updated.status == ServiceStatus.completed
+    items = _items_for_product(db, product_id)
+    assert all(i.status == ProductItemStatus.utilizado for i in items)
+    assert any("service_deduction_shortfall" in r.message for r in caplog.records)
