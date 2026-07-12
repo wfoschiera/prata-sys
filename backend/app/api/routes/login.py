@@ -57,7 +57,12 @@ def test_token(current_user: CurrentUser) -> Any:
 
 
 @router.post("/password-recovery/{email}")
-def recover_password(email: str, session: SessionDep) -> Message:
+@limiter.limit("5/hour")
+def recover_password(
+    request: Request,  # noqa: ARG001 — required by slowapi limiter to read client IP
+    email: str,
+    session: SessionDep,
+) -> Message:
     """
     Password Recovery
     """
@@ -81,7 +86,12 @@ def recover_password(email: str, session: SessionDep) -> Message:
 
 
 @router.post("/reset-password/")
-def reset_password(session: SessionDep, body: NewPassword) -> Message:
+@limiter.limit("10/hour")
+def reset_password(
+    request: Request,  # noqa: ARG001 — required by slowapi limiter to read client IP
+    session: SessionDep,
+    body: NewPassword,
+) -> Message:
     """
     Reset password
     """
