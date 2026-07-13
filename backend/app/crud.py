@@ -164,21 +164,27 @@ def set_user_permissions(
         msg = f"Invalid permissions: {invalid}"
         raise ValueError(msg)
 
-    # Filter out role defaults (no need to store redundant overrides)
+    # Filter out role defaults (no need to store redundant overrides) and
+    # de-duplicate, preserving order
     role_defaults = get_role_defaults(user.role)
-    overrides = [p for p in permissions if p not in role_defaults]
+    desired = list(dict.fromkeys(p for p in permissions if p not in role_defaults))
+    desired_set = set(desired)
 
-    # Delete existing overrides
     existing = get_user_permissions(session=session, user_id=user_id)
-    for perm in existing:
-        session.delete(perm)
+    existing_by_perm = {perm.permission: perm for perm in existing}
 
-    # Insert new overrides
+    # Delete only overrides that are being removed
+    for perm in existing:
+        if perm.permission not in desired_set:
+            session.delete(perm)
+
+    # Insert only overrides that are new
     new_perms = []
-    for p in overrides:
-        up = UserPermission(user_id=user_id, permission=p)
-        session.add(up)
-        new_perms.append(up)
+    for p in desired:
+        if p not in existing_by_perm:
+            up = UserPermission(user_id=user_id, permission=p)
+            session.add(up)
+            new_perms.append(up)
 
     session.commit()
     for perm in new_perms:
