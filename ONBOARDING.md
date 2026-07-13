@@ -356,8 +356,8 @@ conventional-type PR label), `semantic_title.yml`, `detect-conflicts.yml`, `smok
 - **JWT stored in `localStorage` (security).** Token is read/written from `localStorage`
   (`frontend/src/hooks/useAuth.ts`) — vulnerable to XSS token theft. The httpOnly-cookie migration is
   written up in `docs/adr/httponly-cookie-auth.md` but **deferred**. Matters because a single XSS in
-  any dependency exposes sessions. See the broader checklist in
-  `docs/security/SECURITY-AUDIT-TODO.md`.
+  any dependency exposes sessions. A broader security-audit checklist is maintained
+  locally by the maintainer (untracked).
 - **Stale FastAPI-template leftovers (DX/docs).** A few still drag on a new contributor:
   `issue-manager.yml` is gated to `github.repository_owner == 'fastapi'` so it never runs here;
   `frontend/tests/items.spec.ts` targets an "Items" page that no longer exists as a route; and page
