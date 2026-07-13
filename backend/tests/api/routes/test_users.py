@@ -323,43 +323,18 @@ def test_update_password_me_same_password_error(
     )
 
 
-def test_register_user(client: TestClient, db: Session) -> None:
-    username = random_email()
-    password = random_lower_string()
-    full_name = random_lower_string()
-    data = {"email": username, "password": password, "full_name": full_name}
-    r = client.post(
-        f"{settings.API_V1_STR}/users/signup",
-        json=data,
-    )
-    assert r.status_code == HTTPStatus.OK
-    created_user = r.json()
-    assert created_user["email"] == username
-    assert created_user["full_name"] == full_name
-
-    user_query = select(User).where(User.email == username)
-    user_db = db.exec(user_query).first()
-    assert user_db
-    assert user_db.email == username
-    assert user_db.full_name == full_name
-    verified, _ = verify_password(password, user_db.hashed_password)
-    assert verified
-
-
-def test_register_user_already_exists_error(client: TestClient) -> None:
-    password = random_lower_string()
-    full_name = random_lower_string()
+def test_signup_endpoint_removed(client: TestClient) -> None:
+    """The public, unauthenticated signup endpoint must no longer exist (SEC-001)."""
     data = {
-        "email": settings.FIRST_SUPERUSER,
-        "password": password,
-        "full_name": full_name,
+        "email": random_email(),
+        "password": random_lower_string(),
+        "full_name": random_lower_string(),
     }
     r = client.post(
         f"{settings.API_V1_STR}/users/signup",
         json=data,
     )
-    assert r.status_code == HTTPStatus.BAD_REQUEST
-    assert r.json()["detail"] == "The user with this email already exists in the system"
+    assert r.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_update_user(
