@@ -350,7 +350,7 @@ def test_update_password_me_same_password_error(
     )
 
 
-def test_signup_endpoint_removed(client: TestClient) -> None:
+def test_signup_endpoint_removed(client: TestClient, db: Session) -> None:
     """The public, unauthenticated signup endpoint must no longer exist (SEC-001)."""
     data = {
         "email": random_email(),
@@ -361,7 +361,13 @@ def test_signup_endpoint_removed(client: TestClient) -> None:
         f"{settings.API_V1_STR}/users/signup",
         json=data,
     )
-    assert r.status_code == HTTPStatus.NOT_FOUND
+    # No POST handler exists for this path anymore. Starlette matches the path
+    # against the GET/PATCH/DELETE `/users/{user_id}` route, so an unsupported
+    # POST yields 405 (Method Not Allowed) rather than 404 — either way, there
+    # is no way to create a user here.
+    assert r.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    # And critically: no account was created.
+    assert crud.get_user_by_email(session=db, email=data["email"]) is None
 
 
 def test_update_user(
