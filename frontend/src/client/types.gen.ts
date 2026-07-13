@@ -570,7 +570,6 @@ export type UpdatePassword = {
 export type UserCreate = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     role?: UserRole;
     password: string;
@@ -590,18 +589,12 @@ export type UserPermissionsOut = {
 export type UserPublic = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     role?: UserRole;
     id: string;
+    is_superuser?: boolean;
     created_at?: (string | null);
     permissions?: Array<(string)>;
-};
-
-export type UserRegister = {
-    email: string;
-    password: string;
-    full_name?: (string | null);
 };
 
 export type UserRole = 'admin' | 'finance' | 'client';
@@ -614,7 +607,6 @@ export type UsersPublic = {
 export type UserUpdate = {
     email?: (string | null);
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     role?: UserRole;
     password?: (string | null);
@@ -1102,12 +1094,6 @@ export type UsersUpdatePasswordMeData = {
 
 export type UsersUpdatePasswordMeResponse = (Message);
 
-export type UsersRegisterUserData = {
-    requestBody: UserRegister;
-};
-
-export type UsersRegisterUserResponse = (UserPublic);
-
 export type UsersReadUserByIdData = {
     userId: string;
 };
@@ -1134,3 +1120,5 @@ export type UtilsTestEmailData = {
 export type UtilsTestEmailResponse = (Message);
 
 export type UtilsHealthCheckResponse = (boolean);
+
+export type UtilsReadinessResponse = (Message);

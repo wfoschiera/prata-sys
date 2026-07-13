@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
 import { Route as LoginRouteImport } from './routes/login'
@@ -35,11 +34,6 @@ import { Route as LayoutEstoqueProdutosNewRouteImport } from './routes/_layout/e
 import { Route as LayoutEstoqueProdutosProductIdIndexRouteImport } from './routes/_layout/estoque/produtos/$productId/index'
 import { Route as LayoutEstoqueProdutosProductIdEditRouteImport } from './routes/_layout/estoque/produtos/$productId/edit'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -174,7 +168,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/clients': typeof LayoutClientsRoute
   '/permissions': typeof LayoutPermissionsRoute
@@ -199,7 +192,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/clients': typeof LayoutClientsRoute
   '/permissions': typeof LayoutPermissionsRoute
@@ -227,7 +219,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/clients': typeof LayoutClientsRoute
   '/_layout/permissions': typeof LayoutPermissionsRoute
@@ -256,7 +247,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/recover-password'
     | '/reset-password'
-    | '/signup'
     | '/admin'
     | '/clients'
     | '/permissions'
@@ -281,7 +271,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/recover-password'
     | '/reset-password'
-    | '/signup'
     | '/admin'
     | '/clients'
     | '/permissions'
@@ -308,7 +297,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/recover-password'
     | '/reset-password'
-    | '/signup'
     | '/_layout/admin'
     | '/_layout/clients'
     | '/_layout/permissions'
@@ -336,18 +324,10 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RecoverPasswordRoute: typeof RecoverPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -575,7 +555,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RecoverPasswordRoute: RecoverPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
