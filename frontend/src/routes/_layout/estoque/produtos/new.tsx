@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-
 import { ProductForm } from "@/components/estoque/ProductForm"
+import { pageTitle } from "@/config/brand"
 
 export const Route = createFileRoute("/_layout/estoque/produtos/new")({
   component: NewProduto,
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_layout/estoque/produtos/new")({
     }
   },
   head: () => ({
-    meta: [{ title: "Novo Produto - Estoque - Prata Sys" }],
+    meta: [{ title: pageTitle("Novo Produto - Estoque") }],
   }),
 })
 

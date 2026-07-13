@@ -2,7 +2,6 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { Suspense, useState } from "react"
-
 import {
   type OrcamentoListRead,
   type OrcamentoStatus,
@@ -22,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 
 const PAGE_SIZE = 20
 
@@ -76,7 +76,7 @@ export const Route = createFileRoute("/_layout/orcamentos/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Orçamentos - Prata Sys" }],
+    meta: [{ title: pageTitle("Orçamentos") }],
   }),
 })
 

@@ -5,9 +5,6 @@ Brazil. It manages clients, service orders (perfuração / manutenção), suppli
 inventory, commercial quotes, and finances — with role-based access for admins,
 finance users, and clients.
 
-Built on the
-[FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template).
-
 ## What it does
 
 - **Clientes** — register people (CPF) or companies (CNPJ) with structured Brazilian

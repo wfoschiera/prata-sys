@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-router"
 import { ArrowLeft, Edit, Plus } from "lucide-react"
 import { useState } from "react"
-
 import {
   type ProductItemCreate,
   type ProductItemStatus,
@@ -36,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -50,7 +50,7 @@ export const Route = createFileRoute("/_layout/estoque/produtos/$productId/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Produto - Estoque - Prata Sys" }],
+    meta: [{ title: pageTitle("Produto - Estoque") }],
   }),
 })
 

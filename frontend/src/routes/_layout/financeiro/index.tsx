@@ -1,10 +1,10 @@
 import { useQueries } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
-
 import { TransacoesService, UsersService } from "@/client"
 import { formatBRL } from "@/components/Financeiro/constants"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pageTitle } from "@/config/brand"
 
 const MES_ABBR = [
   "Jan",
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_layout/financeiro/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Financeiro - prata-sys" }],
+    meta: [{ title: pageTitle("Financeiro") }],
   }),
 })
 

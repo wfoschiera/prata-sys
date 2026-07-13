@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
-
 import { ProductsService } from "@/client"
 import { ProductForm } from "@/components/estoque/ProductForm"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pageTitle } from "@/config/brand"
 
 export const Route = createFileRoute(
   "/_layout/estoque/produtos/$productId/edit",
@@ -26,7 +26,7 @@ export const Route = createFileRoute(
     }
   },
   head: () => ({
-    meta: [{ title: "Editar Produto - Estoque - Prata Sys" }],
+    meta: [{ title: pageTitle("Editar Produto - Estoque") }],
   }),
 })
 

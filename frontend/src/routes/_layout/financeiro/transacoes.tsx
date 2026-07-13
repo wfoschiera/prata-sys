@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-
 import { UsersService } from "@/client"
 import TransacoesTable from "@/components/Financeiro/TransacoesTable"
+import { pageTitle } from "@/config/brand"
 
 export const Route = createFileRoute("/_layout/financeiro/transacoes")({
   component: Transacoes,
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_layout/financeiro/transacoes")({
     }
   },
   head: () => ({
-    meta: [{ title: "Transações - prata-sys" }],
+    meta: [{ title: pageTitle("Transações") }],
   }),
 })
 

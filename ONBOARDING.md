@@ -2,7 +2,6 @@
 
 > A business-management system for a **water-well drilling company** in Brazil. Manages clients,
 > service orders, inventory (estoque), quotes (orçamentos), suppliers (fornecedores), and finance.
-> Built on the [FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template).
 >
 > This guide is grounded in the code as of the `fix/rotation-runbook-hash-safe` branch. Every factual
 > claim cites `path:line`. Sections 8–10 mark opinions explicitly. Target read time: ~20 min.
@@ -358,12 +357,10 @@ conventional-type PR label), `semantic_title.yml`, `detect-conflicts.yml`, `smok
   written up in `docs/adr/httponly-cookie-auth.md` but **deferred**. Matters because a single XSS in
   any dependency exposes sessions. A broader security-audit checklist is maintained
   locally by the maintainer (untracked).
-- **Stale FastAPI-template leftovers (DX/docs).** A few still drag on a new contributor:
-  `issue-manager.yml` is gated to `github.repository_owner == 'fastapi'` so it never runs here;
-  `frontend/tests/items.spec.ts` targets an "Items" page that no longer exists as a route; and page
-  titles mix "FastAPI Template" (`login.tsx:47`, `admin.tsx:39`, `settings.tsx:20`) with "Prata Sys".
-  (Root `README.md` and `docs/git-worktrees.md` were rewritten in the docs-refresh PR; the OpenSpec
-  path in `CLAUDE.md` is now correct.)
+- **Stale FastAPI-template leftovers (DX/docs).** `frontend/tests/items.spec.ts` still targets an
+  "Items" page that no longer exists as a route. (The FastAPI-template branding — page titles, footer,
+  logo assets, `issue-manager.yml`, funding/issue templates — was removed in the rebrand PR; page
+  titles now flow through the `APP_NAME` placeholder in `frontend/src/config/brand.ts`.)
 - **Test gaps (test-gap).** No direct route tests for `products`/`product_types`/`product_items`
   (only exercised indirectly via `test_estoque.py`); no concurrency test for the `FOR UPDATE`
   reservation race (fixtures are single-connection savepoint-based, so the locking path is never
@@ -401,8 +398,8 @@ perf / docs.
 | 10 | Two pagination systems on admin page | DX | Low | `frontend/src/routes/_layout/admin.tsx`, `components/ui/pagination-bar.tsx`, `components/Common/DataTable.tsx` | Standardize on one pagination model. |
 | 11 | ~~Stale README + missing `deployment.md` link~~ ✅ resolved | docs | Low | `README.md` | Rewritten for prata-sys; points to `deploy/README.md`. |
 | 12 | ~~`docs/git-worktrees.md` lists foreign (pnpm/nx/jus) hooks~~ ✅ resolved | docs | Low | `docs/git-worktrees.md` | Now lists this repo's `uv sync` / `bun install` hooks. |
-| 13 | `issue-manager.yml` gated to `fastapi` owner (inert) | docs/DX | Low | `.github/workflows/issue-manager.yml:23` | Remove the workflow or fix the owner gate. |
-| 14 | Mixed "FastAPI Template" vs "Prata Sys" titles | DX | Low | `frontend/src/routes/login.tsx:47`, `admin.tsx:39`, `settings.tsx:20` | Rename to "Prata Sys". |
+| 13 | ~~`issue-manager.yml` gated to `fastapi` owner (inert)~~ ✅ resolved | docs/DX | Low | — | Workflow removed in the rebrand PR. |
+| 14 | ~~Mixed "FastAPI Template" vs "Prata Sys" titles~~ ✅ resolved | DX | Low | `frontend/src/config/brand.ts` | Titles now flow through the `APP_NAME` placeholder ("Prata Poços"). |
 | 15 | `(user as any).role` cast — `role` likely off `UserPublic` type | DX | Low | `frontend/src/routes/_layout/clients.tsx:39` | Ensure `role` is in the generated type; drop the cast. |
 | 16 | Backend Dockerfile 4 workers vs prod 2 | docs | Low | `backend/Dockerfile:42`, `compose.prod.yml:22` | Align or add a comment explaining the override. |
 
@@ -420,8 +417,8 @@ perf / docs.
 - [ ] Standardize pagination (server `PaginationBar` vs client `DataTable`) on the admin page `severity:low` `DX`
 - [x] Rewrite root `README.md` for prata-sys; remove dead `deployment.md` link `severity:low` `docs`
 - [x] Fix foreign pnpm/nx/jus hooks in `docs/git-worktrees.md` `severity:low` `docs`
-- [ ] Remove/fix inert `issue-manager.yml` (gated to `fastapi` owner) `severity:low` `docs`
-- [ ] Rename remaining "FastAPI Template" page titles to "Prata Sys" `severity:low` `DX`
+- [x] Remove/fix inert `issue-manager.yml` (gated to `fastapi` owner) `severity:low` `docs`
+- [x] Rename remaining "FastAPI Template" page titles (now via `APP_NAME` placeholder) `severity:low` `DX`
 - [ ] Ensure `role` is on the generated `UserPublic` type; drop `(user as any)` cast (`clients.tsx:39`) `severity:low` `DX`
 - [ ] Document/align backend worker count (Dockerfile 4 vs prod 2) `severity:low` `docs`
 

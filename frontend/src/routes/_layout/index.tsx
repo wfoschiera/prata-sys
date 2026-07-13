@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { DollarSign, Drill, TrendingUp, Wrench } from "lucide-react"
-
 import { DashboardService, type WeeklyOperationalSummary } from "@/client"
 import { formatBRL } from "@/components/Financeiro/constants"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
   head: () => ({
-    meta: [{ title: "Dashboard - Prata Sys" }],
+    meta: [{ title: pageTitle("Dashboard") }],
   }),
 })
 

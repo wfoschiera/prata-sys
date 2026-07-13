@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-router"
 import { Package, Plus } from "lucide-react"
 import { z } from "zod"
-
 import {
   FornecedoresService,
   type ProductCategory,
@@ -32,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 
 const searchSchema = z.object({
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/_layout/estoque/produtos/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Produtos - Estoque - Prata Sys" }],
+    meta: [{ title: pageTitle("Produtos - Estoque") }],
   }),
 })
 

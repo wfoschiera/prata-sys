@@ -2,7 +2,6 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { Suspense, useState } from "react"
-
 import { type ClientPublic, ClientsService, UsersService } from "@/client"
 import ClientForm from "@/components/Clients/ClientForm"
 import DeleteClient from "@/components/Clients/DeleteClient"
@@ -17,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 
 const PAGE_SIZE = 20
 
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_layout/clients")({
   head: () => ({
     meta: [
       {
-        title: "Clientes - Prata Sys",
+        title: pageTitle("Clientes"),
       },
     ],
   }),
