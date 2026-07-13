@@ -8,8 +8,8 @@ from sqlmodel import Session, select
 from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
-from app.models import User, UserCreate
-from tests.utils.user import create_random_user
+from app.models import User, UserCreate, UserRole
+from tests.utils.user import create_random_user, user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -56,6 +56,27 @@ def test_create_user_new_email(
         user = crud.get_user_by_email(session=db, email=username)
         assert user
         assert user.email == created_user["email"]
+
+
+def test_create_user_ignores_is_superuser_mass_assignment(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Sending is_superuser=true on user creation must be silently ignored (SEC-002)."""
+    username = random_email()
+    password = random_lower_string()
+    data = {"email": username, "password": password, "is_superuser": True}
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert 200 <= r.status_code < 300
+    created_user = r.json()
+    assert created_user["is_superuser"] is False
+
+    user = crud.get_user_by_email(session=db, email=username)
+    assert user
+    assert user.is_superuser is False
 
 
 def test_get_existing_user_as_superuser(
@@ -252,6 +273,12 @@ def test_update_password_me(
     verified, _ = verify_password(new_password, user_db.hashed_password)
     assert verified
 
+    # Changing the password bumps token_version (SEC-003), invalidating the
+    # session-scoped token above — re-authenticate to get a fresh one.
+    fresh_token_headers = user_authentication_headers(
+        client=client, email=settings.FIRST_SUPERUSER, password=new_password
+    )
+
     # Revert to the old password to keep consistency in test
     old_data = {
         "current_password": new_password,
@@ -259,7 +286,7 @@ def test_update_password_me(
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        headers=superuser_token_headers,
+        headers=fresh_token_headers,
         json=old_data,
     )
     db.refresh(user_db)
@@ -323,43 +350,24 @@ def test_update_password_me_same_password_error(
     )
 
 
-def test_register_user(client: TestClient, db: Session) -> None:
-    username = random_email()
-    password = random_lower_string()
-    full_name = random_lower_string()
-    data = {"email": username, "password": password, "full_name": full_name}
-    r = client.post(
-        f"{settings.API_V1_STR}/users/signup",
-        json=data,
-    )
-    assert r.status_code == HTTPStatus.OK
-    created_user = r.json()
-    assert created_user["email"] == username
-    assert created_user["full_name"] == full_name
-
-    user_query = select(User).where(User.email == username)
-    user_db = db.exec(user_query).first()
-    assert user_db
-    assert user_db.email == username
-    assert user_db.full_name == full_name
-    verified, _ = verify_password(password, user_db.hashed_password)
-    assert verified
-
-
-def test_register_user_already_exists_error(client: TestClient) -> None:
-    password = random_lower_string()
-    full_name = random_lower_string()
+def test_signup_endpoint_removed(client: TestClient, db: Session) -> None:
+    """The public, unauthenticated signup endpoint must no longer exist (SEC-001)."""
     data = {
-        "email": settings.FIRST_SUPERUSER,
-        "password": password,
-        "full_name": full_name,
+        "email": random_email(),
+        "password": random_lower_string(),
+        "full_name": random_lower_string(),
     }
     r = client.post(
         f"{settings.API_V1_STR}/users/signup",
         json=data,
     )
-    assert r.status_code == HTTPStatus.BAD_REQUEST
-    assert r.json()["detail"] == "The user with this email already exists in the system"
+    # No POST handler exists for this path anymore. Starlette matches the path
+    # against the GET/PATCH/DELETE `/users/{user_id}` route, so an unsupported
+    # POST yields 405 (Method Not Allowed) rather than 404 — either way, there
+    # is no way to create a user here.
+    assert r.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    # And critically: no account was created.
+    assert crud.get_user_by_email(session=db, email=data["email"]) is None
 
 
 def test_update_user(
@@ -386,6 +394,56 @@ def test_update_user(
     db.refresh(user_db)
     assert user_db
     assert user_db.full_name == "Updated_full_name"
+
+
+def test_update_user_ignores_is_superuser_mass_assignment(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Sending is_superuser=true on user update must be silently ignored (SEC-002)."""
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.is_superuser is False
+
+    data = {"is_superuser": True}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == HTTPStatus.OK
+    updated_user = r.json()
+    assert updated_user["is_superuser"] is False
+
+    db.refresh(user)
+    assert user.is_superuser is False
+
+
+def test_update_user_can_still_change_role(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Admins must still be able to change a user's role (SEC-002 regression guard)."""
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    role_before: UserRole = user.role
+    assert role_before == UserRole.client
+
+    data = {"role": "finance"}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == HTTPStatus.OK
+    updated_user = r.json()
+    assert updated_user["role"] == "finance"
+
+    db.refresh(user)
+    role_after: UserRole = user.role
+    assert role_after == UserRole.finance
 
 
 def test_update_user_not_exists(
