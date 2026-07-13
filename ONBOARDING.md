@@ -21,7 +21,8 @@
   *all* DB logic in `backend/app/crud.py`, one router per resource under `backend/app/api/routes/`
   (`backend/CLAUDE.md`).
 - **Frontend never hand-writes API calls:** the client in `frontend/src/client/` is auto-generated
-  from the backend's OpenAPI spec via `@hey-api/openapi-ts` (`frontend/src/client/index.ts:1`).
+  from the backend's OpenAPI spec via `@hey-api/openapi-ts` (`frontend/src/client/index.ts:1`). The
+  client uses native `fetch` — axios was dropped (PR #120).
 - **Run it locally:** `bash scripts/dev-setup.sh` once, then backend `uv run fastapi dev app/main.py`
   (`:8000`) and frontend `bun run dev` (`:5173`). Postgres + Mailpit come from `compose.dev.yml`.
 - **Auth & RBAC:** JWT (HS256) + a two-tier permission model — role defaults ∪ per-user DB overrides,
@@ -355,16 +356,14 @@ conventional-type PR label), `semantic_title.yml`, `detect-conflicts.yml`, `smok
 - **JWT stored in `localStorage` (security).** Token is read/written from `localStorage`
   (`frontend/src/hooks/useAuth.ts`) — vulnerable to XSS token theft. The httpOnly-cookie migration is
   written up in `docs/adr/httponly-cookie-auth.md` but **deferred**. Matters because a single XSS in
-  any dependency exposes sessions.
-- **Stale FastAPI-template leftovers (DX/docs).** Several drag on a new contributor: root `README.md`
-  is still the upstream template and links a non-existent `deployment.md`; `docs/git-worktrees.md`
-  lists `pnpm`/`nx`/`jus` project hooks from a different repo; `issue-manager.yml` is gated to
-  `github.repository_owner == 'fastapi'` so it never runs here; `frontend/tests/items.spec.ts` targets
-  an "Items" page that no longer exists as a route; and page titles mix "FastAPI Template"
-  (`login.tsx:47`, `admin.tsx:39`, `settings.tsx:20`) with "Prata Sys".
-- **`CLAUDE.md` points OpenSpec at the wrong path (docs).** It says config lives in
-  `backend/openspec/`, but the real location is the repo-root `openspec/`. A new dev following the doc
-  will look in the wrong place.
+  any dependency exposes sessions. A broader security-audit checklist is maintained
+  locally by the maintainer (untracked).
+- **Stale FastAPI-template leftovers (DX/docs).** A few still drag on a new contributor:
+  `issue-manager.yml` is gated to `github.repository_owner == 'fastapi'` so it never runs here;
+  `frontend/tests/items.spec.ts` targets an "Items" page that no longer exists as a route; and page
+  titles mix "FastAPI Template" (`login.tsx:47`, `admin.tsx:39`, `settings.tsx:20`) with "Prata Sys".
+  (Root `README.md` and `docs/git-worktrees.md` were rewritten in the docs-refresh PR; the OpenSpec
+  path in `CLAUDE.md` is now correct.)
 - **Test gaps (test-gap).** No direct route tests for `products`/`product_types`/`product_items`
   (only exercised indirectly via `test_estoque.py`); no concurrency test for the `FOR UPDATE`
   reservation race (fixtures are single-connection savepoint-based, so the locking path is never
@@ -393,15 +392,15 @@ perf / docs.
 | 1 | Stock deduction ignores per-item quantities | correctness/bug | High | `backend/app/crud.py:420-443` | Deduct only the items/quantities named in `deduction_items` instead of all reserved items; add a test. |
 | 2 | Health-check does no DB probe; no readiness endpoint | correctness | High | `backend/app/api/routes/utils.py:29-31` | Add a `/ready` (or extend health-check) that runs `SELECT 1`; point compose healthcheck at it. |
 | 3 | JWT in localStorage (XSS exposure) | security | Med | `frontend/src/hooks/useAuth.ts`, `docs/adr/httponly-cookie-auth.md` | Execute the deferred httpOnly-cookie ADR. |
-| 4 | `CLAUDE.md` OpenSpec path is wrong | docs | Med | `CLAUDE.md` (OpenSpec section) | Change `backend/openspec/` → `openspec/`. |
+| 4 | ~~`CLAUDE.md` OpenSpec path is wrong~~ ✅ resolved | docs | Med | `CLAUDE.md` (OpenSpec section) | Path is now correct (`openspec/`). |
 | 5 | Orphaned `items.spec.ts` targets a removed page | test-gap/DX | Med | `frontend/tests/items.spec.ts` | Delete it, or repoint to `estoque/produtos`. |
 | 6 | No E2E specs for Clients / Orçamentos / Permissions | test-gap | Med | `frontend/tests/` | Add spec files for these core pages. |
 | 7 | No concurrency test for FOR UPDATE reservation | test-gap | Med | `backend/app/crud.py:368-417`, `backend/tests/crud/` | Add a two-connection test that asserts no double-reservation. |
 | 8 | No direct route tests for products/product-types/product-items | test-gap | Med | `backend/tests/api/routes/` | Add dedicated test modules. |
 | 9 | Duplicate `readUserMe` in route guards | perf/DX | Low | `frontend/src/routes/_layout/*.tsx` | Read the user from router context instead of re-fetching. |
 | 10 | Two pagination systems on admin page | DX | Low | `frontend/src/routes/_layout/admin.tsx`, `components/ui/pagination-bar.tsx`, `components/Common/DataTable.tsx` | Standardize on one pagination model. |
-| 11 | Stale README + missing `deployment.md` link | docs | Low | `README.md` | Rewrite README for prata-sys; drop dead link (point to `deploy/README.md`). |
-| 12 | `docs/git-worktrees.md` lists foreign (pnpm/nx/jus) hooks | docs | Low | `docs/git-worktrees.md:37-42` | Replace with this repo's uv/bun hooks. |
+| 11 | ~~Stale README + missing `deployment.md` link~~ ✅ resolved | docs | Low | `README.md` | Rewritten for prata-sys; points to `deploy/README.md`. |
+| 12 | ~~`docs/git-worktrees.md` lists foreign (pnpm/nx/jus) hooks~~ ✅ resolved | docs | Low | `docs/git-worktrees.md` | Now lists this repo's `uv sync` / `bun install` hooks. |
 | 13 | `issue-manager.yml` gated to `fastapi` owner (inert) | docs/DX | Low | `.github/workflows/issue-manager.yml:23` | Remove the workflow or fix the owner gate. |
 | 14 | Mixed "FastAPI Template" vs "Prata Sys" titles | DX | Low | `frontend/src/routes/login.tsx:47`, `admin.tsx:39`, `settings.tsx:20` | Rename to "Prata Sys". |
 | 15 | `(user as any).role` cast — `role` likely off `UserPublic` type | DX | Low | `frontend/src/routes/_layout/clients.tsx:39` | Ensure `role` is in the generated type; drop the cast. |
@@ -412,15 +411,15 @@ perf / docs.
 - [ ] Stock deduction ignores per-item quantities in `_deduct_stock_items` (`crud.py:420-443`) `severity:high` `correctness`
 - [ ] Health-check does no DB probe; add a readiness endpoint (`routes/utils.py:29-31`) `severity:high` `correctness`
 - [ ] Migrate JWT from localStorage to httpOnly cookies (`useAuth.ts`, ADR deferred) `severity:med` `security`
-- [ ] Fix OpenSpec path in `CLAUDE.md` (`backend/openspec/` → `openspec/`) `severity:med` `docs`
+- [x] Fix OpenSpec path in `CLAUDE.md` (`backend/openspec/` → `openspec/`) `severity:med` `docs`
 - [ ] Remove or repoint orphaned `frontend/tests/items.spec.ts` `severity:med` `test-gap`
 - [ ] Add E2E specs for Clients, Orçamentos, and Permissions pages `severity:med` `test-gap`
 - [ ] Add a concurrency test for the FOR UPDATE stock reservation race (`crud.py:368-417`) `severity:med` `test-gap`
 - [ ] Add direct route tests for products/product-types/product-items `severity:med` `test-gap`
 - [ ] Stop re-fetching `readUserMe` in per-route `beforeLoad` guards `severity:low` `perf`
 - [ ] Standardize pagination (server `PaginationBar` vs client `DataTable`) on the admin page `severity:low` `DX`
-- [ ] Rewrite root `README.md` for prata-sys; remove dead `deployment.md` link `severity:low` `docs`
-- [ ] Fix foreign pnpm/nx/jus hooks in `docs/git-worktrees.md:37-42` `severity:low` `docs`
+- [x] Rewrite root `README.md` for prata-sys; remove dead `deployment.md` link `severity:low` `docs`
+- [x] Fix foreign pnpm/nx/jus hooks in `docs/git-worktrees.md` `severity:low` `docs`
 - [ ] Remove/fix inert `issue-manager.yml` (gated to `fastapi` owner) `severity:low` `docs`
 - [ ] Rename remaining "FastAPI Template" page titles to "Prata Sys" `severity:low` `DX`
 - [ ] Ensure `role` is on the generated `UserPublic` type; drop `(user as any)` cast (`clients.tsx:39`) `severity:low` `DX`
