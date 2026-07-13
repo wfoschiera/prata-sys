@@ -128,6 +128,39 @@ def test_reset_password_invalid_token(
     assert response["detail"] == "Invalid token"
 
 
+def test_reset_password_already_used_token(client: TestClient, db: Session) -> None:
+    """SEC-008: a token already claimed cannot be reused, even though it is
+    still a validly-signed, unexpired JWT."""
+    from app.models import UsedPasswordResetToken
+    from app.utils import _token_hash
+
+    email = random_email()
+    password = random_lower_string()
+    user_create = UserCreate(email=email, password=password, is_active=True)
+    create_user(session=db, user_create=user_create)
+
+    token = generate_password_reset_token(email=email)
+    db.add(UsedPasswordResetToken(token_hash=_token_hash(token)))
+    db.commit()
+
+    data = {"new_password": "newpassword123", "token": token}
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=data)
+
+    assert r.status_code == HTTPStatus.BAD_REQUEST
+    assert r.json()["detail"] == "Invalid token"
+
+
+def test_claim_password_reset_token(db: Session) -> None:
+    """SEC-008: claiming a fresh token succeeds; claiming the same token
+    again fails via the unique constraint instead of racing a read+write."""
+    from app.utils import claim_password_reset_token
+
+    token = generate_password_reset_token(email=random_email())
+
+    assert claim_password_reset_token(db, token) is True
+    assert claim_password_reset_token(db, token) is False
+
+
 def test_login_with_bcrypt_password_upgrades_to_argon2(
     client: TestClient, db: Session
 ) -> None:
@@ -285,9 +318,7 @@ def test_reset_password_rate_limited(client: TestClient) -> None:
     try:
         data = {"new_password": "changethis123", "token": "invalid"}
         statuses = [
-            client.post(
-                f"{settings.API_V1_STR}/reset-password/", json=data
-            ).status_code
+            client.post(f"{settings.API_V1_STR}/reset-password/", json=data).status_code
             for _ in range(11)
         ]
         assert statuses[:10] == [HTTPStatus.BAD_REQUEST] * 10

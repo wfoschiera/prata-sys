@@ -21,8 +21,11 @@ SEC-001 through SEC-006 have been fixed and are tracked in two PRs:
 - **SEC-001, SEC-002, SEC-003** → PR #133 (branch `wfoschiera/security/user-access-control-hardening`), issues #121/#122/#123.
 - **SEC-004, SEC-005, SEC-006** → PR #134 (branch `wfoschiera/security/auth-rate-limiting`), issues #124/#125/#126.
 
-SEC-007 through SEC-011 remain open (hardening backlog). Note: SEC-003's fix invalidates
-all live sessions on deploy (the JWT now carries a version claim that is checked fail-closed).
+- **SEC-008, SEC-009, SEC-010, SEC-011** → hardening PR (branch `wfoschiera/security/hardening-headers-cors-secrets`), issues #137/#138/#139/#140.
+
+SEC-007 remains open (deferred to its own migration effort; see `docs/adr/httponly-cookie-auth.md`).
+Note: SEC-003's fix invalidates all live sessions on deploy (the JWT now carries a version claim
+that is checked fail-closed).
 
 ---
 
@@ -95,28 +98,28 @@ all live sessions on deploy (the JWT now carries a version claim that is checked
   - **Remediation:** Execute the deferred ADR (httpOnly cookie auth), or at minimum ship a strict CSP and shorten token lifetime while the ADR is pending.
   - **Regression test:** Covered by the ADR's plan; add a Playwright test asserting the token is not readable from `document`/`localStorage` after the migration.
 
-- [ ] **[SEC-008] TOCTOU in single-use reset-token consumption** — `backend/app/api/routes/login.py:88-105`, `backend/app/utils.py:138-161`
+- [x] **[SEC-008] TOCTOU in single-use reset-token consumption** — `backend/app/api/routes/login.py:88-105`, `backend/app/utils.py:138-161`
   - **Actor / attack:** Concurrent requests replaying the same valid reset token before it is marked used.
   - **Impact:** `is_token_used` (utils.py:138) is checked, then `consume_password_reset_token` (utils.py:155) inserts the used-hash only after the password is already updated (login.py:100 then 105). Two racing requests can both pass the check and both reset the password; the second `consume` then fails on the unique `token_hash` (500) after the write already happened. Low impact but it breaks the single-use guarantee under concurrency.
   - **OWASP:** A04:2021 Insecure Design.
   - **Remediation:** Make consumption atomic and first: insert the used-token row (relying on the unique constraint) inside the same transaction *before* updating the password, and treat an IntegrityError as "token already used" → 400.
   - **Regression test:** Fire two concurrent `/reset-password` calls with the same token and assert exactly one succeeds.
 
-- [ ] **[SEC-009] Permissive CORS (`allow_credentials=True` + wildcard methods/headers)** — `backend/app/main.py:32-39`
+- [x] **[SEC-009] Permissive CORS (`allow_credentials=True` + wildcard methods/headers)** — `backend/app/main.py:32-39`
   - **Actor / attack:** Malicious web origin. Impact is limited today because origins are an explicit allow-list (config.py `all_cors_origins`) and auth uses a bearer token in localStorage, not cookies — so credentialed cross-origin requests don't carry ambient auth.
   - **Impact:** `allow_methods=["*"]` and `allow_headers=["*"]` with `allow_credentials=True` is broader than needed and becomes dangerous if auth ever moves to cookies (see SEC-007 ADR) or if the origin list is loosened.
   - **OWASP:** A05:2021 Security Misconfiguration.
   - **Remediation:** Restrict `allow_methods`/`allow_headers` to those actually used; keep the explicit origin allow-list; re-audit CORS as part of the cookie-auth migration.
   - **Regression test:** Assert a disallowed origin/method is rejected by the CORS preflight.
 
-- [ ] **[SEC-010] `SECRET_KEY` silently falls back to a random per-process value if unset in production** — `backend/app/core/config.py:34, 97-116`
+- [x] **[SEC-010] `SECRET_KEY` silently falls back to a random per-process value if unset in production** — `backend/app/core/config.py:34, 97-116`
   - **Actor / attack:** Operational misconfiguration (SECRET_KEY not provided), not a direct attacker.
   - **Impact:** `SECRET_KEY: str = secrets.token_urlsafe(32)` (config.py:34) means an unset key yields a different secret per worker/restart. The guard only rejects the literal `"changethis"` (config.py:98), not "unset". With 2 workers (compose.prod.yml:22), tokens signed by one worker fail on another; every restart invalidates all sessions. This is availability/consistency rather than confidentiality (it fails closed), but a missing prod secret should be a hard error. Note: prod compose does pass `SECRET_KEY=${SECRET_KEY?Variable not set}` (compose.prod.yml:38), which mitigates this in the documented deploy path.
   - **OWASP:** A05:2021 Security Misconfiguration.
   - **Remediation:** In non-local environments, require `SECRET_KEY` to be explicitly set (raise if it fell back to the generated default), mirroring the `changethis` guard.
   - **Regression test:** Instantiate `Settings(ENVIRONMENT="production")` with no `SECRET_KEY` and assert it raises.
 
-- [ ] **[SEC-011] Missing HTTP security headers** — `Caddyfile:9-20`, `backend/app/main.py`
+- [x] **[SEC-011] Missing HTTP security headers** — `Caddyfile:9-20`, `backend/app/main.py`
   - **Actor / attack:** Network/browser-side attacks (clickjacking, MIME sniffing, downgrade).
   - **Impact:** No `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`/frame-ancestors CSP, or `Content-Security-Policy` are set at the Caddy or app layer. A CSP in particular is the main defense-in-depth mitigation for the localStorage-token XSS risk (SEC-007).
   - **OWASP:** A05:2021 Security Misconfiguration.
