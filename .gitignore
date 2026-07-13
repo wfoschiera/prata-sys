@@ -17,3 +17,7 @@ node_modules/
 .claude/skills/gstack/browse/dist/
 .claude/skills/gstack/bun.lock
 .claude/skills/gstack/.gstack/
+
+# Local-only working dirs (not tracked)
+.serena/
+docs/security/

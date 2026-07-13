@@ -6,6 +6,7 @@ from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session
 
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.core.security import get_password_hash, verify_password
 from app.crud import create_user
 from app.models import User, UserCreate
@@ -248,3 +249,85 @@ def test_recover_password_html_content_not_found(
         headers=superuser_token_headers,
     )
     assert r.status_code == HTTPStatus.NOT_FOUND
+
+
+# ---------------------------------------------------------------------------
+# SEC-005: rate limiting on sensitive auth endpoints
+# ---------------------------------------------------------------------------
+#
+# The global limiter is disabled in the "local" test environment (see
+# app/core/limiter.py) so the rest of this suite isn't throttled. These tests
+# flip it on for their duration and reset the in-memory hit counters before
+# and after, so no other test in the suite is affected.
+
+
+def test_recover_password_rate_limited(client: TestClient) -> None:
+    """password-recovery is capped at 5/hour to prevent email-bombing (SEC-005)."""
+    limiter.reset()
+    limiter.enabled = True
+    try:
+        email = random_email()
+        statuses = [
+            client.post(f"{settings.API_V1_STR}/password-recovery/{email}").status_code
+            for _ in range(6)
+        ]
+        assert statuses[:5] == [HTTPStatus.OK] * 5
+        assert statuses[5] == HTTPStatus.TOO_MANY_REQUESTS
+    finally:
+        limiter.enabled = False
+        limiter.reset()
+
+
+def test_reset_password_rate_limited(client: TestClient) -> None:
+    """reset-password is capped at 10/hour to bound reset attempts (SEC-005)."""
+    limiter.reset()
+    limiter.enabled = True
+    try:
+        data = {"new_password": "changethis123", "token": "invalid"}
+        statuses = [
+            client.post(
+                f"{settings.API_V1_STR}/reset-password/", json=data
+            ).status_code
+            for _ in range(11)
+        ]
+        assert statuses[:10] == [HTTPStatus.BAD_REQUEST] * 10
+        assert statuses[10] == HTTPStatus.TOO_MANY_REQUESTS
+    finally:
+        limiter.enabled = False
+        limiter.reset()
+
+
+# ---------------------------------------------------------------------------
+# SEC-006: no timing/behavioral oracle for account existence
+# ---------------------------------------------------------------------------
+
+
+def test_recover_password_same_response_and_background_send(
+    client: TestClient,
+) -> None:
+    """password-recovery returns an identical response either way, and only
+    schedules the (background) email send when the account actually exists —
+    proving the enumeration oracle is closed behaviorally, not by timing.
+    """
+    with patch("app.api.routes.login.send_email") as mock_send_email:
+        existing_email = settings.FIRST_SUPERUSER
+        nonexistent_email = random_email()
+
+        r_existing = client.post(
+            f"{settings.API_V1_STR}/password-recovery/{existing_email}"
+        )
+        r_missing = client.post(
+            f"{settings.API_V1_STR}/password-recovery/{nonexistent_email}"
+        )
+
+        assert r_existing.status_code == HTTPStatus.OK
+        assert r_missing.status_code == HTTPStatus.OK
+        expected_message = {
+            "message": "If that email is registered, we sent a password recovery link"
+        }
+        assert r_existing.json() == expected_message
+        assert r_missing.json() == expected_message
+
+        # Only the existing user should trigger a (background) email send.
+        mock_send_email.assert_called_once()
+        assert mock_send_email.call_args.kwargs["email_to"] == existing_email

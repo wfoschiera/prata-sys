@@ -51,7 +51,6 @@ const formSchema = z
       .optional()
       .or(z.literal("")),
     confirm_password: z.string().optional(),
-    is_superuser: z.boolean().optional(),
     is_active: z.boolean().optional(),
   })
   .refine((data) => !data.password || data.password === data.confirm_password, {
@@ -79,7 +78,6 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
       email: user.email,
       full_name: user.full_name ?? undefined,
       role: user.role as "admin" | "finance" | "client",
-      is_superuser: user.is_superuser,
       is_active: user.is_active,
     },
   })
@@ -224,22 +222,6 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                       />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="is_superuser"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">Is superuser?</FormLabel>
                   </FormItem>
                 )}
               />
