@@ -23,7 +23,7 @@ TanStack Router uses file-based routing under `src/routes/`. To add a page:
 
 ## API Calls
 
-- **Never write fetch/axios calls manually**
+- **Never hand-write API calls** — the generated client wraps native `fetch`
 - Always use the generated client: `import { ClientsService } from "@/client"`
 - After any backend API change, regenerate: `bash ../scripts/generate-client.sh`
 - Wrap all API calls in TanStack Query (`useQuery`, `useMutation`)

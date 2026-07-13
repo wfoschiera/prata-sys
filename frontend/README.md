@@ -1,6 +1,6 @@
-# FastAPI Project - Frontend
+# prata-sys — Frontend
 
-The frontend is built with [Vite](https://vitejs.dev/), [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [TanStack Query](https://tanstack.com/query), [TanStack Router](https://tanstack.com/router) and [Tailwind CSS](https://tailwindcss.com/).
+The frontend is built with [Vite](https://vitejs.dev/), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [TanStack Query](https://tanstack.com/query), [TanStack Router](https://tanstack.com/router), [Tailwind CSS v4](https://tailwindcss.com/), and [shadcn/ui](https://ui.shadcn.com/). It talks to the backend through an auto-generated OpenAPI client (native `fetch` under the hood).
 
 ## Requirements
 
@@ -23,8 +23,8 @@ Check `package.json` for other scripts.
 
 ### Automatically
 
-* Activate the backend virtual environment.
-* From the top level project directory, run the script:
+* Make sure the backend is running (`cd backend && uv run fastapi dev app/main.py`).
+* From the top-level project directory, run the script:
 
 ```bash
 bash ./scripts/generate-client.sh
@@ -34,9 +34,9 @@ bash ./scripts/generate-client.sh
 
 ### Manually
 
-* Start the Docker Compose stack.
+* Start the backend on port 8000 (`cd backend && uv run fastapi dev app/main.py`).
 
-* Download the OpenAPI JSON file from `http://localhost/api/v1/openapi.json` and copy it to a new file `openapi.json` at the root of the `frontend` directory.
+* Download the OpenAPI JSON file from `http://localhost:8000/api/v1/openapi.json` and copy it to a new file `openapi.json` at the root of the `frontend` directory.
 
 * To generate the frontend client, run:
 
