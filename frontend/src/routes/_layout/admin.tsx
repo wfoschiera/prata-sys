@@ -1,13 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Suspense, useState } from "react"
-
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
 import { columns, type UserTableData } from "@/components/Admin/columns"
 import { DataTable } from "@/components/Common/DataTable"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import { PaginationBar } from "@/components/ui/pagination-bar"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 
 const PAGE_SIZE = 20
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_layout/admin")({
   head: () => ({
     meta: [
       {
-        title: "Admin - FastAPI Template",
+        title: pageTitle("Admin"),
       },
     ],
   }),

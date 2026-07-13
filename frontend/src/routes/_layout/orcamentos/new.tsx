@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import { useState } from "react"
-
 import {
   ClientsService,
   type OrcamentoCreate,
@@ -26,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { pageTitle } from "@/config/brand"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_layout/orcamentos/new")({
     }
   },
   head: () => ({
-    meta: [{ title: "Novo Orçamento - Prata Sys" }],
+    meta: [{ title: pageTitle("Novo Orçamento") }],
   }),
 })
 

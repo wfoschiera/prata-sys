@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { LoginService } from "@/client"
 import { AuthLayout } from "@/components/Common/AuthLayout"
 import {
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/form"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
+import { pageTitle } from "@/config/brand"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       {
-        title: "Reset Password - FastAPI Template",
+        title: pageTitle("Reset Password"),
       },
     ],
   }),

@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { ArrowRight, Package } from "lucide-react"
-
 import { EstoqueService, type ProductCategory } from "@/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pageTitle } from "@/config/brand"
 
 export const Route = createFileRoute("/_layout/estoque/")({
   component: EstoqueDashboard,
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_layout/estoque/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Estoque - Prata Sys" }],
+    meta: [{ title: pageTitle("Estoque") }],
   }),
 })
 

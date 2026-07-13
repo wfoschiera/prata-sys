@@ -2,7 +2,6 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Eye, Plus, Trash2 } from "lucide-react"
 import { Suspense, useState } from "react"
-
 import {
   type ServiceListRead,
   type ServiceStatus,
@@ -24,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 
 const STATUS_LABELS: Record<ServiceStatus, string> = {
   requested: "Solicitado",
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/_layout/services")({
   head: () => ({
     meta: [
       {
-        title: "Serviços - Prata Sys",
+        title: pageTitle("Serviços"),
       },
     ],
   }),

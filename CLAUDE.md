@@ -2,8 +2,7 @@
 
 **prata-sys** is a business management system for a **water well drilling company** in
 Brazil — clients, service orders, suppliers, inventory (estoque), quotes (orçamentos),
-and finances. Built on the
-[FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template).
+and finances.
 
 For the domain glossary, feature inventory, and roadmap, see
 [`docs/domain-model.md`](docs/domain-model.md). For a full architecture walkthrough,

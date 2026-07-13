@@ -8,6 +8,7 @@ import {
 } from "@/client"
 import OrcamentoDetail from "@/components/Orcamentos/OrcamentoDetail"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pageTitle } from "@/config/brand"
 import "@/components/Orcamentos/orcamento-print.css"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_layout/orcamentos/$orcamentoId/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Orçamento - Prata Sys" }],
+    meta: [{ title: pageTitle("Orçamento") }],
   }),
 })
 

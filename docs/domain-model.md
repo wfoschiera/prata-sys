@@ -5,8 +5,7 @@ the root [`CLAUDE.md`](../CLAUDE.md) keeps only a one-line overview and links he
 
 **prata-sys** is a business management system for a **water well drilling company**
 in Brazil. It manages clients, service orders, suppliers, inventory, quotes, and
-finances. The project is built on the
-[FastAPI Full-Stack Template](https://github.com/fastapi/full-stack-fastapi-template).
+finances.
 
 ## Domain Concepts
 

@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Building2, Plus, Search, X } from "lucide-react"
 import { useState } from "react"
-
 import {
   type FornecedorCategoryEnum,
   FornecedoresService,
@@ -20,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout/fornecedores/")({
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_layout/fornecedores/")({
     }
   },
   head: () => ({
-    meta: [{ title: "Fornecedores - Prata Sys" }],
+    meta: [{ title: pageTitle("Fornecedores") }],
   }),
 })
 

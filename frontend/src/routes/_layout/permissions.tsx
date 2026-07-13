@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { pageTitle } from "@/config/brand"
 import useCustomToast from "@/hooks/useCustomToast"
 
 export const Route = createFileRoute("/_layout/permissions")({
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_layout/permissions")({
     }
   },
   head: () => ({
-    meta: [{ title: "Permissões - Prata Sys" }],
+    meta: [{ title: pageTitle("Permissões") }],
   }),
 })
 

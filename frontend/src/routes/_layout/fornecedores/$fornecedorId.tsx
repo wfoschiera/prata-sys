@@ -10,7 +10,6 @@ import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import {
   type FornecedorCategoryEnum,
   type FornecedorContatoPublic,
@@ -48,6 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { pageTitle } from "@/config/brand"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_layout/fornecedores/$fornecedorId")({
     }
   },
   head: () => ({
-    meta: [{ title: "Fornecedor - Prata Sys" }],
+    meta: [{ title: pageTitle("Fornecedor") }],
   }),
 })
 
