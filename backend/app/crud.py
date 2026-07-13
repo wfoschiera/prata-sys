@@ -78,9 +78,15 @@ from app.models import (
 logger = logging.getLogger(__name__)
 
 
-def create_user(*, session: Session, user_create: UserCreate) -> User:
+def create_user(
+    *, session: Session, user_create: UserCreate, is_superuser: bool = False
+) -> User:
     db_obj = User.model_validate(
-        user_create, update={"hashed_password": get_password_hash(user_create.password)}
+        user_create,
+        update={
+            "hashed_password": get_password_hash(user_create.password),
+            "is_superuser": is_superuser,
+        },
     )
     session.add(db_obj)
     session.commit()

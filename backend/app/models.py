@@ -24,9 +24,8 @@ class UserRole(str, enum.Enum):
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
-    is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
-    role: UserRole = UserRole.admin
+    role: UserRole = UserRole.client
 
 
 # Properties to receive via API on creation
@@ -54,6 +53,8 @@ class UpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
+    is_superuser: bool = False
+    token_version: int = Field(default=0, nullable=False)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -67,6 +68,7 @@ class User(UserBase, table=True):
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
+    is_superuser: bool = False
     created_at: datetime | None = None
     permissions: list[str] = []
 
