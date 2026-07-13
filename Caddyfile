@@ -7,14 +7,21 @@
 #   anything else  -> frontend (nginx serving the SPA)
 
 :80 {
-    encode gzip
+	encode gzip
 
-    @backend path /api/* /docs /redoc
-    handle @backend {
-        reverse_proxy backend:8000
-    }
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+	}
 
-    handle {
-        reverse_proxy frontend:80
-    }
+	@backend path /api/* /docs /redoc
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
 }
