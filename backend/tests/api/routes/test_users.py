@@ -9,7 +9,7 @@ from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
 from app.models import User, UserCreate, UserRole
-from tests.utils.user import create_random_user
+from tests.utils.user import create_random_user, user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -273,6 +273,12 @@ def test_update_password_me(
     verified, _ = verify_password(new_password, user_db.hashed_password)
     assert verified
 
+    # Changing the password bumps token_version (SEC-003), invalidating the
+    # session-scoped token above — re-authenticate to get a fresh one.
+    fresh_token_headers = user_authentication_headers(
+        client=client, email=settings.FIRST_SUPERUSER, password=new_password
+    )
+
     # Revert to the old password to keep consistency in test
     old_data = {
         "current_password": new_password,
@@ -280,7 +286,7 @@ def test_update_password_me(
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        headers=superuser_token_headers,
+        headers=fresh_token_headers,
         json=old_data,
     )
     db.refresh(user_db)
