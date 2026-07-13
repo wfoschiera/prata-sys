@@ -3472,11 +3472,6 @@ export const UserCreateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
-        },
         full_name: {
             anyOf: [
                 {
@@ -3491,7 +3486,7 @@ export const UserCreateSchema = {
         },
         role: {
             '$ref': '#/components/schemas/UserRole',
-            default: 'admin'
+            default: 'client'
         },
         password: {
             type: 'string',
@@ -3575,11 +3570,6 @@ export const UserPublicSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
-        },
         full_name: {
             anyOf: [
                 {
@@ -3594,12 +3584,17 @@ export const UserPublicSchema = {
         },
         role: {
             '$ref': '#/components/schemas/UserRole',
-            default: 'admin'
+            default: 'client'
         },
         id: {
             type: 'string',
             format: 'uuid',
             title: 'Id'
+        },
+        is_superuser: {
+            type: 'boolean',
+            title: 'Is Superuser',
+            default: false
         },
         created_at: {
             anyOf: [
@@ -3625,38 +3620,6 @@ export const UserPublicSchema = {
     type: 'object',
     required: ['email', 'id'],
     title: 'UserPublic'
-} as const;
-
-export const UserRegisterSchema = {
-    properties: {
-        email: {
-            type: 'string',
-            maxLength: 255,
-            format: 'email',
-            title: 'Email'
-        },
-        password: {
-            type: 'string',
-            maxLength: 128,
-            minLength: 8,
-            title: 'Password'
-        },
-        full_name: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Full Name'
-        }
-    },
-    type: 'object',
-    required: ['email', 'password'],
-    title: 'UserRegister'
 } as const;
 
 export const UserRoleSchema = {
@@ -3685,11 +3648,6 @@ export const UserUpdateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
-        },
         full_name: {
             anyOf: [
                 {
@@ -3704,7 +3662,7 @@ export const UserUpdateSchema = {
         },
         role: {
             '$ref': '#/components/schemas/UserRole',
-            default: 'admin'
+            default: 'client'
         },
         password: {
             anyOf: [
