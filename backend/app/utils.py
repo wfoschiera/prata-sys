@@ -135,27 +135,22 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def is_token_used(session: Any, token: str) -> bool:
-    """Return True if this token has already been consumed."""
-    from sqlmodel import select
+def claim_password_reset_token(session: Any, token: str) -> bool:
+    """Atomically mark a password reset token as used.
 
-    from app.models import UsedPasswordResetToken
+    Relies on the unique constraint on UsedPasswordResetToken.token_hash to
+    make the claim atomic: only one concurrent request can win it. Returns
+    True if this call claimed the token, False if it was already used.
+    """
+    from sqlalchemy.exc import IntegrityError
 
-    token_hash = _token_hash(token)
-    return (
-        session.exec(
-            select(UsedPasswordResetToken).where(
-                UsedPasswordResetToken.token_hash == token_hash
-            )
-        ).first()
-        is not None
-    )
-
-
-def consume_password_reset_token(session: Any, token: str) -> None:
-    """Mark a password reset token as used so it cannot be reused."""
     from app.models import UsedPasswordResetToken
 
     record = UsedPasswordResetToken(token_hash=_token_hash(token))
     session.add(record)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        return False
+    return True

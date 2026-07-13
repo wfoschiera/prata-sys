@@ -107,6 +107,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
+        if self.ENVIRONMENT != "local" and "SECRET_KEY" not in self.model_fields_set:
+            message = (
+                "SECRET_KEY must be set explicitly outside of local development "
+                "(an unset key falls back to a random per-process value, which "
+                "breaks multi-worker deployments and invalidates sessions on restart)."
+            )
+            raise ValueError(message)
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
         self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
         self._check_default_secret(
