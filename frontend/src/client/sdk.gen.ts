@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, DashboardGetOperationalDashboardData, DashboardGetOperationalDashboardResponse, EstoqueGetDashboardResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, OrcamentosListOrcamentosData, OrcamentosListOrcamentosResponse, OrcamentosCreateOrcamentoData, OrcamentosCreateOrcamentoResponse, OrcamentosReadOrcamentoData, OrcamentosReadOrcamentoResponse, OrcamentosUpdateOrcamentoData, OrcamentosUpdateOrcamentoResponse, OrcamentosDeleteOrcamentoData, OrcamentosDeleteOrcamentoResponse, OrcamentosTransitionOrcamentoData, OrcamentosTransitionOrcamentoResponse, OrcamentosConvertToServiceData, OrcamentosConvertToServiceResponse, OrcamentosDuplicateOrcamentoData, OrcamentosDuplicateOrcamentoResponse, OrcamentosCreateOrcamentoItemData, OrcamentosCreateOrcamentoItemResponse, OrcamentosUpdateOrcamentoItemData, OrcamentosUpdateOrcamentoItemResponse, OrcamentosDeleteOrcamentoItemData, OrcamentosDeleteOrcamentoItemResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProductItemsCreateProductItemData, ProductItemsCreateProductItemResponse, ProductItemsListProductItemsData, ProductItemsListProductItemsResponse, ProductsCreateProductData, ProductsCreateProductResponse, ProductsListProductsData, ProductsListProductsResponse, ProductsGetProductData, ProductsGetProductResponse, ProductsUpdateProductData, ProductsUpdateProductResponse, ProductsDeleteProductData, ProductsDeleteProductResponse, ProductsGetProductItemsData, ProductsGetProductItemsResponse, ProductsGetProductPredictionData, ProductsGetProductPredictionResponse, ProductTypesListProductTypesResponse, ProductTypesCreateProductTypeData, ProductTypesCreateProductTypeResponse, ProductTypesGetProductTypeData, ProductTypesGetProductTypeResponse, ProductTypesUpdateProductTypeData, ProductTypesUpdateProductTypeResponse, ProductTypesDeleteProductTypeData, ProductTypesDeleteProductTypeResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesBaixarEstoqueData, ServicesBaixarEstoqueResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, SettingsGetCompanySettingsResponse, SettingsUpdateCompanySettingsData, SettingsUpdateCompanySettingsResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ClientsReadClientsData, ClientsReadClientsResponse, ClientsCreateClientData, ClientsCreateClientResponse, ClientsReadClientData, ClientsReadClientResponse, ClientsUpdateClientData, ClientsUpdateClientResponse, ClientsDeleteClientData, ClientsDeleteClientResponse, DashboardGetOperationalDashboardData, DashboardGetOperationalDashboardResponse, EstoqueGetDashboardResponse, FornecedoresListFornecedoresData, FornecedoresListFornecedoresResponse, FornecedoresCreateFornecedorData, FornecedoresCreateFornecedorResponse, FornecedoresGetFornecedorData, FornecedoresGetFornecedorResponse, FornecedoresUpdateFornecedorData, FornecedoresUpdateFornecedorResponse, FornecedoresDeleteFornecedorData, FornecedoresDeleteFornecedorResponse, FornecedoresCreateContatoData, FornecedoresCreateContatoResponse, FornecedoresUpdateContatoData, FornecedoresUpdateContatoResponse, FornecedoresDeleteContatoData, FornecedoresDeleteContatoResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, OrcamentosListOrcamentosData, OrcamentosListOrcamentosResponse, OrcamentosCreateOrcamentoData, OrcamentosCreateOrcamentoResponse, OrcamentosReadOrcamentoData, OrcamentosReadOrcamentoResponse, OrcamentosUpdateOrcamentoData, OrcamentosUpdateOrcamentoResponse, OrcamentosDeleteOrcamentoData, OrcamentosDeleteOrcamentoResponse, OrcamentosTransitionOrcamentoData, OrcamentosTransitionOrcamentoResponse, OrcamentosConvertToServiceData, OrcamentosConvertToServiceResponse, OrcamentosDuplicateOrcamentoData, OrcamentosDuplicateOrcamentoResponse, OrcamentosCreateOrcamentoItemData, OrcamentosCreateOrcamentoItemResponse, OrcamentosUpdateOrcamentoItemData, OrcamentosUpdateOrcamentoItemResponse, OrcamentosDeleteOrcamentoItemData, OrcamentosDeleteOrcamentoItemResponse, PermissionsGetAvailablePermissionsResponse, PermissionsGetUsersPermissionsResponse, PermissionsGetUserPermissionsData, PermissionsGetUserPermissionsResponse, PermissionsSetUserPermissionsData, PermissionsSetUserPermissionsResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProductItemsCreateProductItemData, ProductItemsCreateProductItemResponse, ProductItemsListProductItemsData, ProductItemsListProductItemsResponse, ProductsCreateProductData, ProductsCreateProductResponse, ProductsListProductsData, ProductsListProductsResponse, ProductsGetProductData, ProductsGetProductResponse, ProductsUpdateProductData, ProductsUpdateProductResponse, ProductsDeleteProductData, ProductsDeleteProductResponse, ProductsGetProductItemsData, ProductsGetProductItemsResponse, ProductsGetProductPredictionData, ProductsGetProductPredictionResponse, ProductTypesListProductTypesResponse, ProductTypesCreateProductTypeData, ProductTypesCreateProductTypeResponse, ProductTypesGetProductTypeData, ProductTypesGetProductTypeResponse, ProductTypesUpdateProductTypeData, ProductTypesUpdateProductTypeResponse, ProductTypesDeleteProductTypeData, ProductTypesDeleteProductTypeResponse, ServicesReadServicesData, ServicesReadServicesResponse, ServicesCreateServiceData, ServicesCreateServiceResponse, ServicesReadServiceData, ServicesReadServiceResponse, ServicesUpdateServiceData, ServicesUpdateServiceResponse, ServicesDeleteServiceData, ServicesDeleteServiceResponse, ServicesTransitionServiceData, ServicesTransitionServiceResponse, ServicesDeductStockData, ServicesDeductStockResponse, ServicesBaixarEstoqueData, ServicesBaixarEstoqueResponse, ServicesCreateServiceItemData, ServicesCreateServiceItemResponse, ServicesDeleteServiceItemData, ServicesDeleteServiceItemResponse, SettingsGetCompanySettingsResponse, SettingsUpdateCompanySettingsData, SettingsUpdateCompanySettingsResponse, TransacoesGetResumoMensalData, TransacoesGetResumoMensalResponse, TransacoesReadTransacoesData, TransacoesReadTransacoesResponse, TransacoesCreateTransacaoData, TransacoesCreateTransacaoResponse, TransacoesReadTransacaoData, TransacoesReadTransacaoResponse, TransacoesUpdateTransacaoData, TransacoesUpdateTransacaoResponse, TransacoesDeleteTransacaoData, TransacoesDeleteTransacaoResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, UtilsReadinessResponse } from './types.gen';
 
 export class ClientsService {
     /**
@@ -1583,26 +1583,6 @@ export class UsersService {
     }
     
     /**
-     * Register User
-     * Create new user without the need to be logged in.
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns UserPublic Successful Response
-     * @throws ApiError
-     */
-    public static registerUser(data: UsersRegisterUserData): CancelablePromise<UsersRegisterUserResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/users/signup',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-    
-    /**
      * Read User By Id
      * Get a specific user by id.
      * @param data The data for the request.
@@ -1700,6 +1680,23 @@ export class UtilsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/utils/health-check/'
+        });
+    }
+    
+    /**
+     * Readiness
+     * Readiness probe: verify the database is reachable.
+     *
+     * Returns 200 when a trivial query succeeds, 503 otherwise. Unlike
+     * ``health-check`` (liveness), this confirms the app can actually serve
+     * database-backed requests.
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static readiness(): CancelablePromise<UtilsReadinessResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/utils/readiness/'
         });
     }
 }

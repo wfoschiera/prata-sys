@@ -19,7 +19,12 @@ services:
     restart: unless-stopped
     # Run migrations + seed superuser, then start the app. Idempotent on every restart.
     # 2 workers to keep the memory footprint modest.
-    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 app/main.py"]
+    # --forwarded-allow-ips='*' trusts X-Forwarded-For from any direct peer. This is
+    # safe here because the backend has no published host port (see below) and is
+    # only reachable from other containers on this compose's networks — i.e. only
+    # Caddy can be the direct peer. --proxy-headers is already enabled by default
+    # in `fastapi run`, so only the trusted-IP allowlist needs to be widened.
+    command: ["bash", "-c", "bash scripts/prestart.sh && fastapi run --workers 2 --forwarded-allow-ips='*' app/main.py"]
     # Join the shared external network so the backend can reach a Postgres that
     # runs outside this stack (POSTGRES_SERVER=postgres). extra_hosts is kept as a
     # fallback for setups where Postgres listens on the host instead.

@@ -3,7 +3,7 @@
 ## Critical Rules
 
 - **When using worktrees, always use `wt` (Worktrunk)** — don't use raw `git worktree` commands.
-- **Project hooks auto-run setup** on new worktrees (install, configure, codegen) — no manual setup needed.
+- **Project hooks auto-run setup** on new worktrees (dependency install) — no manual setup needed.
 
 Use [Worktrunk](https://worktrunk.dev) (`wt`) for creating and managing git worktrees. Worktrees provide isolated copies of the repo — useful for parallel tasks, experiments, or working on multiple features without stashing.
 
@@ -34,10 +34,10 @@ wt remove my-branch
 
 ## Project Hooks
 
-Project hooks (`.config/wt.toml`) automatically run setup on new worktrees:
+Project hooks (`.config/wt.toml`) automatically run `[post-create]` setup on new
+worktrees so they're immediately ready to run tests and start the dev server:
 
-1. `pnpm install` — install dependencies
-2. `jus configure` — configure local environment
-3. `pnpm nx run-many -t codegen` — generate GraphQL types and other codegen artifacts
+1. `cd backend && uv sync` — install backend (Python) dependencies
+2. `cd frontend && bun install` — install frontend (JavaScript) dependencies
 
 This ensures every new worktree is fully functional without manual setup.

@@ -77,28 +77,17 @@ test.describe("Admin user management", () => {
     await expect(userRow).toBeVisible()
   })
 
-  test("Create a superuser", async ({ page }) => {
+  test("Add User form does not expose a superuser toggle (SEC-002)", async ({
+    page,
+  }) => {
+    // Superuser status is no longer settable through the API/UI — it is only
+    // granted to the bootstrapped FIRST_SUPERUSER. The admin form must not
+    // offer an "Is superuser?" control, or it would silently do nothing and
+    // invite a privilege-escalation attempt.
     await page.goto("/admin")
-
-    const email = randomEmail()
-    const password = randomPassword()
-
     await page.getByRole("button", { name: "Add User" }).click()
-
-    await page.getByPlaceholder("Email").fill(email)
-    await page.getByPlaceholder("Password").first().fill(password)
-    await page.getByPlaceholder("Password").last().fill(password)
-    await page.getByLabel("Is superuser?").check()
-    await page.getByLabel("Is active?").check()
-
-    await page.getByRole("button", { name: "Save" }).click()
-
-    await expect(page.getByText("User created successfully")).toBeVisible()
-
-    await expect(page.getByRole("dialog")).not.toBeVisible()
-
-    const userRow = page.getByRole("row").filter({ hasText: email })
-    await expect(userRow.getByTitle("Superuser")).toBeVisible()
+    await expect(page.getByRole("dialog")).toBeVisible()
+    await expect(page.getByLabel("Is superuser?")).toHaveCount(0)
   })
 
   test("Edit a user successfully", async ({ page }) => {
