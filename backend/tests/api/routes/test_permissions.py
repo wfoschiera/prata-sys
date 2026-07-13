@@ -165,6 +165,56 @@ def test_set_user_overrides(
     assert "view_reports" in data["effective"]
 
 
+def test_set_overrides_twice_adds_second(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Adding a second override after the first must not fail (regression, #142)."""
+    user_in = UserCreate(
+        email=f"{random_lower_string()}@example.com",
+        password=random_lower_string(),
+        role=UserRole.client,
+    )
+    user = crud.create_user(session=db, user_create=user_in)
+
+    r1 = client.put(
+        f"{settings.API_V1_STR}/permissions/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"permissions": ["view_well_status"]},
+    )
+    assert r1.status_code == HTTPStatus.OK
+
+    # Add a second override, re-sending the first (as the UI does)
+    r2 = client.put(
+        f"{settings.API_V1_STR}/permissions/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"permissions": ["view_well_status", "view_reports"]},
+    )
+    assert r2.status_code == HTTPStatus.OK
+    data = r2.json()
+    assert "view_well_status" in data["overrides"]
+    assert "view_reports" in data["overrides"]
+
+
+def test_set_overrides_deduplicates(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    """Duplicate permissions in a single payload must not fail."""
+    user_in = UserCreate(
+        email=f"{random_lower_string()}@example.com",
+        password=random_lower_string(),
+        role=UserRole.client,
+    )
+    user = crud.create_user(session=db, user_create=user_in)
+
+    r = client.put(
+        f"{settings.API_V1_STR}/permissions/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"permissions": ["view_reports", "view_reports"]},
+    )
+    assert r.status_code == HTTPStatus.OK
+    assert r.json()["overrides"].count("view_reports") == 1
+
+
 def test_set_overrides_filters_role_defaults(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
