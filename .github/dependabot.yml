@@ -8,7 +8,7 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # Python uv
   - package-ecosystem: uv
@@ -18,7 +18,7 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # bun
   - package-ecosystem: bun
@@ -28,7 +28,7 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
     ignore:
       - dependency-name: "@hey-api/openapi-ts"
@@ -40,5 +40,5 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
