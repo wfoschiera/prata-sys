@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: daily
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # Python uv
   - package-ecosystem: uv
@@ -14,7 +14,7 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # bun
   - package-ecosystem: bun
@@ -22,7 +22,7 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
     ignore:
       - dependency-name: "@hey-api/openapi-ts"
@@ -32,5 +32,5 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
