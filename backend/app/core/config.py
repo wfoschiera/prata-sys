@@ -6,7 +6,6 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
-    HttpUrl,
     PostgresDsn,
     computed_field,
     model_validator,
@@ -49,7 +48,6 @@ class Settings(BaseSettings):
         ]
 
     PROJECT_NAME: str
-    SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
