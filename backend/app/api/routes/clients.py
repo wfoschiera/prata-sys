@@ -1,9 +1,11 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from posthog import identify_context, new_context
 
 from app import crud
-from app.api.deps import SessionDep, require_permission
+from app.api.deps import CurrentUser, SessionDep, require_permission
+from app.core.posthog import get_posthog
 from app.models import (
     Client,
     ClientCreate,
@@ -35,6 +37,7 @@ def create_client(
     *,
     session: SessionDep,
     client_in: ClientCreate,
+    current_user: CurrentUser,
     _: None = PermGuard,
 ) -> Client:
     """Create a new client."""
@@ -45,7 +48,17 @@ def create_client(
         raise HTTPException(
             status_code=409, detail="Document number already registered"
         )
-    return crud.create_client(session=session, client_in=client_in)
+    client = crud.create_client(session=session, client_in=client_in)
+    ph = get_posthog()
+    if ph:
+        doc_len = len(client_in.document_number or "")
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "client created",
+                properties={"document_type": "cnpj" if doc_len == 14 else "cpf"},
+            )
+    return client
 
 
 @router.get("/{client_id}", response_model=ClientPublic)
