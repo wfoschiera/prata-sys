@@ -185,7 +185,7 @@ mv ~/.ssh/deploy_new.pub "${KEY/#\~/$HOME}.pub"
   ```bash
   gh secret delete DEPLOY_HOST_IP -R "$REPO"
   ```
-- **`SMTP_PASSWORD`, `SENTRY_DSN`** — empty unless you configure email/Sentry. They live only in the server `.env` and rotate like section 1.
+- **`SMTP_PASSWORD`** — empty unless you configure email. It lives only in the server `.env` and rotates like section 1.
 
 ---
 

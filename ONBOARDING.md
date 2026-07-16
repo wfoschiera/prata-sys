@@ -94,7 +94,7 @@ prata-sys/
 │   └── app/
 │       ├── models.py           # ALL SQLModel tables + Pydantic schemas + enums + transition maps
 │       ├── crud.py             # ALL DB logic (auth, stock, transitions, dashboards)
-│       ├── main.py             # FastAPI app, Sentry, slowapi wiring, router registration
+│       ├── main.py             # FastAPI app, slowapi wiring, router registration
 │       ├── api/
 │       │   ├── main.py         # mounts every router under /api/v1
 │       │   ├── deps.py         # get_db (SessionDep), get_current_user, require_permission()
