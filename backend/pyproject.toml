@@ -18,7 +18,7 @@ dependencies = [
     "pydantic-settings<3.0.0,>=2.2.1",
     "pyjwt>=2.13.0,<3.0.0",
     "pwdlib[argon2,bcrypt]>=0.3.0",
-    "pre-commit>=4.5.1",
+    "pre-commit>=4.6.0",
     "slowapi>=0.1.9",
     "posthog>=7.25.0",
 ]
