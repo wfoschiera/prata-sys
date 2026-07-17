@@ -5,24 +5,30 @@ updates:
     directory: /
     schedule:
       interval: daily
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # Python uv
   - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
   # bun
   - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
     ignore:
       - dependency-name: "@hey-api/openapi-ts"
@@ -31,6 +37,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: ⬆
+      prefix: chore
     labels: [dependencies, internal]
