@@ -4,12 +4,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from posthog import identify_context, new_context
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.core.posthog import get_posthog
 from app.models import Message, NewPassword, Token, UserPublic, UserUpdate
 from app.utils import (
     claim_password_reset_token,
@@ -40,13 +42,24 @@ def login_access_token(
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return Token(
+    token = Token(
         access_token=security.create_access_token(
             user.id,
             expires_delta=access_token_expires,
             token_version=user.token_version,
         )
     )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(user.id))
+            ph.capture(
+                "user logged in",
+                properties={
+                    "$set": {"role": user.role, "is_superuser": user.is_superuser}
+                },
+            )
+    return token
 
 
 @router.post("/login/test-token", response_model=UserPublic)

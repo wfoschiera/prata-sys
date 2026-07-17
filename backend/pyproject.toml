@@ -11,24 +11,24 @@ dependencies = [
     "pydantic>=2.13.4",
     "emails<1.0,>=0.6",
     "jinja2<4.0.0,>=3.1.4",
-    "alembic<2.0.0,>=1.18.4",
+    "alembic>=1.18.5,<2.0.0",
     "httpx<1.0.0,>=0.25.1",
     "psycopg[binary]<4.0.0,>=3.3.4",
     "sqlmodel<1.0.0,>=0.0.21",
     "pydantic-settings<3.0.0,>=2.2.1",
-    "sentry-sdk[fastapi]>=2.0.0,<3.0.0",
-    "pyjwt<3.0.0,>=2.8.0",
+    "pyjwt>=2.13.0,<3.0.0",
     "pwdlib[argon2,bcrypt]>=0.3.0",
-    "pre-commit>=4.5.1",
+    "pre-commit>=4.6.0",
     "slowapi>=0.1.9",
+    "posthog>=7.25.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest<8.0.0,>=7.4.3",
+    "pytest>=9.1.1,<10.0.0",
     "mypy<2.0.0,>=1.8.0",
-    "ruff==0.15.5",
-    "prek>=0.3.13,<1.0.0",
+    "ruff==0.15.22",
+    "prek>=0.4.8,<1.0.0",
     "coverage<8.0.0,>=7.4.3",
     "pytest-xdist>=3.8.0",
     "pytest-randomly>=4.0.1",
@@ -40,6 +40,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+exclude-newer = "7 days"
 
 [tool.mypy]
 strict = true
