@@ -2,6 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from posthog import identify_context, new_context
 from sqlmodel import col, func, select
 
 from app import crud
@@ -11,6 +12,7 @@ from app.api.deps import (
     require_permission,
 )
 from app.core.config import settings
+from app.core.posthog import get_posthog
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Message,
@@ -50,10 +52,15 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(require_permission("manage_users"))],
     response_model=UserPublic,
 )
-def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+def create_user(
+    *,
+    session: SessionDep,
+    user_in: UserCreate,
+    current_user: CurrentUser,
+    _: Any = Depends(require_permission("manage_users")),
+) -> Any:
     """
     Create new user.
     """
@@ -74,6 +81,14 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "user created",
+                properties={"created_user_role": user_in.role},
+            )
     return user
 
 

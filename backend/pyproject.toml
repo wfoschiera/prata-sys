@@ -20,6 +20,7 @@ dependencies = [
     "pwdlib[argon2,bcrypt]>=0.3.0",
     "pre-commit>=4.5.1",
     "slowapi>=0.1.9",
+    "posthog>=7.25.0",
 ]
 
 [dependency-groups]
