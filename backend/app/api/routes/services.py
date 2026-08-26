@@ -2,9 +2,11 @@ import uuid
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from posthog import identify_context, new_context
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, require_permission
+from app.core.posthog import get_posthog
 from app.models import (
     BaixarEstoqueResponse,
     DeductionSummary,
@@ -43,6 +45,7 @@ def create_service(
     *,
     session: SessionDep,
     service_in: ServiceCreate,
+    current_user: CurrentUser,
     _: None = PermGuard,
 ) -> Service:
     """Create a new service order."""
@@ -51,7 +54,13 @@ def create_service(
     client = session.get(Client, service_in.client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    return crud.create_service(session=session, service_in=service_in)
+    service = crud.create_service(session=session, service_in=service_in)
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture("service created")
+    return service
 
 
 @router.get("/{service_id}", response_model=ServiceRead)
@@ -115,6 +124,7 @@ def transition_service(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Service not found"
         )
+    from_status = db_service.status
     try:
         updated_service, stock_warnings = crud.transition_service_status(
             session=session,
@@ -129,6 +139,19 @@ def transition_service(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
     service_read = ServiceRead.model_validate(updated_service)
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "service status transitioned",
+                properties={
+                    "from_status": from_status,
+                    "to_status": transition_in.to_status,
+                    "had_reason": bool(transition_in.reason),
+                    "had_stock_warnings": bool(stock_warnings),
+                },
+            )
     return ServiceTransitionResponse(
         service=service_read, stock_warnings=stock_warnings
     )
@@ -164,15 +187,25 @@ def baixar_estoque(
     *,
     session: SessionDep,
     service_id: uuid.UUID,
+    current_user: CurrentUser,
     _: None = AdminDep,
 ) -> BaixarEstoqueResponse:
     """Utilize all reserved stock items for a service in 'executing' status."""
     try:
-        return crud.baixar_estoque_for_service(session=session, service_id=service_id)
+        result = crud.baixar_estoque_for_service(session=session, service_id=service_id)
     except ValueError as exc:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "stock deducted",
+                properties={"items_deducted": result.items_updated},
+            )
+    return result
 
 
 @router.delete("/{service_id}", status_code=204)

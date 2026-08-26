@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from slowapi import _rate_limit_exceeded_handler
@@ -14,10 +17,24 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
+    if settings.POSTHOG_PROJECT_TOKEN:
+        from app.core.posthog import setup_posthog
+
+        setup_posthog(settings.POSTHOG_PROJECT_TOKEN, settings.POSTHOG_HOST)
+    yield
+    if settings.POSTHOG_PROJECT_TOKEN:
+        from app.core.posthog import shutdown_posthog
+
+        shutdown_posthog()
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter

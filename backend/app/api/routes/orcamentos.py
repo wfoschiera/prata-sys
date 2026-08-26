@@ -3,9 +3,11 @@ from datetime import date
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
+from posthog import identify_context, new_context
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, require_permission
+from app.core.posthog import get_posthog
 from app.models import (
     Client,
     Orcamento,
@@ -70,13 +72,19 @@ def create_orcamento(
             status_code=HTTPStatus.NOT_FOUND, detail="Cliente não encontrado"
         )
     try:
-        return crud.create_orcamento(
+        orcamento = crud.create_orcamento(
             session=session, orcamento_in=body, created_by_id=current_user.id
         )
     except ValueError as exc:  # pragma: no cover
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture("quote created")
+    return orcamento
 
 
 @router.get("/{orcamento_id}", response_model=OrcamentoRead)
@@ -154,6 +162,7 @@ def transition_orcamento(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Orçamento não encontrado"
         )
+    from_status = db_orc.status
     try:
         updated = crud.transition_orcamento_status(
             session=session,
@@ -166,6 +175,18 @@ def transition_orcamento(
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "quote status transitioned",
+                properties={
+                    "from_status": from_status,
+                    "to_status": body.to_status,
+                    "had_reason": bool(body.reason),
+                },
+            )
     return OrcamentoTransitionResponse(orcamento=updated)
 
 
@@ -186,13 +207,22 @@ def convert_to_service(
             status_code=HTTPStatus.NOT_FOUND, detail="Orçamento não encontrado"
         )
     try:
-        return crud.convert_orcamento_to_service(
+        service = crud.convert_orcamento_to_service(
             session=session, orcamento=db_orc, created_by_id=current_user.id
         )
     except ValueError as exc:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc)
         )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "quote converted to service",
+                properties={"item_count": len(db_orc.items) if db_orc.items else 0},
+            )
+    return service
 
 
 # ── Duplicate ──────────────────────────────────────────────────────────────────
@@ -215,9 +245,15 @@ def duplicate_orcamento(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Orçamento não encontrado"
         )
-    return crud.duplicate_orcamento(
+    duplicated = crud.duplicate_orcamento(
         session=session, orcamento=db_orc, created_by_id=current_user.id
     )
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture("quote duplicated")
+    return duplicated
 
 
 # ── Orçamento Items ────────────────────────────────────────────────────────────

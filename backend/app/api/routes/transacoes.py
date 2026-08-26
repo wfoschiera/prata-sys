@@ -2,9 +2,11 @@ import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from posthog import identify_context, new_context
 
 from app import crud
-from app.api.deps import SessionDep, require_permission
+from app.api.deps import CurrentUser, SessionDep, require_permission
+from app.core.posthog import get_posthog
 from app.models import (
     CategoriaTransacao,
     ResumoMensal,
@@ -63,13 +65,27 @@ def read_transacoes(
 def create_transacao(
     session: SessionDep,
     transacao_in: TransacaoCreate,
+    current_user: CurrentUser,
     _: None = ManageGuard,
 ) -> TransacaoPublic:
     """Create a new transaction."""
     try:
-        return crud.create_transacao(session=session, transacao_in=transacao_in)
+        transacao = crud.create_transacao(session=session, transacao_in=transacao_in)
     except ValueError as exc:  # pragma: no cover
         raise HTTPException(status_code=404, detail=str(exc))
+    ph = get_posthog()
+    if ph:
+        with new_context():
+            identify_context(str(current_user.id))
+            ph.capture(
+                "transaction created",
+                properties={
+                    "tipo": transacao_in.tipo,
+                    "categoria": transacao_in.categoria,
+                    "has_service": transacao_in.service_id is not None,
+                },
+            )
+    return transacao
 
 
 @router.get("/{transacao_id}", response_model=TransacaoPublic)
