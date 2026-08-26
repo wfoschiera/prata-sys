@@ -33,6 +33,7 @@ from app.models import (
     FornecedorContatoUpdate,
     FornecedorCreate,
     FornecedorUpdate,
+    ImportacaoItemMatchStatus,
     InventoryStockWarning,
     ItemType,
     Orcamento,
@@ -2111,3 +2112,84 @@ def delete_custo_ajuste(
         entrada.updated_at = get_datetime_utc()
         session.add(entrada)
     session.commit()
+
+
+# ── Importação de NF-e (XML) ──────────────────────────────────────────────────
+
+
+def _normalize_product_name(name: str) -> str:
+    return " ".join(name.casefold().split())
+
+
+def find_fornecedor_by_cnpj(
+    *, session: Session, cnpj_digits: str
+) -> Fornecedor | None:
+    return session.exec(
+        select(Fornecedor).where(Fornecedor.cnpj == cnpj_digits)
+    ).first()
+
+
+def find_entrada_by_numero_documento(
+    *, session: Session, numero_documento: str
+) -> EntradaEstoque | None:
+    """Duplicate guard for chave-sized document numbers (see phase-12 design)."""
+    return session.exec(
+        select(EntradaEstoque).where(
+            EntradaEstoque.numero_documento == numero_documento,
+            func.char_length(EntradaEstoque.numero_documento) == 44,  # type: ignore[arg-type]
+        )
+    ).first()
+
+
+def suggest_products_for_lines(
+    *,
+    session: Session,
+    fornecedor_id: uuid.UUID | None,
+    descriptions: list[str],
+) -> list[tuple[ImportacaoItemMatchStatus, Product | None]]:
+    """Suggest a catalog product per XML line by normalized-name equality.
+
+    Supplier-scoped names win over global ones. Two queries max regardless of
+    line count — never one query per line (N+1 rule).
+    """
+    wanted = {_normalize_product_name(d): d for d in descriptions}
+
+    by_name: dict[str, Product] = {}
+    ambiguous: set[str] = set()
+
+    def _absorb(products: list[Product]) -> None:
+        for product in products:
+            key = _normalize_product_name(product.name)
+            if key not in wanted:
+                continue
+            if key in by_name or key in ambiguous:
+                ambiguous.add(key)
+                by_name.pop(key, None)
+            else:
+                by_name[key] = product
+
+    if fornecedor_id is not None:
+        _absorb(
+            list(
+                session.exec(
+                    select(Product).where(Product.fornecedor_id == fornecedor_id)
+                ).all()
+            )
+        )
+    missing = set(wanted) - set(by_name) - ambiguous
+    if missing:
+        stmt = select(Product)
+        if fornecedor_id is not None:
+            stmt = stmt.where(Product.fornecedor_id != fornecedor_id)
+        _absorb(list(session.exec(stmt).all()))
+
+    results: list[tuple[ImportacaoItemMatchStatus, Product | None]] = []
+    for description in descriptions:
+        key = _normalize_product_name(description)
+        if key in by_name and key not in ambiguous:
+            results.append((ImportacaoItemMatchStatus.sugerido, by_name[key]))
+        elif key in ambiguous:
+            results.append((ImportacaoItemMatchStatus.ambiguo, None))
+        else:
+            results.append((ImportacaoItemMatchStatus.sem_match, None))
+    return results

@@ -1,0 +1,30 @@
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <infNFe Id="NFe{{CHAVE}}" versao="4.00">
+    <ide>
+      <cUF>43</cUF>
+      <mod>55</mod>
+      <nNF>{{NNF}}</nNF>
+      <dEmi>2026-07-15</dEmi>
+    </ide>
+    <emit>
+      <CNPJ>{{CNPJ}}</CNPJ>
+    </emit>
+    <det nItem="1">
+      <prod>
+        <xProd>Tubo PVC 100mm 6m</xProd>
+        <qCom>3.0000</qCom>
+        <vUnCom>90.0000</vUnCom>
+        <uCom>UN</uCom>
+        <CFOP>5102</CFOP>
+        <vProd>270.00</vProd>
+      </prod>
+    </det>
+    <total>
+      <ICMSTot>
+        <vProd>270.00</vProd>
+        <vFrete>0.00</vFrete>
+        <vNF>270.00</vNF>
+      </ICMSTot>
+    </total>
+  </infNFe>
+</NFe>

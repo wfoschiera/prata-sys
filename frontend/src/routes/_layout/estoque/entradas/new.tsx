@@ -1,5 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
+import { useState } from "react"
 import { EntradaForm } from "@/components/estoque/EntradaForm"
+import {
+  ImportarNfeXml,
+  type ImportPrefill,
+} from "@/components/estoque/ImportarNfeXml"
 import { pageTitle } from "@/config/brand"
 
 export const Route = createFileRoute("/_layout/estoque/entradas/new")({
@@ -17,6 +22,8 @@ export const Route = createFileRoute("/_layout/estoque/entradas/new")({
 })
 
 function NovaEntrada() {
+  const [prefill, setPrefill] = useState<ImportPrefill | null>(null)
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
       <div>
@@ -28,7 +35,12 @@ function NovaEntrada() {
           aquisição
         </p>
       </div>
-      <EntradaForm />
+      {!prefill && <ImportarNfeXml onApply={setPrefill} />}
+      {prefill ? (
+        <EntradaForm key={JSON.stringify(prefill)} initialValues={prefill} />
+      ) : (
+        <EntradaForm />
+      )}
     </div>
   )
 }

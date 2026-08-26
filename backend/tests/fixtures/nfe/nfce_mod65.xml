@@ -1,0 +1,13 @@
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe{{CHAVE}}" versao="4.00">
+      <ide>
+        <cUF>43</cUF>
+        <mod>65</mod>
+        <nNF>{{NNF}}</nNF>
+        <dhEmi>2026-08-20T10:00:00-03:00</dhEmi>
+      </ide>
+      <emit><CNPJ>{{CNPJ}}</CNPJ></emit>
+    </infNFe>
+  </NFe>
+</nfeProc>

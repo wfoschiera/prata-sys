@@ -102,10 +102,31 @@ const entradaSchema = z.object({
 
 type EntradaFormData = z.infer<typeof entradaSchema>
 
+export type EntradaFormInitialValues = {
+  data_entrada?: string
+  fornecedor_id?: string
+  numero_documento?: string
+  itens?: Array<{
+    product_id: string
+    quantity: number
+    custo_unitario_nf: number
+  }>
+  ajustes?: Array<{
+    tipo: string
+    valor: number
+    documento_referencia?: string
+    observacao?: string
+  }>
+}
+
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
-export function EntradaForm() {
+export function EntradaForm({
+  initialValues,
+}: {
+  initialValues?: EntradaFormInitialValues
+} = {}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -113,13 +134,17 @@ export function EntradaForm() {
   const form = useForm<EntradaFormData>({
     resolver: zodResolver(entradaSchema),
     defaultValues: {
-      data_entrada: new Date().toISOString().slice(0, 10),
-      fornecedor_id: undefined,
-      numero_documento: "",
+      data_entrada:
+        initialValues?.data_entrada ?? new Date().toISOString().slice(0, 10),
+      fornecedor_id: initialValues?.fornecedor_id,
+      numero_documento: initialValues?.numero_documento ?? "",
       observacao: "",
       criar_transacao: false,
-      itens: [{ product_id: "", quantity: 0, custo_unitario_nf: 0 }],
-      ajustes: [],
+      itens:
+        initialValues?.itens && initialValues.itens.length > 0
+          ? initialValues.itens
+          : [{ product_id: "", quantity: 0, custo_unitario_nf: 0 }],
+      ajustes: initialValues?.ajustes ?? [],
     },
   })
 
