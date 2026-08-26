@@ -58,11 +58,18 @@ daily workflow, database admin, client regeneration, tests — are in
 | [`ONBOARDING.md`](ONBOARDING.md) | New-developer walkthrough: architecture, repo map, data model, subsystems |
 | [`development.md`](development.md) | Local development setup and daily workflow |
 | [`docs/domain-model.md`](docs/domain-model.md) | Domain glossary, feature inventory, roadmap |
+| [`graphify-out/wiki/index.md`](graphify-out/wiki/index.md) | Auto-generated knowledge-graph wiki (one article per code community) |
+| [`graphify-out/GRAPH_REPORT.md`](graphify-out/GRAPH_REPORT.md) | Knowledge-graph audit report: god nodes, communities, suggested questions |
+| [`graphify-out/graph.html`](graphify-out/graph.html) | Interactive dependency graph — open in a browser |
 | [`docs/pitfalls.md`](docs/pitfalls.md) | Stack-specific gotchas (Zod v4, RHF, SQLModel, Python 3.14) |
 | [`docs/git-worktrees.md`](docs/git-worktrees.md) | Working with git worktrees (`wt`) |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records |
 | [`backend/README.md`](backend/README.md) · [`frontend/README.md`](frontend/README.md) | Per-package setup |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution guidelines |
+
+The knowledge graph under `graphify-out/` is generated with
+[graphify](https://github.com/safishamsi/graphifyy). Rebuild it after big refactors with
+`/graphify . --wiki --update`, or query it directly: `/graphify query "how does stock reservation work?"`.
 
 ## Deployment
 
