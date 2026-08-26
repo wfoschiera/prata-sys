@@ -49,7 +49,7 @@ flowchart LR
 
 - **Reverse proxy:** Caddy listens on `:80` inside its container; `@backend path /api/* /docs /redoc`
   → `backend:8000`, everything else → `frontend:80` (`Caddyfile:9-20`). Only Caddy publishes a host
-  port in prod (`compose.prod.yml:69-70`). No TLS is configured in the Caddyfile today — it serves
+  port in prod (`compose.prod.yml:71-72`). No TLS is configured in the Caddyfile today — it serves
   plain `:80` (TLS is noted as future work in `deploy/README.md`).
 - **Frontend** is a static SPA built by Vite and served by nginx, with `try_files $uri /index.html`
   fallback (`frontend/nginx.conf:4-8`) and a guard returning 404 for `/api`, `/docs`, `/redoc` so
