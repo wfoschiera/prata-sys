@@ -1,8 +1,9 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 
 import app.crud as crud
 from app.api.deps import SessionDep, require_permission
@@ -16,16 +17,134 @@ from app.models import (
     EntradaEstoqueRead,
     EntradaItemRead,
     FornecedorRef,
+    ImportacaoAjusteSugerido,
+    ImportacaoItemPreview,
+    ImportacaoNfePreview,
     ProductRef,
+    TipoCustoAjuste,
     User,
 )
+from app.nfe import NfeParseError, parse_nfe_xml
 
 router = APIRouter(prefix="/entradas-estoque", tags=["entradas-estoque"])
+
+# NF-e files are tens of KB at most; anything larger is not an invoice.
+MAX_XML_BYTES = 512 * 1024
 
 ViewGuard = Depends(require_permission("view_estoque"))
 ManageGuard = Depends(require_permission("manage_estoque"))
 
 _PERMISSIONS_CACHE_KEY = "_cached_permissions"
+
+
+@router.post(
+    "/importar-xml",
+    response_model=ImportacaoNfePreview,
+    responses={409: {"description": "Chave de acesso já importada"}},
+)
+def importar_nfe_xml(
+    session: SessionDep,
+    file: UploadFile = File(...),  # noqa: B008
+    _: None = ManageGuard,
+) -> ImportacaoNfePreview:
+    """Parse an NF-e XML into a preview. Persists nothing.
+
+    Submission happens through the regular create endpoint after the user
+    resolves product matches in the UI (parse-preview-submit, phase-12).
+    """
+    data = file.file.read()
+    if len(data) > MAX_XML_BYTES:
+        raise HTTPException(
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            detail="Arquivo muito grande. O XML de uma NF-e tem poucas dezenas de KB.",
+        )
+    try:
+        parsed = parse_nfe_xml(data)
+    except NfeParseError as exc:
+        raise HTTPException(status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    existing = crud.find_entrada_by_numero_documento(
+        session=session, numero_documento=parsed.chave
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail={
+                "message": "Esta nota já foi importada.",
+                "existing_entrada_id": str(existing.id),
+            },
+        )
+
+    fornecedor = (
+        crud.find_fornecedor_by_cnpj(
+            session=session, cnpj_digits=parsed.emitter_cnpj_digits
+        )
+        if parsed.emitter_cnpj_digits
+        else None
+    )
+
+    suggestions = crud.suggest_products_for_lines(
+        session=session,
+        fornecedor_id=fornecedor.id if fornecedor else None,
+        descriptions=[item.description for item in parsed.items],
+    )
+    itens = [
+        ImportacaoItemPreview(
+            description=item.description,
+            product_code=item.product_code,
+            quantity=item.quantity,
+            custo_unitario_nf=item.unit_price,
+            unit=item.unit,
+            cfop=item.cfop,
+            product_sugerido_id=product.id if product else None,
+            product_sugerido_name=product.name if product else None,
+            match_status=status,
+        )
+        for item, (status, product) in zip(parsed.items, suggestions, strict=True)
+    ]
+
+    chave = parsed.chave
+    totals = parsed.totals
+
+    def _sugerido(tipo: TipoCustoAjuste, valor: Decimal | None) -> ImportacaoAjusteSugerido | None:
+        if valor is None or valor <= 0:
+            return None
+        return ImportacaoAjusteSugerido(
+            tipo=tipo, valor=valor, documento_referencia=chave
+        )
+
+    ajustes_sugeridos_raw = [
+        _sugerido(TipoCustoAjuste.frete, totals.freight),
+        _sugerido(TipoCustoAjuste.seguro, totals.insurance),
+        _sugerido(TipoCustoAjuste.icms_st, totals.icms_st),
+        _sugerido(TipoCustoAjuste.ipi, totals.ipi),
+        (
+            ImportacaoAjusteSugerido(
+                tipo=TipoCustoAjuste.desconto_comercial,
+                valor=-totals.discount,
+                documento_referencia=chave,
+            )
+            if totals.discount is not None and totals.discount > 0
+            else None
+        ),
+    ]
+    ajustes_sugeridos = [a for a in ajustes_sugeridos_raw if a is not None]
+
+    return ImportacaoNfePreview(
+        chave=chave,
+        numero_nota=parsed.numero,
+        data_entrada=parsed.emission_date,
+        emitter_cnpj_digits=parsed.emitter_cnpj_digits,
+        fornecedor_sugerido=(
+            FornecedorRef(id=fornecedor.id, company_name=fornecedor.company_name)
+            if fornecedor
+            else None
+        ),
+        itens=itens,
+        ajustes_sugeridos=ajustes_sugeridos,
+        totals_produtos=totals.products,
+        totals_nota=totals.invoice_total,
+    )
 
 
 def _has_permission(

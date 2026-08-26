@@ -17,6 +17,19 @@ export const BaixarEstoqueResponseSchema = {
     title: 'BaixarEstoqueResponse'
 } as const;
 
+export const Body_entradas_estoque_importar_nfe_xmlSchema = {
+    properties: {
+        file: {
+            type: 'string',
+            format: 'binary',
+            title: 'File'
+        }
+    },
+    type: 'object',
+    required: ['file'],
+    title: 'Body_entradas-estoque-importar_nfe_xml'
+} as const;
+
 export const Body_login_login_access_tokenSchema = {
     properties: {
         grant_type: {
@@ -1582,6 +1595,218 @@ export const HTTPValidationErrorSchema = {
     },
     type: 'object',
     title: 'HTTPValidationError'
+} as const;
+
+export const ImportacaoAjusteSugeridoSchema = {
+    properties: {
+        tipo: {
+            '$ref': '#/components/schemas/TipoCustoAjuste'
+        },
+        valor: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Valor'
+        },
+        documento_referencia: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Documento Referencia'
+        }
+    },
+    type: 'object',
+    required: ['tipo', 'valor'],
+    title: 'ImportacaoAjusteSugerido'
+} as const;
+
+export const ImportacaoItemMatchStatusSchema = {
+    type: 'string',
+    enum: ['sugerido', 'sem_match', 'ambiguo'],
+    title: 'ImportacaoItemMatchStatus',
+    description: `Result of suggesting a catalog product for an XML line.
+
+Suggestions are equality-based and never binding — see the phase-12
+design doc. \`ambiguo\` and \`sem_match\` lines must be resolved by hand.`
+} as const;
+
+export const ImportacaoItemPreviewSchema = {
+    properties: {
+        description: {
+            type: 'string',
+            title: 'Description'
+        },
+        product_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Product Code'
+        },
+        quantity: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Quantity'
+        },
+        custo_unitario_nf: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Custo Unitario Nf'
+        },
+        unit: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit'
+        },
+        cfop: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cfop'
+        },
+        product_sugerido_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Product Sugerido Id'
+        },
+        product_sugerido_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Product Sugerido Name'
+        },
+        match_status: {
+            '$ref': '#/components/schemas/ImportacaoItemMatchStatus'
+        }
+    },
+    type: 'object',
+    required: ['description', 'quantity', 'custo_unitario_nf', 'match_status'],
+    title: 'ImportacaoItemPreview'
+} as const;
+
+export const ImportacaoNfePreviewSchema = {
+    properties: {
+        chave: {
+            type: 'string',
+            title: 'Chave'
+        },
+        numero_nota: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Numero Nota'
+        },
+        data_entrada: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data Entrada'
+        },
+        emitter_cnpj_digits: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Emitter Cnpj Digits'
+        },
+        fornecedor_sugerido: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/FornecedorRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        itens: {
+            items: {
+                '$ref': '#/components/schemas/ImportacaoItemPreview'
+            },
+            type: 'array',
+            title: 'Itens'
+        },
+        ajustes_sugeridos: {
+            items: {
+                '$ref': '#/components/schemas/ImportacaoAjusteSugerido'
+            },
+            type: 'array',
+            title: 'Ajustes Sugeridos'
+        },
+        totals_produtos: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Totals Produtos'
+        },
+        totals_nota: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Totals Nota'
+        }
+    },
+    type: 'object',
+    required: ['chave'],
+    title: 'ImportacaoNfePreview'
 } as const;
 
 export const ItemTypeSchema = {

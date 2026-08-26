@@ -5,6 +5,10 @@ export type BaixarEstoqueResponse = {
     items_updated: number;
 };
 
+export type Body_entradas_estoque_importar_nfe_xml = {
+    file: (Blob | File);
+};
+
 export type Body_login_login_access_token = {
     grant_type?: (string | null);
     username: string;
@@ -238,6 +242,44 @@ export type FornecedorUpdate = {
 
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
+};
+
+export type ImportacaoAjusteSugerido = {
+    tipo: TipoCustoAjuste;
+    valor: string;
+    documento_referencia?: (string | null);
+};
+
+/**
+ * Result of suggesting a catalog product for an XML line.
+ *
+ * Suggestions are equality-based and never binding — see the phase-12
+ * design doc. `ambiguo` and `sem_match` lines must be resolved by hand.
+ */
+export type ImportacaoItemMatchStatus = 'sugerido' | 'sem_match' | 'ambiguo';
+
+export type ImportacaoItemPreview = {
+    description: string;
+    product_code?: (string | null);
+    quantity: string;
+    custo_unitario_nf: string;
+    unit?: (string | null);
+    cfop?: (string | null);
+    product_sugerido_id?: (string | null);
+    product_sugerido_name?: (string | null);
+    match_status: ImportacaoItemMatchStatus;
+};
+
+export type ImportacaoNfePreview = {
+    chave: string;
+    numero_nota?: (string | null);
+    data_entrada?: (string | null);
+    emitter_cnpj_digits?: (string | null);
+    fornecedor_sugerido?: (FornecedorRef | null);
+    itens?: Array<ImportacaoItemPreview>;
+    ajustes_sugeridos?: Array<ImportacaoAjusteSugerido>;
+    totals_produtos?: (string | null);
+    totals_nota?: (string | null);
 };
 
 export type ItemType = 'material' | 'serviço' | 'perfuração';
@@ -766,6 +808,12 @@ export type DashboardGetOperationalDashboardData = {
 };
 
 export type DashboardGetOperationalDashboardResponse = (YearlyOperationalDashboard);
+
+export type EntradasEstoqueImportarNfeXmlData = {
+    formData: Body_entradas_estoque_importar_nfe_xml;
+};
+
+export type EntradasEstoqueImportarNfeXmlResponse = (ImportacaoNfePreview);
 
 export type EntradasEstoqueCreateEntradaEstoqueData = {
     requestBody: EntradaEstoqueCreate;

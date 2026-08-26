@@ -1,0 +1,54 @@
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe{{CHAVE}}" versao="4.00">
+      <ide>
+        <cUF>43</cUF>
+        <mod>55</mod>
+        <nNF>{{NNF}}</nNF>
+        <dhEmi>2026-08-20T10:00:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>{{CNPJ}}</CNPJ>
+        <xNome>Fornecedor Teste Ltda</xNome>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>TUB100</cProd>
+          <xProd>Tubo PVC 100mm 6m</xProd>
+          <qCom>10.0000</qCom>
+          <vUnCom>100.0000</vUnCom>
+          <uCom>UN</uCom>
+          <CFOP>5102</CFOP>
+          <vProd>1000.00</vProd>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>BMB01</cProd>
+          <xProd>Bomba Submersa 1CV</xProd>
+          <qCom>5.0000</qCom>
+          <vUnCom>200.0000</vUnCom>
+          <uCom>UN</uCom>
+          <CFOP>5102</CFOP>
+          <vProd>1000.00</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vProd>2000.00</vProd>
+          <vFrete>200.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vICMSST>50.00</vICMSST>
+          <vIPI>0.00</vIPI>
+          <vDesc>100.00</vDesc>
+          <vNF>2150.00</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <chNFe>{{CHAVE}}</chNFe>
+    </infProt>
+  </protNFe>
+</nfeProc>

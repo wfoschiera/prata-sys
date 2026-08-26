@@ -6,7 +6,8 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from pydantic import EmailStr, field_validator, model_validator
-from sqlalchemy import DateTime, Numeric, Text, UniqueConstraint
+from sqlalchemy import DateTime, Index, Numeric, Text, UniqueConstraint
+from sqlalchemy import text as sa_text
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -1145,6 +1146,18 @@ class EntradaEstoque(SQLModel, table=True):
     across its lots by value share.
     """
 
+    __table_args__ = (
+        # One entrada per chave de acesso. Scoped to 44-char documents so
+        # hand-typed short numbers ("NF 123") from different suppliers remain
+        # allowed. Mirrors ix_entradaestoque_chave_unique in the migration.
+        Index(
+            "ix_entradaestoque_chave_unique",
+            "numero_documento",
+            unique=True,
+            postgresql_where=sa_text("char_length(numero_documento) = 44"),
+        ),
+    )
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     fornecedor_id: uuid.UUID | None = Field(
         default=None,
@@ -1302,6 +1315,51 @@ class EntradaEstoqueListRead(SQLModel):
     total_ajustes: Decimal
     total_real: Decimal
     created_at: datetime | None = None
+
+
+# ── Importação de NF-e (XML) ──────────────────────────────────────────────────
+
+
+class ImportacaoItemMatchStatus(str, enum.Enum):
+    """Result of suggesting a catalog product for an XML line.
+
+    Suggestions are equality-based and never binding — see the phase-12
+    design doc. `ambiguo` and `sem_match` lines must be resolved by hand.
+    """
+
+    sugerido = "sugerido"
+    sem_match = "sem_match"
+    ambiguo = "ambiguo"
+
+
+class ImportacaoAjusteSugerido(SQLModel):
+    tipo: TipoCustoAjuste
+    valor: Decimal
+    documento_referencia: str | None = None
+
+
+class ImportacaoItemPreview(SQLModel):
+    description: str
+    product_code: str | None = None
+    quantity: Decimal
+    custo_unitario_nf: Decimal
+    unit: str | None = None
+    cfop: str | None = None
+    product_sugerido_id: uuid.UUID | None = None
+    product_sugerido_name: str | None = None
+    match_status: ImportacaoItemMatchStatus
+
+
+class ImportacaoNfePreview(SQLModel):
+    chave: str
+    numero_nota: str | None = None
+    data_entrada: date | None = None
+    emitter_cnpj_digits: str | None = None
+    fornecedor_sugerido: FornecedorRef | None = None
+    itens: list[ImportacaoItemPreview] = Field(default_factory=list)
+    ajustes_sugeridos: list[ImportacaoAjusteSugerido] = Field(default_factory=list)
+    totals_produtos: Decimal | None = None
+    totals_nota: Decimal | None = None
 
 
 # ── Orçamento ──────────────────────────────────────────────────────────────────
