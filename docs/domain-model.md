@@ -29,6 +29,17 @@ finances.
 - **Estoque**: Product types → Products → ProductItems (physical stock units).
   Status: `em_estoque` → `reservado` → `utilizado`. Stock prediction with a 90-day
   consumption window.
+- **Entrada de estoque**: One physical delivery from one supplier on one date.
+  Groups the ProductItem lots received and owns the cost adjustments applying to the
+  delivery as a whole.
+- **Custo de aquisição**: `Product.unit_price` is a *sale* price. Real acquisition
+  cost is tracked separately: `ProductItem.custo_unitario_nf` (the invoice unit price,
+  write-once) plus typed `CustoAjuste` rows (frete, seguro, ICMS-ST, IPI, desconto
+  comercial, devolução, correção de documento, …), each carrying a reference to its
+  supporting document. Adjustments are apportioned across a delivery's lots by value
+  share to derive `custo_unitario_real`, and averaged per product into
+  `custo_medio_ponderado`. Lots predating the feature have no cost and are reported
+  via `lotes_sem_custo` rather than silently averaged.
 - **CompanySettings**: Singleton table for company letterhead (name, CNPJ, address,
   phone, email, logo) used in orçamento documents.
 - **Roles**: `admin`, `finance`, `client` (implemented); `technician`, `geologist`,

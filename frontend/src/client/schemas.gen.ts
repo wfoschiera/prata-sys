@@ -678,6 +678,112 @@ export const CompanySettingsUpdateSchema = {
     title: 'CompanySettingsUpdate'
 } as const;
 
+export const CustoAjusteCreateSchema = {
+    properties: {
+        tipo: {
+            '$ref': '#/components/schemas/TipoCustoAjuste'
+        },
+        valor: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Valor'
+        },
+        documento_referencia: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Documento Referencia'
+        },
+        observacao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Observacao'
+        }
+    },
+    type: 'object',
+    required: ['tipo', 'valor'],
+    title: 'CustoAjusteCreate'
+} as const;
+
+export const CustoAjusteReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        entrada_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Entrada Id'
+        },
+        tipo: {
+            '$ref': '#/components/schemas/TipoCustoAjuste'
+        },
+        valor: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Valor'
+        },
+        documento_referencia: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Documento Referencia'
+        },
+        observacao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Observacao'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'entrada_id', 'tipo', 'valor'],
+    title: 'CustoAjusteRead'
+} as const;
+
 export const DeductionItemSchema = {
     properties: {
         service_item_id: {
@@ -717,6 +823,390 @@ export const DocumentTypeSchema = {
     type: 'string',
     enum: ['cpf', 'cnpj'],
     title: 'DocumentType'
+} as const;
+
+export const EntradaEstoqueCreateSchema = {
+    properties: {
+        data_entrada: {
+            type: 'string',
+            format: 'date',
+            title: 'Data Entrada'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        },
+        numero_documento: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 44
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Numero Documento'
+        },
+        observacao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Observacao'
+        },
+        criar_transacao: {
+            type: 'boolean',
+            title: 'Criar Transacao',
+            default: false
+        },
+        itens: {
+            items: {
+                '$ref': '#/components/schemas/EntradaItemCreate'
+            },
+            type: 'array',
+            minItems: 1,
+            title: 'Itens'
+        },
+        ajustes: {
+            items: {
+                '$ref': '#/components/schemas/CustoAjusteCreate'
+            },
+            type: 'array',
+            title: 'Ajustes'
+        }
+    },
+    type: 'object',
+    required: ['data_entrada', 'itens'],
+    title: 'EntradaEstoqueCreate'
+} as const;
+
+export const EntradaEstoqueListReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        },
+        fornecedor: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/FornecedorRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        data_entrada: {
+            type: 'string',
+            format: 'date',
+            title: 'Data Entrada'
+        },
+        numero_documento: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Numero Documento'
+        },
+        transacao_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Transacao Id'
+        },
+        total_produtos: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Produtos'
+        },
+        total_ajustes: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Ajustes'
+        },
+        total_real: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Real'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'data_entrada', 'total_produtos', 'total_ajustes', 'total_real'],
+    title: 'EntradaEstoqueListRead'
+} as const;
+
+export const EntradaEstoqueReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        fornecedor_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fornecedor Id'
+        },
+        fornecedor: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/FornecedorRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        data_entrada: {
+            type: 'string',
+            format: 'date',
+            title: 'Data Entrada'
+        },
+        numero_documento: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Numero Documento'
+        },
+        observacao: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Observacao'
+        },
+        transacao_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Transacao Id'
+        },
+        total_produtos: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Produtos'
+        },
+        total_ajustes: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Ajustes'
+        },
+        total_real: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Total Real'
+        },
+        itens: {
+            items: {
+                '$ref': '#/components/schemas/EntradaItemRead'
+            },
+            type: 'array',
+            title: 'Itens'
+        },
+        ajustes: {
+            items: {
+                '$ref': '#/components/schemas/CustoAjusteRead'
+            },
+            type: 'array',
+            title: 'Ajustes'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'data_entrada', 'total_produtos', 'total_ajustes', 'total_real'],
+    title: 'EntradaEstoqueRead'
+} as const;
+
+export const EntradaItemCreateSchema = {
+    properties: {
+        product_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Product Id'
+        },
+        quantity: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Quantity'
+        },
+        custo_unitario_nf: {
+            anyOf: [
+                {
+                    type: 'number',
+                    minimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                }
+            ],
+            title: 'Custo Unitario Nf'
+        }
+    },
+    type: 'object',
+    required: ['product_id', 'quantity', 'custo_unitario_nf'],
+    title: 'EntradaItemCreate'
+} as const;
+
+export const EntradaItemReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        product_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Product Id'
+        },
+        product: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ProductRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        quantity: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Quantity'
+        },
+        status: {
+            '$ref': '#/components/schemas/ProductItemStatus'
+        },
+        custo_unitario_nf: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Custo Unitario Nf'
+        },
+        custo_unitario_real: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Custo Unitario Real'
+        }
+    },
+    type: 'object',
+    required: ['id', 'product_id', 'quantity', 'status'],
+    title: 'EntradaItemRead'
 } as const;
 
 export const FornecedorCategoryEnumSchema = {
@@ -2207,11 +2697,45 @@ export const ProductReadSchema = {
                 }
             ],
             title: 'Created At'
+        },
+        custo_medio_ponderado: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Custo Medio Ponderado'
+        },
+        lotes_sem_custo: {
+            type: 'integer',
+            title: 'Lotes Sem Custo',
+            default: 0
         }
     },
     type: 'object',
     required: ['id', 'product_type_id', 'product_type', 'name', 'unit_price'],
     title: 'ProductRead'
+} as const;
+
+export const ProductRefSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name'],
+    title: 'ProductRef'
 } as const;
 
 export const ProductTypeCreateSchema = {
@@ -3083,6 +3607,16 @@ export const StockWarningSchema = {
     type: 'object',
     required: ['service_item_id', 'description', 'required_quantity', 'available_quantity', 'shortfall'],
     title: 'StockWarning'
+} as const;
+
+export const TipoCustoAjusteSchema = {
+    type: 'string',
+    enum: ['frete', 'seguro', 'icms_st', 'ipi', 'despesa_acessoria', 'desconto_comercial', 'devolucao', 'correcao_documento', 'outros'],
+    title: 'TipoCustoAjuste',
+    description: `Closed set of reasons why real acquisition cost diverges from invoice price.
+
+Every divergence must be classified. There is deliberately no untyped
+"amount paid" member — see the change design doc for phase-11-custo-aquisicao.`
 } as const;
 
 export const TipoTransacaoSchema = {

@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,19 +18,24 @@ from app.models import (
     StockPredictionRead,
 )
 
+_NO_COST: tuple[Decimal | None, int] = (None, 0)
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 ViewGuard = Depends(require_permission("view_estoque"))
 ManageGuard = Depends(require_permission("manage_estoque"))
 
 
-def _to_product_read(p: Product) -> ProductRead:
+def _to_product_read(
+    p: Product, costs: tuple[Decimal | None, int] = _NO_COST
+) -> ProductRead:
 
     fornecedor_ref = None
     if p.fornecedor is not None:
         fornecedor_ref = FornecedorRef(
             id=p.fornecedor.id, company_name=p.fornecedor.company_name
         )
+    custo_medio, lotes_sem_custo = costs
     return ProductRead(
         id=p.id,
         product_type_id=p.product_type_id,
@@ -40,6 +46,8 @@ def _to_product_read(p: Product) -> ProductRead:
         unit_price=p.unit_price,
         description=p.description,
         created_at=p.created_at,
+        custo_medio_ponderado=custo_medio,
+        lotes_sem_custo=lotes_sem_custo,
     )
 
 
@@ -66,7 +74,11 @@ def list_products(
     products = crud.get_products(
         session=session, category=category, fornecedor_id=fornecedor_id
     )
-    return [_to_product_read(p) for p in products]
+    # One aggregate for the whole page, not one per product.
+    costs = crud.get_custo_medio_ponderado(
+        session=session, product_ids=[p.id for p in products]
+    )
+    return [_to_product_read(p, costs.get(p.id, _NO_COST)) for p in products]
 
 
 @router.get("/{product_id}", response_model=ProductRead)
@@ -80,7 +92,8 @@ def get_product(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Product not found"
         )
-    return _to_product_read(product)
+    costs = crud.get_custo_medio_ponderado(session=session, product_ids=[product.id])
+    return _to_product_read(product, costs.get(product.id, _NO_COST))
 
 
 @router.patch("/{product_id}", response_model=ProductRead)
@@ -99,7 +112,8 @@ def update_product(
         updated = crud.update_product(session=session, product=product, product_in=body)
     except ValueError as exc:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
-    return _to_product_read(updated)
+    costs = crud.get_custo_medio_ponderado(session=session, product_ids=[updated.id])
+    return _to_product_read(updated, costs.get(updated.id, _NO_COST))
 
 
 @router.delete("/{product_id}", status_code=HTTPStatus.NO_CONTENT)
