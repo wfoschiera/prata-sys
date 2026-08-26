@@ -934,6 +934,20 @@ class ProductItem(SQLModel, table=True):
         nullable=True,
         ondelete="SET NULL",
     )
+    entrada_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="entradaestoque.id",
+        nullable=True,
+        ondelete="SET NULL",
+        index=True,
+    )
+    # Invoice unit cost for this lot. Write-once: set at creation, never updated.
+    # Corrections are recorded as a CustoAjuste of type correcao_documento.
+    custo_unitario_nf: Decimal | None = Field(
+        default=None,
+        sa_type=Numeric(12, 4),  # type: ignore
+        nullable=True,
+    )
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -945,6 +959,7 @@ class ProductItem(SQLModel, table=True):
 
     product: Product = Relationship(back_populates="items")
     service: Optional["Service"] = Relationship(back_populates="product_items")
+    entrada: Optional["EntradaEstoque"] = Relationship(back_populates="items")
 
 
 # ── Estoque Pydantic Schemas ───────────────────────────────────────────────────
@@ -1002,6 +1017,11 @@ class ProductRead(SQLModel):
     unit_price: Decimal
     description: str | None = None
     created_at: datetime | None = None
+    # Weighted average acquisition cost over em_estoque lots with a known cost.
+    # None when no lot qualifies. lotes_sem_custo reports the excluded count so a
+    # partially-populated average is never presented as complete.
+    custo_medio_ponderado: Decimal | None = None
+    lotes_sem_custo: int = 0
 
 
 class ProductUpdate(SQLModel):
@@ -1073,6 +1093,215 @@ class InventoryStockWarning(SQLModel):
 class BaixarEstoqueResponse(SQLModel):
     service_id: uuid.UUID
     items_updated: int
+
+
+# ── Custo de Aquisição ─────────────────────────────────────────────────────────
+
+
+class TipoCustoAjuste(str, enum.Enum):
+    """Closed set of reasons why real acquisition cost diverges from invoice price.
+
+    Every divergence must be classified. There is deliberately no untyped
+    "amount paid" member — see the change design doc for phase-11-custo-aquisicao.
+    """
+
+    frete = "frete"
+    seguro = "seguro"
+    icms_st = "icms_st"
+    ipi = "ipi"
+    despesa_acessoria = "despesa_acessoria"
+    desconto_comercial = "desconto_comercial"
+    devolucao = "devolucao"
+    correcao_documento = "correcao_documento"
+    outros = "outros"
+
+
+# Adjustment types that reduce cost and therefore must carry a negative valor.
+NEGATIVE_AJUSTE_TIPOS: frozenset[TipoCustoAjuste] = frozenset(
+    {
+        TipoCustoAjuste.desconto_comercial,
+        TipoCustoAjuste.devolucao,
+    }
+)
+
+AJUSTE_LABELS: dict[TipoCustoAjuste, str] = {
+    TipoCustoAjuste.frete: "Frete",
+    TipoCustoAjuste.seguro: "Seguro",
+    TipoCustoAjuste.icms_st: "ICMS-ST",
+    TipoCustoAjuste.ipi: "IPI",
+    TipoCustoAjuste.despesa_acessoria: "Despesa Acessória",
+    TipoCustoAjuste.desconto_comercial: "Desconto Comercial",
+    TipoCustoAjuste.devolucao: "Devolução",
+    TipoCustoAjuste.correcao_documento: "Correção de Documento",
+    TipoCustoAjuste.outros: "Outros",
+}
+
+
+class EntradaEstoque(SQLModel, table=True):
+    """One physical delivery from one supplier on one date.
+
+    Groups the stock lots received together and owns the cost adjustments that
+    apply to the delivery as a whole (frete, ICMS-ST, ...), which are apportioned
+    across its lots by value share.
+    """
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    fornecedor_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="fornecedor.id",
+        nullable=True,
+        ondelete="SET NULL",
+        index=True,
+    )
+    data_entrada: date
+    # Sized to hold an NF-e chave de acesso (44 chars) once XML import lands.
+    numero_documento: str | None = Field(default=None, max_length=44)
+    observacao: str | None = Field(default=None, sa_type=Text)
+    transacao_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="transacao.id",
+        nullable=True,
+        ondelete="SET NULL",
+    )
+    created_by_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="user.id",
+        nullable=True,
+        ondelete="SET NULL",
+    )
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    fornecedor: Optional["Fornecedor"] = Relationship()
+    items: list["ProductItem"] = Relationship(back_populates="entrada")
+    ajustes: list["CustoAjuste"] = Relationship(
+        back_populates="entrada",
+        cascade_delete=True,
+    )
+
+
+class CustoAjuste(SQLModel, table=True):
+    """A typed, document-referenced divergence from the invoice price."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    entrada_id: uuid.UUID = Field(
+        foreign_key="entradaestoque.id",
+        nullable=False,
+        ondelete="CASCADE",
+        index=True,
+    )
+    tipo: TipoCustoAjuste
+    valor: Decimal = Field(sa_type=Numeric(12, 2))  # type: ignore
+    documento_referencia: str | None = Field(default=None, max_length=100)
+    observacao: str | None = Field(default=None, sa_type=Text)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    entrada: EntradaEstoque = Relationship(back_populates="ajustes")
+
+
+class CustoAjusteCreate(SQLModel):
+    tipo: TipoCustoAjuste
+    valor: Decimal
+    documento_referencia: str | None = Field(default=None, max_length=100)
+    observacao: str | None = None
+
+    @model_validator(mode="after")
+    def validate_valor_sign_and_reason(self) -> "CustoAjusteCreate":
+        if self.valor == 0:
+            msg = "valor must not be zero"
+            raise ValueError(msg)
+        if self.tipo in NEGATIVE_AJUSTE_TIPOS:
+            if self.valor > 0:
+                msg = f"valor must be negative for tipo '{self.tipo.value}'"
+                raise ValueError(msg)
+        elif self.valor < 0:
+            msg = f"valor must be positive for tipo '{self.tipo.value}'"
+            raise ValueError(msg)
+        if self.tipo == TipoCustoAjuste.outros and not (self.observacao or "").strip():
+            msg = "observacao is required when tipo is 'outros'"
+            raise ValueError(msg)
+        return self
+
+
+class EntradaItemCreate(SQLModel):
+    product_id: uuid.UUID
+    quantity: Decimal = Field(gt=0)
+    custo_unitario_nf: Decimal = Field(ge=0)
+
+
+class EntradaEstoqueCreate(SQLModel):
+    data_entrada: date
+    fornecedor_id: uuid.UUID | None = None
+    numero_documento: str | None = Field(default=None, max_length=44)
+    observacao: str | None = None
+    criar_transacao: bool = False
+    itens: list[EntradaItemCreate] = Field(min_length=1)
+    ajustes: list[CustoAjusteCreate] = Field(default_factory=list)
+
+
+class CustoAjusteRead(SQLModel):
+    id: uuid.UUID
+    entrada_id: uuid.UUID
+    tipo: TipoCustoAjuste
+    valor: Decimal
+    documento_referencia: str | None = None
+    observacao: str | None = None
+    created_at: datetime | None = None
+
+
+class ProductRef(SQLModel):
+    id: uuid.UUID
+    name: str
+
+
+class EntradaItemRead(SQLModel):
+    id: uuid.UUID
+    product_id: uuid.UUID
+    product: ProductRef | None = None
+    quantity: Decimal
+    status: ProductItemStatus
+    custo_unitario_nf: Decimal | None = None
+    # Derived: invoice cost plus this lot's apportioned share of the adjustments.
+    custo_unitario_real: Decimal | None = None
+
+
+class EntradaEstoqueRead(SQLModel):
+    id: uuid.UUID
+    fornecedor_id: uuid.UUID | None = None
+    fornecedor: FornecedorRef | None = None
+    data_entrada: date
+    numero_documento: str | None = None
+    observacao: str | None = None
+    transacao_id: uuid.UUID | None = None
+    total_produtos: Decimal
+    total_ajustes: Decimal
+    total_real: Decimal
+    itens: list[EntradaItemRead] = Field(default_factory=list)
+    ajustes: list[CustoAjusteRead] = Field(default_factory=list)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class EntradaEstoqueListRead(SQLModel):
+    id: uuid.UUID
+    fornecedor_id: uuid.UUID | None = None
+    fornecedor: FornecedorRef | None = None
+    data_entrada: date
+    numero_documento: str | None = None
+    transacao_id: uuid.UUID | None = None
+    total_produtos: Decimal
+    total_ajustes: Decimal
+    total_real: Decimal
+    created_at: datetime | None = None
 
 
 # ── Orçamento ──────────────────────────────────────────────────────────────────

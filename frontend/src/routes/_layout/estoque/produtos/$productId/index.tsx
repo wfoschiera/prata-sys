@@ -321,6 +321,26 @@ function ProductDetail() {
               </span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Custo Médio de Aquisição
+              </span>
+              <span className="font-semibold">
+                {product.custo_medio_ponderado === null ||
+                product.custo_medio_ponderado === undefined
+                  ? "—"
+                  : Number(product.custo_medio_ponderado).toLocaleString(
+                      "pt-BR",
+                      { style: "currency", currency: "BRL" },
+                    )}
+              </span>
+            </div>
+            {(product.lotes_sem_custo ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {product.lotes_sem_custo} lote(s) em estoque sem custo
+                registrado ficaram de fora do custo médio.
+              </p>
+            )}
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Fornecedor</span>
               <span>{product.fornecedor?.company_name ?? "—"}</span>
             </div>

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Lock,
   Package,
+  PackagePlus,
   Truck,
   UserSquare2,
   Users,
@@ -110,6 +111,11 @@ export function AppSidebar() {
             icon: Package,
             title: "Estoque",
             path: "/estoque" as const,
+          },
+          {
+            icon: PackagePlus,
+            title: "Entradas de Estoque",
+            path: "/estoque/entradas" as const,
           },
         ]
       : []),

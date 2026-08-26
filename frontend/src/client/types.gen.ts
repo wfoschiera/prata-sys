@@ -95,6 +95,23 @@ export type CompanySettingsUpdate = {
     logo_url?: (string | null);
 };
 
+export type CustoAjusteCreate = {
+    tipo: TipoCustoAjuste;
+    valor: (number | string);
+    documento_referencia?: (string | null);
+    observacao?: (string | null);
+};
+
+export type CustoAjusteRead = {
+    id: string;
+    entrada_id: string;
+    tipo: TipoCustoAjuste;
+    valor: string;
+    documento_referencia?: (string | null);
+    observacao?: (string | null);
+    created_at?: (string | null);
+};
+
 export type DeductionItem = {
     service_item_id: string;
     quantity: number;
@@ -106,6 +123,62 @@ export type DeductionSummary = {
 };
 
 export type DocumentType = 'cpf' | 'cnpj';
+
+export type EntradaEstoqueCreate = {
+    data_entrada: string;
+    fornecedor_id?: (string | null);
+    numero_documento?: (string | null);
+    observacao?: (string | null);
+    criar_transacao?: boolean;
+    itens: Array<EntradaItemCreate>;
+    ajustes?: Array<CustoAjusteCreate>;
+};
+
+export type EntradaEstoqueListRead = {
+    id: string;
+    fornecedor_id?: (string | null);
+    fornecedor?: (FornecedorRef | null);
+    data_entrada: string;
+    numero_documento?: (string | null);
+    transacao_id?: (string | null);
+    total_produtos: string;
+    total_ajustes: string;
+    total_real: string;
+    created_at?: (string | null);
+};
+
+export type EntradaEstoqueRead = {
+    id: string;
+    fornecedor_id?: (string | null);
+    fornecedor?: (FornecedorRef | null);
+    data_entrada: string;
+    numero_documento?: (string | null);
+    observacao?: (string | null);
+    transacao_id?: (string | null);
+    total_produtos: string;
+    total_ajustes: string;
+    total_real: string;
+    itens?: Array<EntradaItemRead>;
+    ajustes?: Array<CustoAjusteRead>;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
+export type EntradaItemCreate = {
+    product_id: string;
+    quantity: (number | string);
+    custo_unitario_nf: (number | string);
+};
+
+export type EntradaItemRead = {
+    id: string;
+    product_id: string;
+    product?: (ProductRef | null);
+    quantity: string;
+    status: ProductItemStatus;
+    custo_unitario_nf?: (string | null);
+    custo_unitario_real?: (string | null);
+};
 
 export type FornecedorCategoryEnum = 'tubos' | 'conexoes' | 'bombas' | 'cabos' | 'outros';
 
@@ -345,6 +418,13 @@ export type ProductRead = {
     unit_price: string;
     description?: (string | null);
     created_at?: (string | null);
+    custo_medio_ponderado?: (string | null);
+    lotes_sem_custo?: number;
+};
+
+export type ProductRef = {
+    id: string;
+    name: string;
 };
 
 export type ProductTypeCreate = {
@@ -510,6 +590,14 @@ export type StockWarning = {
     available_quantity: number;
     shortfall: number;
 };
+
+/**
+ * Closed set of reasons why real acquisition cost diverges from invoice price.
+ *
+ * Every divergence must be classified. There is deliberately no untyped
+ * "amount paid" member — see the change design doc for phase-11-custo-aquisicao.
+ */
+export type TipoCustoAjuste = 'frete' | 'seguro' | 'icms_st' | 'ipi' | 'despesa_acessoria' | 'desconto_comercial' | 'devolucao' | 'correcao_documento' | 'outros';
 
 export type TipoTransacao = 'receita' | 'despesa';
 
@@ -678,6 +766,40 @@ export type DashboardGetOperationalDashboardData = {
 };
 
 export type DashboardGetOperationalDashboardResponse = (YearlyOperationalDashboard);
+
+export type EntradasEstoqueCreateEntradaEstoqueData = {
+    requestBody: EntradaEstoqueCreate;
+};
+
+export type EntradasEstoqueCreateEntradaEstoqueResponse = (EntradaEstoqueRead);
+
+export type EntradasEstoqueListEntradasEstoqueData = {
+    dataFim?: (string | null);
+    dataInicio?: (string | null);
+    fornecedorId?: (string | null);
+};
+
+export type EntradasEstoqueListEntradasEstoqueResponse = (Array<EntradaEstoqueListRead>);
+
+export type EntradasEstoqueGetEntradaEstoqueData = {
+    entradaId: string;
+};
+
+export type EntradasEstoqueGetEntradaEstoqueResponse = (EntradaEstoqueRead);
+
+export type EntradasEstoqueCreateCustoAjusteData = {
+    entradaId: string;
+    requestBody: CustoAjusteCreate;
+};
+
+export type EntradasEstoqueCreateCustoAjusteResponse = (CustoAjusteRead);
+
+export type EntradasEstoqueDeleteCustoAjusteData = {
+    ajusteId: string;
+    entradaId: string;
+};
+
+export type EntradasEstoqueDeleteCustoAjusteResponse = (void);
 
 export type EstoqueGetDashboardResponse = (Array<CategoryDashboardItem>);
 

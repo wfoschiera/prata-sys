@@ -1,10 +1,10 @@
 import logging
 import uuid
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from sqlalchemy import extract
+from sqlalchemy import case, extract
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, func, select
 
@@ -19,8 +19,12 @@ from app.models import (
     ClientCreate,
     ClientRef,
     ClientUpdate,
+    CustoAjuste,
+    CustoAjusteCreate,
     DeductionItem,
     DeductionSummary,
+    EntradaEstoque,
+    EntradaEstoqueCreate,
     Fornecedor,
     FornecedorCategoria,
     FornecedorCategoryEnum,
@@ -449,9 +453,7 @@ def _deduct_stock_items(
     reserved items are consumed and a shortfall is logged.
     """
     material_items = {
-        item.id: item
-        for item in service.items
-        if item.item_type == ItemType.material
+        item.id: item for item in service.items if item.item_type == ItemType.material
     }
     for d in deduction_items:
         if d.service_item_id not in material_items:
@@ -1760,3 +1762,352 @@ def get_yearly_operational_summary(
         )
 
     return YearlyOperationalDashboard(ano=ano, weeks=weeks)
+
+
+# ── Custo de Aquisição ─────────────────────────────────────────────────────────
+
+_CENTAVO = Decimal("0.01")
+_MILESIMO = Decimal("0.0001")
+
+
+def _apportion_ajustes(
+    *,
+    itens: list[tuple[uuid.UUID, Decimal, Decimal | None]],
+    total_ajustes: Decimal,
+) -> dict[uuid.UUID, Decimal]:
+    """Distribute an entrada's adjustments across its lots by value share.
+
+    ``itens`` is a list of ``(lot_id, quantity, custo_unitario_nf)``. Each share is
+    quantised to centavos and the rounding residual is assigned to the lot with the
+    largest invoice value, so the shares always sum to ``total_ajustes`` exactly and
+    the entrada reconciles to its source documents.
+
+    A lot with zero invoice value (bonificação) receives no share. When the whole
+    entrada has zero invoice value, adjustments fall back to quantity share.
+    """
+    if not itens:
+        return {}
+
+    valores = {
+        lot_id: quantity * (custo or Decimal(0)) for lot_id, quantity, custo in itens
+    }
+    base_total = sum(valores.values(), Decimal(0))
+
+    if base_total > 0:
+        ranking = valores
+    else:
+        ranking = {lot_id: quantity for lot_id, quantity, _ in itens}
+        qty_total = sum(ranking.values(), Decimal(0))
+        if qty_total <= 0:
+            msg = "cannot apportion adjustments: entrada has no value and no quantity"
+            raise ValueError(msg)
+        base_total = qty_total
+
+    shares = {
+        lot_id: (total_ajustes * (base / base_total)).quantize(
+            _CENTAVO, rounding=ROUND_HALF_UP
+        )
+        for lot_id, base in ranking.items()
+    }
+
+    target = total_ajustes.quantize(_CENTAVO, rounding=ROUND_HALF_UP)
+    residual = target - sum(shares.values(), Decimal(0))
+    if residual != 0:
+        # Deterministic tie-break on the id so the result is stable across runs.
+        largest = max(ranking, key=lambda k: (ranking[k], str(k)))
+        shares[largest] += residual
+    return shares
+
+
+def _custo_unitario_real(
+    *, quantity: Decimal, custo_unitario_nf: Decimal | None, share: Decimal
+) -> Decimal | None:
+    """Invoice unit cost plus this lot's apportioned share of the adjustments."""
+    if custo_unitario_nf is None or quantity <= 0:
+        return None
+    total = (custo_unitario_nf * quantity) + share
+    return (total / quantity).quantize(_MILESIMO, rounding=ROUND_HALF_UP)
+
+
+def compute_entrada_costs(
+    entrada: EntradaEstoque,
+) -> tuple[Decimal, Decimal, dict[uuid.UUID, Decimal | None]]:
+    """Return ``(total_produtos, total_ajustes, custo_unitario_real_by_lot_id)``.
+
+    The real unit cost is None for a lot with no recorded invoice cost.
+    """
+    total_produtos = sum(
+        (
+            item.quantity * (item.custo_unitario_nf or Decimal(0))
+            for item in entrada.items
+        ),
+        Decimal(0),
+    ).quantize(_CENTAVO, rounding=ROUND_HALF_UP)
+    total_ajustes = sum(
+        (ajuste.valor for ajuste in entrada.ajustes), Decimal(0)
+    ).quantize(_CENTAVO, rounding=ROUND_HALF_UP)
+
+    if not entrada.items:
+        return total_produtos, total_ajustes, {}
+
+    shares = _apportion_ajustes(
+        itens=[
+            (item.id, item.quantity, item.custo_unitario_nf) for item in entrada.items
+        ],
+        total_ajustes=total_ajustes,
+    )
+    reais = {
+        item.id: _custo_unitario_real(
+            quantity=item.quantity,
+            custo_unitario_nf=item.custo_unitario_nf,
+            share=shares.get(item.id, Decimal(0)),
+        )
+        for item in entrada.items
+    }
+    return total_produtos, total_ajustes, reais
+
+
+def get_custo_medio_ponderado(
+    *, session: Session, product_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[Decimal | None, int]]:
+    """Weighted average acquisition cost per product, with excluded-lot count.
+
+    Averages ``custo_unitario_real`` over ``em_estoque`` lots that have a known
+    invoice cost, weighted by quantity. Lots with no cost are excluded and counted
+    so a partially-populated average is never presented as complete.
+
+    Runs as a single aggregate query regardless of how many products are asked for.
+    """
+    result: dict[uuid.UUID, tuple[Decimal | None, int]] = dict.fromkeys(
+        product_ids, (None, 0)
+    )
+    if not product_ids:
+        return result
+
+    ajuste_tot = (
+        select(
+            CustoAjuste.entrada_id.label("entrada_id"),  # type: ignore[attr-defined]
+            func.sum(CustoAjuste.valor).label("total_ajustes"),
+        )
+        .group_by(CustoAjuste.entrada_id)  # type: ignore[arg-type]
+        .subquery()
+    )
+    base_tot = (
+        select(
+            ProductItem.entrada_id.label("entrada_id"),  # type: ignore[union-attr]
+            func.sum(ProductItem.quantity * ProductItem.custo_unitario_nf).label(  # type: ignore[operator]
+                "base_total"
+            ),
+        )
+        .where(
+            ProductItem.entrada_id.is_not(None),  # type: ignore[union-attr]
+            ProductItem.custo_unitario_nf.is_not(None),  # type: ignore[union-attr]
+        )
+        .group_by(ProductItem.entrada_id)  # type: ignore[arg-type]
+        .subquery()
+    )
+
+    has_cost = ProductItem.custo_unitario_nf.is_not(None)  # type: ignore[union-attr]
+    valor_base = ProductItem.quantity * ProductItem.custo_unitario_nf  # type: ignore[operator]
+    # Adjustments are apportioned by value share, so a lot's real total is its
+    # invoice value scaled by (1 + entrada_ajustes / entrada_base).
+    multiplier = 1 + func.coalesce(
+        ajuste_tot.c.total_ajustes / func.nullif(base_tot.c.base_total, 0), 0
+    )
+
+    stmt = (
+        select(
+            ProductItem.product_id,
+            func.sum(case((has_cost, valor_base * multiplier), else_=0)).label(
+                "numerador"
+            ),
+            func.sum(case((has_cost, ProductItem.quantity), else_=0)).label(
+                "denominador"
+            ),
+            func.sum(case((has_cost, 0), else_=1)).label("lotes_sem_custo"),
+        )
+        .select_from(ProductItem)
+        .outerjoin(ajuste_tot, ajuste_tot.c.entrada_id == ProductItem.entrada_id)
+        .outerjoin(base_tot, base_tot.c.entrada_id == ProductItem.entrada_id)
+        .where(
+            ProductItem.product_id.in_(product_ids),  # type: ignore[attr-defined]
+            ProductItem.status == ProductItemStatus.em_estoque,
+        )
+        .group_by(ProductItem.product_id)  # type: ignore[arg-type]
+    )
+
+    for product_id, numerador, denominador, sem_custo in session.exec(stmt):
+        media: Decimal | None = None
+        if denominador and Decimal(denominador) > 0 and numerador is not None:
+            media = (Decimal(numerador) / Decimal(denominador)).quantize(
+                _MILESIMO, rounding=ROUND_HALF_UP
+            )
+        result[product_id] = (media, int(sem_custo or 0))
+    return result
+
+
+def _entrada_options() -> list[Any]:
+    return [
+        selectinload(EntradaEstoque.fornecedor),  # type: ignore[arg-type]
+        selectinload(EntradaEstoque.ajustes),  # type: ignore[arg-type]
+        selectinload(EntradaEstoque.items).selectinload(  # type: ignore[arg-type]
+            ProductItem.product  # type: ignore[arg-type]
+        ),
+    ]
+
+
+def get_entrada_estoque(
+    *, session: Session, entrada_id: uuid.UUID
+) -> EntradaEstoque | None:
+    return session.exec(
+        select(EntradaEstoque)
+        .where(EntradaEstoque.id == entrada_id)
+        .options(*_entrada_options())
+    ).first()
+
+
+def get_entradas_estoque(
+    *,
+    session: Session,
+    fornecedor_id: uuid.UUID | None = None,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+) -> list[EntradaEstoque]:
+    stmt = select(EntradaEstoque).options(*_entrada_options())
+    if fornecedor_id is not None:
+        stmt = stmt.where(EntradaEstoque.fornecedor_id == fornecedor_id)
+    if data_inicio is not None:
+        stmt = stmt.where(EntradaEstoque.data_entrada >= data_inicio)
+    if data_fim is not None:
+        stmt = stmt.where(EntradaEstoque.data_entrada <= data_fim)
+    stmt = stmt.order_by(EntradaEstoque.data_entrada.desc())  # type: ignore[attr-defined]
+    return list(session.exec(stmt).all())
+
+
+def create_entrada_estoque(
+    *,
+    session: Session,
+    entrada_in: EntradaEstoqueCreate,
+    created_by_id: uuid.UUID | None = None,
+) -> EntradaEstoque:
+    """Create a delivery, its stock lots, and its adjustments in one transaction.
+
+    Every referenced product is validated before anything is written, so a bad
+    reference leaves no partial records behind.
+    """
+    if (
+        entrada_in.fornecedor_id is not None
+        and session.get(Fornecedor, entrada_in.fornecedor_id) is None
+    ):
+        msg = "Fornecedor not found"
+        raise ValueError(msg)
+    for item_in in entrada_in.itens:
+        if session.get(Product, item_in.product_id) is None:
+            msg = f"Product {item_in.product_id} not found"
+            raise ValueError(msg)
+
+    total_produtos = sum(
+        (i.quantity * i.custo_unitario_nf for i in entrada_in.itens), Decimal(0)
+    )
+    total_ajustes = sum((a.valor for a in entrada_in.ajustes), Decimal(0))
+    total_real = (total_produtos + total_ajustes).quantize(
+        _CENTAVO, rounding=ROUND_HALF_UP
+    )
+
+    if entrada_in.criar_transacao and total_real <= 0:
+        msg = "cannot book a despesa for an entrada whose total is not positive"
+        raise ValueError(msg)
+
+    entrada = EntradaEstoque(
+        fornecedor_id=entrada_in.fornecedor_id,
+        data_entrada=entrada_in.data_entrada,
+        numero_documento=entrada_in.numero_documento,
+        observacao=entrada_in.observacao,
+        created_by_id=created_by_id,
+    )
+    session.add(entrada)
+    session.flush()
+
+    for item_in in entrada_in.itens:
+        session.add(
+            ProductItem(
+                product_id=item_in.product_id,
+                quantity=item_in.quantity,
+                status=ProductItemStatus.em_estoque,
+                service_id=None,
+                entrada_id=entrada.id,
+                custo_unitario_nf=item_in.custo_unitario_nf,
+            )
+        )
+    for ajuste_in in entrada_in.ajustes:
+        session.add(
+            CustoAjuste(
+                entrada_id=entrada.id,
+                tipo=ajuste_in.tipo,
+                valor=ajuste_in.valor,
+                documento_referencia=ajuste_in.documento_referencia,
+                observacao=ajuste_in.observacao,
+            )
+        )
+
+    if entrada_in.criar_transacao:
+        descricao = "Entrada de estoque"
+        if entrada_in.numero_documento:
+            descricao = f"Entrada de estoque — doc. {entrada_in.numero_documento}"
+        transacao = Transacao(
+            tipo=TipoTransacao.despesa,
+            categoria=CategoriaTransacao.COMPRA_MATERIAL,
+            valor=total_real,
+            data_competencia=entrada_in.data_entrada,
+            descricao=descricao,
+            fornecedor_id=entrada_in.fornecedor_id,
+        )
+        session.add(transacao)
+        session.flush()
+        entrada.transacao_id = transacao.id
+        session.add(entrada)
+
+    session.commit()
+
+    reloaded = get_entrada_estoque(session=session, entrada_id=entrada.id)
+    if reloaded is None:
+        msg = "EntradaEstoque disappeared after creation"
+        raise RuntimeError(msg)
+    return reloaded
+
+
+def add_custo_ajuste(
+    *, session: Session, entrada_id: uuid.UUID, ajuste_in: CustoAjusteCreate
+) -> CustoAjuste:
+    entrada = session.get(EntradaEstoque, entrada_id)
+    if entrada is None:
+        msg = "EntradaEstoque not found"
+        raise ValueError(msg)
+    ajuste = CustoAjuste(
+        entrada_id=entrada_id,
+        tipo=ajuste_in.tipo,
+        valor=ajuste_in.valor,
+        documento_referencia=ajuste_in.documento_referencia,
+        observacao=ajuste_in.observacao,
+    )
+    session.add(ajuste)
+    entrada.updated_at = get_datetime_utc()
+    session.add(entrada)
+    session.commit()
+    session.refresh(ajuste)
+    return ajuste
+
+
+def delete_custo_ajuste(
+    *, session: Session, entrada_id: uuid.UUID, ajuste_id: uuid.UUID
+) -> None:
+    ajuste = session.get(CustoAjuste, ajuste_id)
+    if ajuste is None or ajuste.entrada_id != entrada_id:
+        msg = "CustoAjuste not found"
+        raise ValueError(msg)
+    entrada = session.get(EntradaEstoque, entrada_id)
+    session.delete(ajuste)
+    if entrada is not None:
+        entrada.updated_at = get_datetime_utc()
+        session.add(entrada)
+    session.commit()
