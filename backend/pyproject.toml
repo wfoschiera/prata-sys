@@ -34,7 +34,7 @@ dev = [
     "pytest-randomly>=4.0.1",
     "pytest-cov>=7.1.0",
     "factory-boy>=3.3.3",
-    "faker>=40.11.0",
+    "faker>=40.36.0",
 ]
 
 [build-system]
